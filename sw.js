@@ -4,13 +4,14 @@
  * Cache-First with Stale-While-Revalidate Strategy
  * ==================================================================== */
 
-const CACHE_NAME = 'we-medical-dakahlia-v3.0.0';
+const CACHE_NAME = 'we-medical-dakahlia-v3.1.0';
 
 const PRECACHE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './css/styles.css',
+  './js/illustrations.js',
   './js/data.js',
   './js/storage.js',
   './js/app.js',

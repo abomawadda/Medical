@@ -520,12 +520,52 @@
          VIEW: Emergency (الطوارئ والاستغاثة والموافقات الطبية)
          ==================================================================== -->
     <div id="view-emergency" class="view-section" style="display: none;">
-      <div class="smart-filter-bar">
-        <div style="font-size: 0.9rem; font-weight: 800; color: #dc2626;">
-          <i class="fa-solid fa-truck-medical"></i> خطوط الاستغاثة العاجلة وطوارئ 24 ساعة
+      <!-- Emergency Header Banner -->
+      <div class="emergency-header-banner">
+        <h2><i class="fa-solid fa-truck-medical"></i> دليل طوارئ واستغاثة محافظة الدقهلية الشامل</h2>
+        <p>حصر شامل ومدقق لمستشفيات الطوارئ، مراكز السموم، بنوك الدم، الرعايات المركزة وقسطرة القلب في كافة مراكز الدقهلية الـ 16 على مدار 24 ساعة.</p>
+      </div>
+
+      <!-- Emergency Search & Multi-Filters -->
+      <div class="emergency-filter-card">
+        <div>
+          <label style="font-size:0.75rem; font-weight:800; color:var(--text-secondary); display:block; margin-bottom:0.25rem;">
+            <i class="fa-solid fa-magnifying-glass"></i> بحث في الطوارئ والخدمة
+          </label>
+          <input type="text" id="emergency-search-input" class="search-input" style="padding:0.45rem 0.65rem; font-size:0.82rem;" placeholder="ابحث باسم المستشفى، قسطرة قلب، سموم، أطفال..." oninput="window.MedicalApp.filterEmergencyDirectory()">
+        </div>
+
+        <div>
+          <label style="font-size:0.75rem; font-weight:800; color:var(--text-secondary); display:block; margin-bottom:0.25rem;">
+            <i class="fa-solid fa-map-pin"></i> تصفية بمركز المحافظة (16 مركز)
+          </label>
+          <select id="emergency-markaz-select" class="sort-select" style="width:100%; font-size:0.82rem; padding:0.45rem;" onchange="window.MedicalApp.filterEmergencyDirectory()">
+            <option value="all">كافة مراكز الدقهلية (16)</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size:0.75rem; font-weight:800; color:var(--text-secondary); display:block; margin-bottom:0.25rem;">
+            <i class="fa-solid fa-building-shield"></i> التبعية ونوع الجهة
+          </label>
+          <select id="emergency-affiliation-select" class="sort-select" style="width:100%; font-size:0.82rem; padding:0.45rem;" onchange="window.MedicalApp.filterEmergencyDirectory()">
+            <option value="all">كافة الجهات (جامعي / صحة / خاص)</option>
+            <option value="جامعة المنصورة">مستشفيات جامعة المنصورة</option>
+            <option value="أمانة المراكز">أمانة المراكز الطبية المتخصصة</option>
+            <option value="وزارة الصحة">مستشفيات وزارة الصحة المركزية</option>
+            <option value="خاص متعاقد">خاص متعاقد مع WE</option>
+            <option value="حكومي مركزي">خطوط طوارئ مركزية وقومية</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Quick Summary Pills -->
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
+        <div style="font-size:0.82rem; font-weight:800; color:var(--we-purple-primary);" id="emergency-count-badge">
+          <i class="fa-solid fa-hospital"></i> جاري حصر منشآت الطوارئ...
         </div>
         <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
-          <i class="fa-solid fa-house"></i> الرئيسية
+          <i class="fa-solid fa-house"></i> العودة للرئيسية
         </button>
       </div>
 
@@ -920,6 +960,7 @@
   <!-- Scripts -->
   <script src="js/data.js"></script>
   <script src="js/storage.js"></script>
+  <script src="js/illustrations.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/app.js"></script>
 </body>

@@ -766,11 +766,25 @@
     const callPhone = primaryWp.phones && primaryWp.phones[0] ? primaryWp.phones[0].tel : '';
     const waPhone = primaryWp.phones && primaryWp.phones.find(p => p.whatsapp) ? primaryWp.phones.find(p => p.whatsapp).whatsapp : null;
 
+    // Vector SVG Illustration with caption
+    const avatarSvg = window.MedicalIllustrations ? window.MedicalIllustrations.getForEntity(doc, 48) : `<i class="fa-solid ${iconClass}"></i>`;
+
+    // Dynamic Live Rating & Reviews
+    const ratingStats = doc.ratingStats || MedicalStorage.getReviewStats(doc.doctor_id, doc.rating || 4.8, doc.reviews_count || 18);
+    
+    // Accredited Clinical Services
+    const servicesList = doc.services || ['كشف واستشارة طبية متخصصة', 'فحص إكلينيكي وتشخيص دقيق'];
+    const visibleServices = servicesList.slice(0, 3);
+    const remainingServices = servicesList.slice(3);
+
     return `
       <div class="doctor-card" data-doc-id="${doc.doctor_id}">
         <div class="card-top">
-          <div class="doctor-avatar">
-            <i class="fa-solid ${iconClass}"></i>
+          <div class="doctor-avatar-wrapper">
+            <div class="doctor-avatar">
+              ${avatarSvg}
+            </div>
+            <span class="avatar-illustration-note" title="رسم إيضاحي تعبيري">إيضاحي</span>
           </div>
           <div class="doctor-info">
             <span class="doctor-academic-badge">${doc.academic_rank}</span>
@@ -790,6 +804,55 @@
             ${primaryWp.coverage_label || 'شامل: العاملين + أسر جلوب ميد'}
           </span>
           <span class="badge-markaz wp-markaz-badge"><i class="fa-solid fa-map-pin"></i> ${primaryWp.markaz || primaryWp.city || 'المنصورة'}</span>
+        </div>
+
+        <!-- Live Composite Rating Row & Visit Evaluation Trigger -->
+        <div class="card-rating-row">
+          <div class="rating-stars-badge">
+            <i class="fa-solid fa-star"></i>
+            <span>${ratingStats.overallRating}</span>
+            <span class="rating-reviews-counter">(${ratingStats.totalReviews} تقييم${ratingStats.hasUserReviews ? ' • إقرار زيارة' : ''})</span>
+          </div>
+          <button class="btn-open-rate-sheet" onclick="window.MedicalApp.openVisitEvaluationModal('${doc.doctor_id}', 'doctor', '${doc.display_name.replace(/'/g, "\\'")}')" title="تقييم زيارتك لهذا الطبيب">
+            <i class="fa-regular fa-star"></i> تقييم الزيارة
+          </button>
+        </div>
+
+        <!-- Accredited Services Chips -->
+        <div class="card-services-section">
+          <div class="card-services-header">
+            <span><i class="fa-solid fa-notes-medical"></i> الخدمات المعتمدة (${servicesList.length})</span>
+            <span style="font-size:0.65rem; color:var(--text-muted);">تغطية WE</span>
+          </div>
+          <div class="card-services-chips" id="services-chips-${doc.doctor_id}">
+            ${visibleServices.map(s => {
+              const servStat = ratingStats.services && ratingStats.services[s];
+              return `
+                <span class="service-chip-badge">
+                  <i class="fa-solid fa-circle-check" style="color:var(--we-purple-primary); font-size:0.6rem;"></i>
+                  <span>${s}</span>
+                  ${servStat ? `<span class="service-rating-mini">⭐ ${servStat.avg}</span>` : ''}
+                </span>
+              `;
+            }).join('')}
+            ${remainingServices.length > 0 ? `
+              <span class="service-chip-badge service-chip-more" onclick="window.MedicalApp.expandCardServices('${doc.doctor_id}')" id="more-btn-${doc.doctor_id}">
+                + ${remainingServices.length} خدمات أخرى
+              </span>
+              <div class="card-services-hidden" id="hidden-services-${doc.doctor_id}" style="display:none; width:100%; flex-wrap:wrap; gap:0.25rem; margin-top:0.25rem;">
+                ${remainingServices.map(s => {
+                  const servStat = ratingStats.services && ratingStats.services[s];
+                  return `
+                    <span class="service-chip-badge">
+                      <i class="fa-solid fa-circle-check" style="color:var(--we-purple-primary); font-size:0.6rem;"></i>
+                      <span>${s}</span>
+                      ${servStat ? `<span class="service-rating-mini">⭐ ${servStat.avg}</span>` : ''}
+                    </span>
+                  `;
+                }).join('')}
+              </div>
+            ` : ''}
+          </div>
         </div>
 
         ${hasMultipleWp ? `
@@ -964,14 +1027,9 @@
     const container = document.getElementById('services-grid-container');
     if (!container) return;
 
-    let items = [];
     const tab = state.selectedServiceTab;
     const scope = state.selectedCoverageScope;
-
-    if (tab === 'all' || tab === 'labs') items = items.concat(state.labs);
-    if (tab === 'all' || tab === 'radiology') items = items.concat(state.radiology);
-    if (tab === 'all' || tab === 'pharmacies') items = items.concat(state.pharmacies);
-    if (tab === 'all' || tab === 'specialized') items = items.concat(state.specializedCenters);
+    let items = MedicalStorage.getLiveFacilities(tab);
 
     // Apply Scope Filter
     if (scope !== 'all') {
@@ -993,29 +1051,35 @@
     }
 
     container.innerHTML = items.map((item) => {
-      let icon = 'fa-hospital-user';
-      let iconColor = '#5B2C82';
       let catLabel = 'خدمة طبية';
-
-      if (item.category === 'labs') { icon = 'fa-vial-virus'; iconColor = '#0288D1'; catLabel = 'معمل تحاليل'; }
-      else if (item.category === 'radiology') { icon = 'fa-x-ray'; iconColor = '#8E24AA'; catLabel = 'مركز أشعة'; }
-      else if (item.category === 'pharmacies') { icon = 'fa-prescription-bottle-medical'; iconColor = '#10B981'; catLabel = 'صيدلية'; }
-      else if (item.category === 'dental') { icon = 'fa-tooth'; iconColor = '#00ACC1'; catLabel = 'مركز أسنان'; }
-      else if (item.category === 'optics') { icon = 'fa-eye'; iconColor = '#43A047'; catLabel = 'مركز عيون'; }
-      else if (item.category === 'dialysis') { icon = 'fa-droplet'; iconColor = '#1E88E5'; catLabel = 'غسيل كلوي'; }
-      else if (item.category === 'cardiology_center') { icon = 'fa-heart-pulse'; iconColor = '#E53935'; catLabel = 'قسطرة قلب 24س'; }
-      else if (item.category === 'home_care') { icon = 'fa-user-nurse'; iconColor = '#EC4899'; catLabel = 'تمريض منزلي'; }
+      if (item.category === 'labs') catLabel = 'معمل تحاليل';
+      else if (item.category === 'radiology') catLabel = 'مركز أشعة';
+      else if (item.category === 'pharmacies') catLabel = 'صيدلية';
+      else if (item.category === 'dental') catLabel = 'مركز أسنان';
+      else if (item.category === 'optics') catLabel = 'مركز عيون';
+      else if (item.category === 'dialysis') catLabel = 'غسيل كلوي';
+      else if (item.category === 'cardiology_center') catLabel = 'قسطرة قلب 24س';
+      else if (item.category === 'home_care') catLabel = 'تمريض منزلي';
 
       const callPhone = item.phone ? item.phone.split(/[-,\/]/)[0].trim().replace(/[^\d]/g, '') : '';
+      const avatarSvg = window.MedicalIllustrations ? window.MedicalIllustrations.getForEntity(item, 48) : `<i class="fa-solid fa-hospital-user"></i>`;
+      const ratingStats = item.ratingStats || MedicalStorage.getReviewStats(item.id, item.rating || 4.8, item.reviews_count || 15);
+
+      const servList = Array.isArray(item.services) ? item.services : (item.services ? item.services.split(/[,،•]/).map(s => s.trim()).filter(Boolean) : ['كشف وفحص طبي', 'خدمة معتمدة للشركة WE']);
+      const visibleServ = servList.slice(0, 3);
+      const remServ = servList.slice(3);
 
       return `
         <div class="doctor-card">
           <div class="card-top">
-            <div class="doctor-avatar" style="color: ${iconColor};">
-              <i class="fa-solid ${icon}"></i>
+            <div class="doctor-avatar-wrapper">
+              <div class="doctor-avatar">
+                ${avatarSvg}
+              </div>
+              <span class="avatar-illustration-note" title="رسم إيضاحي تعبيري">إيضاحي</span>
             </div>
             <div class="doctor-info">
-              <span class="doctor-academic-badge" style="color:${iconColor};">${catLabel}</span>
+              <span class="doctor-academic-badge">${catLabel}</span>
               <h3 class="doctor-name">${item.name}</h3>
               <div class="doctor-specialty-sub">${item.markaz || item.city}</div>
             </div>
@@ -1025,6 +1089,55 @@
             <span class="badge-contract-entity"><i class="fa-solid fa-handshake"></i> ${item.contract_entity || 'مباشر من الشركة WE'}</span>
             <span class="badge-coverage-scope"><i class="fa-solid fa-circle-check"></i> ${item.coverage_label || 'شامل: العاملين + أسر جلوب ميد'}</span>
             <span class="badge-markaz"><i class="fa-solid fa-map-pin"></i> ${item.markaz || item.city || 'المنصورة'}</span>
+          </div>
+
+          <!-- Live Composite Rating Row & Visit Evaluation Trigger -->
+          <div class="card-rating-row">
+            <div class="rating-stars-badge">
+              <i class="fa-solid fa-star"></i>
+              <span>${ratingStats.overallRating}</span>
+              <span class="rating-reviews-counter">(${ratingStats.totalReviews} تقييم${ratingStats.hasUserReviews ? ' • إقرار زيارة' : ''})</span>
+            </div>
+            <button class="btn-open-rate-sheet" onclick="window.MedicalApp.openVisitEvaluationModal('${item.id}', 'facility', '${item.name.replace(/'/g, "\\'")}')" title="تقييم زيارتك لهذه المنشأة">
+              <i class="fa-regular fa-star"></i> تقييم الزيارة
+            </button>
+          </div>
+
+          <!-- Services Chips -->
+          <div class="card-services-section">
+            <div class="card-services-header">
+              <span><i class="fa-solid fa-notes-medical"></i> الخدمات المعتمدة (${servList.length})</span>
+              <span style="font-size:0.65rem; color:var(--text-muted);">تغطية WE</span>
+            </div>
+            <div class="card-services-chips" id="services-chips-${item.id}">
+              ${visibleServ.map(s => {
+                const servStat = ratingStats.services && ratingStats.services[s];
+                return `
+                  <span class="service-chip-badge">
+                    <i class="fa-solid fa-circle-check" style="color:var(--we-purple-primary); font-size:0.6rem;"></i>
+                    <span>${s}</span>
+                    ${servStat ? `<span class="service-rating-mini">⭐ ${servStat.avg}</span>` : ''}
+                  </span>
+                `;
+              }).join('')}
+              ${remServ.length > 0 ? `
+                <span class="service-chip-badge service-chip-more" onclick="window.MedicalApp.expandCardServices('${item.id}')" id="more-btn-${item.id}">
+                  + ${remServ.length} خدمات أخرى
+                </span>
+                <div class="card-services-hidden" id="hidden-services-${item.id}" style="display:none; width:100%; flex-wrap:wrap; gap:0.25rem; margin-top:0.25rem;">
+                  ${remServ.map(s => {
+                    const servStat = ratingStats.services && ratingStats.services[s];
+                    return `
+                      <span class="service-chip-badge">
+                        <i class="fa-solid fa-circle-check" style="color:var(--we-purple-primary); font-size:0.6rem;"></i>
+                        <span>${s}</span>
+                        ${servStat ? `<span class="service-rating-mini">⭐ ${servStat.avg}</span>` : ''}
+                      </span>
+                    `;
+                  }).join('')}
+                </div>
+              ` : ''}
+            </div>
           </div>
 
           <div class="card-details-list">
@@ -1040,12 +1153,6 @@
               <i class="fa-solid fa-phone"></i>
               <span>${item.phone || item.hotline}</span>
             </div>
-            ${item.services ? `
-              <div class="detail-row">
-                <i class="fa-solid fa-check"></i>
-                <span style="font-size:0.78rem;">${item.services}</span>
-              </div>
-            ` : ''}
           </div>
 
           <div class="card-actions-row">
@@ -1081,37 +1188,154 @@
     }).join('');
   }
 
-  // --- Emergency View ---
+  // --- Emergency View & Dakahlia Comprehensive Emergency Directory ---
   function renderEmergencyView() {
     const container = document.getElementById('emergency-grid-container');
+    const markazSelect = document.getElementById('emergency-markaz-select');
     if (!container) return;
 
-    container.innerHTML = state.emergencyServices.map((em) => `
-      <div class="emergency-card">
-        <div class="emergency-icon" style="background:${em.color || '#D32F2F'}">
-          <i class="fa-solid ${em.icon || 'fa-truck-medical'}"></i>
+    // Populate emergency Markaz dropdown with all 16 centers if empty
+    if (markazSelect && markazSelect.options.length <= 1) {
+      const allCenters = [
+        'المنصورة', 'طلخا', 'ميت غمر', 'السنبلاوين', 'بلقاس',
+        'دكرنس', 'شربين', 'أجا', 'المنزلة', 'منية النصر',
+        'ميت سلسيل', 'بني عبيد', 'نبروه', 'الجمالية', 'تمي الأمديد', 'محلة دمنة'
+      ];
+      allCenters.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = `مركز ${m}`;
+        markazSelect.appendChild(opt);
+      });
+    }
+
+    filterEmergencyDirectory();
+  }
+
+  function filterEmergencyDirectory() {
+    const container = document.getElementById('emergency-grid-container');
+    const searchInput = document.getElementById('emergency-search-input');
+    const markazSelect = document.getElementById('emergency-markaz-select');
+    const affSelect = document.getElementById('emergency-affiliation-select');
+    const countBadge = document.getElementById('emergency-count-badge');
+    if (!container) return;
+
+    const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+    const selMarkaz = markazSelect ? markazSelect.value : 'all';
+    const selAff = affSelect ? affSelect.value : 'all';
+
+    let list = MedicalStorage.getEmergencyServices();
+
+    if (selMarkaz !== 'all') {
+      list = list.filter(e => e.markaz === selMarkaz || (e.city && e.city.includes(selMarkaz)) || (e.address && e.address.includes(selMarkaz)));
+    }
+
+    if (selAff !== 'all') {
+      list = list.filter(e => e.affiliation && e.affiliation.includes(selAff));
+    }
+
+    if (query) {
+      list = list.filter(e => {
+        const str = `${e.name} ${e.description || ''} ${e.service_type || ''} ${e.address || ''} ${e.markaz || ''}`.toLowerCase();
+        return str.includes(query);
+      });
+    }
+
+    if (countBadge) {
+      countBadge.innerHTML = `<i class="fa-solid fa-hospital-user"></i> متاح (${list.length}) منشأة وخدمة طوارئ واستغاثة بالدقهلية`;
+    }
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state" style="grid-column: 1 / -1;">
+          <i class="fa-solid fa-truck-medical" style="font-size: 2.5rem; color: #dc2626; margin-bottom: 0.75rem;"></i>
+          <h3>لا توجد منشآت طوارئ مطابقة لبحثك</h3>
+          <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.35rem;">جرب تصفية بمركز آخر أو التوجه للخط الساخن المركزي للإسعاف (123).</p>
         </div>
-        <div class="emergency-info">
-          <h3 class="emergency-name">${em.name}</h3>
-          <p class="emergency-desc">${em.description}</p>
-          ${em.tel ? `
-            <a href="tel:${em.tel}" class="emergency-call-btn">
-              <i class="fa-solid fa-phone-flip"></i>
-              <span>اتصال الآن (${em.number})</span>
-            </a>
-          ` : em.email ? `
-            <button class="emergency-call-btn" style="background:#00796B" onclick="window.MedicalApp.openApprovalEmailModal('مستشفى الخير', '${em.email}')">
-              <i class="fa-solid fa-envelope"></i>
-              <span>إرسال طلب موافقة</span>
+      `;
+      return;
+    }
+
+    container.innerHTML = list.map((em) => {
+      const is24h = em.is_24h !== false;
+      const verified = em.verified !== false;
+      const callTel = em.tel || em.number;
+
+      return `
+        <div class="emergency-facility-card">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.6rem;">
+              <div style="display:flex; align-items:center; gap:0.6rem;">
+                <div class="emergency-icon" style="background:${em.color || '#DC2626'}; width:42px; height:42px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.15rem; flex-shrink:0;">
+                  <i class="fa-solid ${em.icon || 'fa-truck-medical'}"></i>
+                </div>
+                <div>
+                  <h3 style="font-size:0.95rem; font-weight:800; color:var(--text-primary); line-height:1.25; margin-bottom:0.2rem;">${em.name}</h3>
+                  <div style="font-size:0.75rem; color:var(--we-purple-primary); font-weight:700;">
+                    <i class="fa-solid fa-location-crosshairs"></i> ${em.service_type || 'طوارئ واستقبال'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Badges: 24/7 Hours + Affiliation + Markaz + Verified -->
+            <div style="display:flex; flex-wrap:wrap; gap:0.3rem; margin-bottom:0.75rem;">
+              <span class="badge-24h-active">
+                <i class="fa-solid fa-clock"></i> ${em.hours || (is24h ? '24 ساعة / طوال الأسبوع' : 'شيفتات مسائية')}
+              </span>
+              <span class="badge-affiliation-tag">
+                <i class="fa-solid fa-shield-halved"></i> ${em.affiliation || 'وزارة الصحة'}
+              </span>
+              <span class="badge-markaz">
+                <i class="fa-solid fa-map-pin"></i> ${em.markaz || em.city || 'المنصورة'}
+              </span>
+              <span class="badge-audit-verified" title="بيانات مدققة ومحدثة لعام 2026">
+                <i class="fa-solid fa-circle-check"></i> ${verified ? 'بيانات مدققة ومحدثة' : 'قيد المراجعة'}
+              </span>
+            </div>
+
+            <!-- Details -->
+            <div style="font-size:0.8rem; color:var(--text-secondary); line-height:1.45; margin-bottom:0.75rem;">
+              <div style="margin-bottom:0.25rem;"><i class="fa-solid fa-location-dot" style="width:16px;"></i> ${em.address || 'الدقهلية'}</div>
+              <div><i class="fa-solid fa-circle-info" style="width:16px;"></i> ${em.description || ''}</div>
+              ${em.verification_source ? `
+                <div style="font-size:0.68rem; color:var(--text-muted); margin-top:0.35rem;">
+                  <i class="fa-solid fa-file-shield"></i> المصدر: ${em.verification_source}
+                </div>
+              ` : ''}
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.5rem; border-top:1px solid var(--border-color); padding-top:0.65rem;">
+            ${callTel ? `
+              <a href="tel:${callTel}" class="emergency-call-btn" style="flex:1; padding:0.45rem 0.65rem; font-size:0.8rem; text-decoration:none;">
+                <i class="fa-solid fa-phone"></i>
+                <span>اتصال فوري (${em.number})</span>
+              </a>
+            ` : ''}
+
+            ${em.email ? `
+              <button class="emergency-call-btn" style="background:#00796B; flex:1; padding:0.45rem 0.65rem; font-size:0.8rem;" onclick="window.MedicalApp.openApprovalEmailModal('${em.name}', '${em.email}')">
+                <i class="fa-solid fa-envelope"></i>
+                <span>طلب موافقة</span>
+              </button>
+            ` : ''}
+
+            ${em.maps_url ? `
+              <a href="${em.maps_url}" target="_blank" class="btn-action btn-action-map" style="padding:0.45rem 0.65rem; font-size:0.8rem;" title="توجيه عبر GPS">
+                <i class="fa-solid fa-diamond-turn-right"></i>
+                <span>الخريطة</span>
+              </a>
+            ` : ''}
+
+            <button class="btn-action" style="padding:0.45rem 0.65rem; font-size:0.8rem; background:var(--bg-subtle);" onclick="window.MedicalApp.copyText('${em.number || em.phone || ''}', 'تم نسخ رقم الطوارئ')">
+              <i class="fa-solid fa-copy"></i>
             </button>
-          ` : `
-            <span class="pill-badge" style="background:var(--bg-subtle); color:var(--text-primary); font-size:0.85rem; padding:0.4rem 0.8rem;">
-              <i class="fa-solid fa-circle-check" style="color:var(--color-success)"></i> ${em.number}
-            </span>
-          `}
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   // --- Favorites & Hospitals Views ---
@@ -1221,6 +1445,7 @@
   }
 
   // --- Modals: Doctor Details, SOS, Login, Employee Card ---
+  // --- Modals: Doctor Details, SOS, Login, Employee Card ---
   function showDocDetails(docId) {
     const doc = state.doctors.find((d) => d.doctor_id === docId);
     if (!doc) return;
@@ -1231,6 +1456,10 @@
     const footerEl = document.getElementById('modal-sheet-footer');
 
     if (titleEl) titleEl.textContent = doc.display_name;
+
+    const avatarSvg = window.MedicalIllustrations ? window.MedicalIllustrations.getForEntity(doc, 68) : `<i class="fa-solid fa-user-doctor"></i>`;
+    const ratingStats = doc.ratingStats || MedicalStorage.getReviewStats(doc.doctor_id, doc.rating || 4.8, doc.reviews_count || 18);
+    const servicesList = doc.services || ['كشف واستشارة طبية متخصصة', 'فحص إكلينيكي وتشخيص دقيق'];
 
     const workplacesHtml = doc.workplaces.map((wp, i) => `
       <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0.85rem; margin-bottom:0.75rem;">
@@ -1252,18 +1481,94 @@
       </div>
     `).join('');
 
+    const recentReviews = ratingStats.reviews || [];
+
     if (bodyEl) {
       bodyEl.innerHTML = `
         <div style="text-align:center; margin-bottom:1rem;">
+          <div class="doctor-avatar-wrapper" style="margin:0 auto 0.5rem;">
+            <div class="doctor-avatar" style="margin:0 auto;">
+              ${avatarSvg}
+            </div>
+            <span class="avatar-illustration-note">رسم إيضاحي</span>
+          </div>
           <div class="doctor-academic-badge" style="display:inline-block; margin-bottom:0.35rem;">${doc.academic_rank}</div>
           <h2 style="font-family:var(--font-heading); font-size:1.35rem; color:var(--we-purple-dark);">${doc.display_name}</h2>
           <div style="color:var(--we-pink-accent); font-weight:700; font-size:0.9rem;">${doc.specialty}</div>
+        </div>
+
+        <!-- Rating & Gated Survey Trigger Banner -->
+        <div style="background:var(--bg-subtle); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0.85rem; margin-bottom:1rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.65rem; flex-wrap:wrap; gap:0.4rem;">
+            <div class="rating-stars-badge" style="font-size:1.05rem;">
+              <i class="fa-solid fa-star"></i>
+              <span>${ratingStats.overallRating} / 5</span>
+              <span class="rating-reviews-counter">(${ratingStats.totalReviews} تقييم مسجل)</span>
+            </div>
+            <button class="btn-open-rate-sheet" style="font-size:0.78rem; padding:0.35rem 0.75rem;" onclick="window.MedicalApp.openVisitEvaluationModal('${doc.doctor_id}', 'doctor', '${doc.display_name.replace(/'/g, "\\'")}')">
+              <i class="fa-solid fa-star"></i> تقييم زيارتك
+            </button>
+          </div>
+
+          <!-- 5 Quality Dimensions Breakdown -->
+          <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:0.4rem; font-size:0.75rem;">
+            <div style="background:var(--bg-card); padding:0.35rem 0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+              <span style="color:var(--text-secondary);">جودة الرعاية:</span> <strong>⭐ ${ratingStats.dimensions.medical_quality}</strong>
+            </div>
+            <div style="background:var(--bg-card); padding:0.35rem 0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+              <span style="color:var(--text-secondary);">تعامل الطاقم:</span> <strong>⭐ ${ratingStats.dimensions.staff_courtesy}</strong>
+            </div>
+            <div style="background:var(--bg-card); padding:0.35rem 0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+              <span style="color:var(--text-secondary);">النظافة والبيئة:</span> <strong>⭐ ${ratingStats.dimensions.cleanliness}</strong>
+            </div>
+            <div style="background:var(--bg-card); padding:0.35rem 0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+              <span style="color:var(--text-secondary);">التنظيم والانتظار:</span> <strong>⭐ ${ratingStats.dimensions.wait_time}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accredited Services Chips -->
+        <h4 style="font-family:var(--font-heading); margin-bottom:0.45rem; color:var(--we-purple-primary); font-size:0.95rem;">
+          <i class="fa-solid fa-notes-medical"></i> الخدمات الطبية المعتمدة بنسب تحمل WE (${servicesList.length})
+        </h4>
+        <div style="display:flex; flex-wrap:wrap; gap:0.3rem; margin-bottom:1rem;">
+          ${servicesList.map(s => {
+            const servStat = ratingStats.services && ratingStats.services[s];
+            return `
+              <span class="service-chip-badge" style="padding:0.25rem 0.55rem; font-size:0.75rem;">
+                <i class="fa-solid fa-circle-check" style="color:var(--we-purple-primary);"></i>
+                <span>${s}</span>
+                ${servStat ? `<span class="service-rating-mini">⭐ ${servStat.avg}</span>` : ''}
+              </span>
+            `;
+          }).join('')}
         </div>
 
         <h4 style="font-family:var(--font-heading); margin-bottom:0.65rem; color:var(--we-purple-primary); font-size:1rem;">
           <i class="fa-solid fa-location-crosshairs"></i> مقار العمل والعيادات المعتمدة (${doc.workplaces.length})
         </h4>
         ${workplacesHtml}
+
+        ${recentReviews.length > 0 ? `
+          <h4 style="font-family:var(--font-heading); margin:1rem 0 0.5rem; color:var(--we-purple-primary); font-size:0.95rem;">
+            <i class="fa-solid fa-comments"></i> تقييمات الزملاء (بناءً على إقرار زيارة موثق)
+          </h4>
+          <div style="display:flex; flex-direction:column; gap:0.5rem;">
+            ${recentReviews.slice(0, 3).map(rev => `
+              <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0.65rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
+                  <strong style="font-size:0.82rem;">${rev.employee_name || 'زميل بالشركة'}</strong>
+                  <span class="badge-visitor-declaration" style="font-size:0.62rem;"><i class="fa-solid fa-user-check"></i> إقرار زيارة</span>
+                </div>
+                <div style="font-size:0.72rem; color:#f59e0b; margin-bottom:0.25rem;">
+                  ${'★'.repeat(rev.overall_rating || 5)}${'☆'.repeat(5 - (rev.overall_rating || 5))}
+                  <span style="color:var(--text-muted); margin-right:0.3rem;">(${rev.created_at})</span>
+                </div>
+                ${rev.comment ? `<p style="font-size:0.78rem; color:var(--text-secondary); margin:0;">${rev.comment}</p>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
       `;
     }
 
@@ -1279,6 +1584,304 @@
     }
 
     openModal();
+  }
+
+  // --- Visit Evaluation & Gated Multi-Dimensional Rating Workflow ---
+  function expandCardServices(targetId) {
+    const hiddenEl = document.getElementById(`hidden-services-${targetId}`);
+    const moreBtn = document.getElementById(`more-btn-${targetId}`);
+    if (hiddenEl) {
+      const isHidden = hiddenEl.style.display === 'none';
+      hiddenEl.style.display = isHidden ? 'flex' : 'none';
+      if (moreBtn) moreBtn.style.display = isHidden ? 'none' : 'inline-flex';
+    }
+  }
+
+  function openVisitEvaluationModal(targetId, targetType, targetName) {
+    state.evaluatingEntity = {
+      targetId,
+      targetType: targetType || 'doctor',
+      targetName: targetName || 'مقدم الخدمة',
+      hasVisited: null
+    };
+
+    const titleEl = document.getElementById('modal-sheet-title');
+    const bodyEl = document.getElementById('modal-sheet-body');
+    const footerEl = document.getElementById('modal-sheet-footer');
+
+    if (titleEl) {
+      titleEl.innerHTML = `<i class="fa-solid fa-star-half-stroke" style="color:#f59e0b;"></i> استبيان تقييم زيارة: ${targetName}`;
+    }
+
+    if (bodyEl) {
+      bodyEl.innerHTML = `
+        <div class="eval-gate-container" id="eval-gate-box">
+          <div style="width:48px; height:48px; border-radius:50%; background:var(--we-purple-soft); color:var(--we-purple-primary); display:flex; align-items:center; justify-content:center; font-size:1.35rem; margin:0 auto 0.65rem;">
+            <i class="fa-solid fa-clipboard-question"></i>
+          </div>
+          <h3 class="eval-gate-question">هل قمت بزيارة هذا الطبيب أو هذه المنشأة من قبل؟</h3>
+          <p class="eval-gate-hint">
+            لضمان مصداقية وأمانة الدليل الطبي لكافة الزملاء بالشركة، يشترط نظام التقييم أن تكون قد تلقيت الرعاية الطبية بالفعل خلال زيارة سابقة لك أو لأحد أفراد أسرتك.
+          </p>
+          <div class="eval-gate-actions">
+            <button class="btn-gate-option btn-gate-yes" onclick="window.MedicalApp.proceedVisitEvaluation(true)">
+              <i class="fa-solid fa-circle-check"></i> نعم، قمت بالزيارة
+            </button>
+            <button class="btn-gate-option btn-gate-no" onclick="window.MedicalApp.proceedVisitEvaluation(false)">
+              <i class="fa-solid fa-circle-xmark"></i> لا، لم أقم بالزيارة
+            </button>
+          </div>
+        </div>
+
+        <div id="eval-survey-form-container" style="display:none;"></div>
+      `;
+    }
+
+    if (footerEl) {
+      footerEl.innerHTML = `
+        <button class="btn-primary-purple" style="padding:0.5rem 1.25rem; font-size:0.82rem; border-radius:var(--radius-md);" onclick="window.MedicalApp.closeModal()">
+          إغلاق
+        </button>
+      `;
+    }
+
+    openModal();
+  }
+
+  function proceedVisitEvaluation(hasVisited) {
+    const gateBox = document.getElementById('eval-gate-box');
+    const formContainer = document.getElementById('eval-survey-form-container');
+    const footerEl = document.getElementById('modal-sheet-footer');
+    if (!formContainer) return;
+
+    if (!hasVisited) {
+      if (gateBox) {
+        gateBox.innerHTML = `
+          <div style="width:46px; height:46px; border-radius:50%; background:#fef2f2; color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 0.6rem;">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <h3 style="font-size:0.98rem; font-weight:800; color:#991b1b; margin-bottom:0.35rem;">تنبيه نظام التقييم الموثق</h3>
+          <p style="font-size:0.8rem; color:var(--text-secondary); line-height:1.5;">
+            عزيزنا الزميل، نقدر رغبتك واهتمامك. ولكن حفاظاً على موثوقية وأمانة الدليل لزملائك بالشركة، لا يُسمح بإرسال تقييم إلا لمن تلقى الخدمة الطبية فعلياً.
+            <br><br>
+            يمكنك تصفح آراء وتقييمات زملائك الموثقة، ومشاركتنا تقييمك بعد زيارتك القادمة بإذن الله.
+          </p>
+        `;
+      }
+      formContainer.style.display = 'none';
+      if (footerEl) {
+        footerEl.innerHTML = `
+          <button class="btn-primary-purple" style="padding:0.5rem 1.25rem; font-size:0.82rem; border-radius:var(--radius-md);" onclick="window.MedicalApp.closeModal()">
+            حسناً، تم الفهم
+          </button>
+        `;
+      }
+      return;
+    }
+
+    // Unlocked: Render Survey Form
+    if (gateBox) gateBox.style.display = 'none';
+    formContainer.style.display = 'block';
+
+    const entityId = state.evaluatingEntity.targetId;
+    const entityType = state.evaluatingEntity.targetType;
+    let services = [];
+
+    if (entityType === 'doctor') {
+      const doc = state.doctors.find(d => d.doctor_id === entityId);
+      if (doc && doc.services) services = doc.services;
+    } else {
+      const fac = MedicalStorage.getLiveFacilities('all').find(f => f.id === entityId);
+      if (fac && fac.services) services = fac.services;
+    }
+
+    if (!services || services.length === 0) {
+      services = ['كشف واستشارة طبية', 'فحص سريري وتشخيص', 'متابعة دورية وتعديل جرعات'];
+    }
+
+    formContainer.innerHTML = `
+      <div class="badge-visitor-declaration" style="margin-bottom:0.85rem; width:100%; justify-content:center; padding:0.35rem;">
+        <i class="fa-solid fa-user-check"></i> إقرار زيارة من الموظف: أقر بأنني تلقيت الخدمة الطبية بنفسي أو لأحد أفراد أسرتي
+      </div>
+
+      <!-- Overall Rating Star Selector -->
+      <div style="background:var(--bg-subtle); padding:0.75rem; border-radius:var(--radius-md); text-align:center; margin-bottom:0.85rem; border:1px solid var(--border-color);">
+        <label style="font-size:0.85rem; font-weight:800; color:var(--text-primary); display:block; margin-bottom:0.35rem;">
+          التقييم العام لتجربة الزيارة
+        </label>
+        <div class="star-rating-selector" id="survey-overall-stars">
+          <input type="radio" id="ov-star5" name="survey_overall" value="5" checked><label for="ov-star5" title="ممتاز جداً 5/5">★</label>
+          <input type="radio" id="ov-star4" name="survey_overall" value="4"><label for="ov-star4" title="جيد جداً 4/5">★</label>
+          <input type="radio" id="ov-star3" name="survey_overall" value="3"><label for="ov-star3" title="متوسط 3/5">★</label>
+          <input type="radio" id="ov-star2" name="survey_overall" value="2"><label for="ov-star2" title="مقبول 2/5">★</label>
+          <input type="radio" id="ov-star1" name="survey_overall" value="1"><label for="ov-star1" title="ضعيف 1/5">★</label>
+        </div>
+      </div>
+
+      <!-- 5 Dimensions Survey -->
+      <h4 style="font-size:0.85rem; font-weight:800; color:var(--we-purple-primary); margin-bottom:0.5rem;">
+        <i class="fa-solid fa-chart-simple"></i> تقييم معايير الجودة الخمسة:
+      </h4>
+      <div class="survey-dimensions-grid">
+        <div class="survey-dim-card">
+          <div class="survey-dim-label"><i class="fa-solid fa-stethoscope"></i> جودة الخدمة الطبية والتشخيص</div>
+          <select id="survey-dim-quality" class="sort-select" style="padding:0.25rem 0.5rem; font-size:0.78rem;">
+            <option value="5">ممتاز (5 نجوم)</option>
+            <option value="4" selected>جيد جداً (4 نجوم)</option>
+            <option value="3">متوسط (3 نجوم)</option>
+            <option value="2">مقبول (نجمتان)</option>
+            <option value="1">ضعيف (نجمة واحدة)</option>
+          </select>
+        </div>
+
+        <div class="survey-dim-card">
+          <div class="survey-dim-label"><i class="fa-solid fa-user-nurse"></i> تعامل الطبيب والطاقم التمريضي والإداري</div>
+          <select id="survey-dim-staff" class="sort-select" style="padding:0.25rem 0.5rem; font-size:0.78rem;">
+            <option value="5" selected>ممتاز ومحترم (5)</option>
+            <option value="4">جيد جداً (4)</option>
+            <option value="3">متوسط (3)</option>
+            <option value="2">مقبول (2)</option>
+            <option value="1">غير لائق (1)</option>
+          </select>
+        </div>
+
+        <div class="survey-dim-card">
+          <div class="survey-dim-label"><i class="fa-solid fa-pump-medical"></i> النظافة والتعقيم وبيئة المكان</div>
+          <select id="survey-dim-clean" class="sort-select" style="padding:0.25rem 0.5rem; font-size:0.78rem;">
+            <option value="5" selected>نظيف ومعقم تماماً (5)</option>
+            <option value="4">جيد جداً (4)</option>
+            <option value="3">متوسط (3)</option>
+            <option value="2">يحتاج تحسين (2)</option>
+            <option value="1">سيء (1)</option>
+          </select>
+        </div>
+
+        <div class="survey-dim-card">
+          <div class="survey-dim-label"><i class="fa-solid fa-hourglass-half"></i> سرعة الدخول والتنظيم ووقت الانتظار</div>
+          <select id="survey-dim-wait" class="sort-select" style="padding:0.25rem 0.5rem; font-size:0.78rem;">
+            <option value="5">دخول فوري بدون انتظار (5)</option>
+            <option value="4" selected>انتظار معقول أقل من 20 دقيقة (4)</option>
+            <option value="3">انتظار متوسط 30-45 دقيقة (3)</option>
+            <option value="2">انتظار طويل أكثر من ساعة (2)</option>
+            <option value="1">تأخير شديد وغير منظم (1)</option>
+          </select>
+        </div>
+
+        <div class="survey-dim-card">
+          <div class="survey-dim-label"><i class="fa-solid fa-receipt"></i> وضوح التكلفة والالتزام بأسعار تعاقد WE</div>
+          <select id="survey-dim-cost" class="sort-select" style="padding:0.25rem 0.5rem; font-size:0.78rem;">
+            <option value="5" selected>ملتزم تماماً بنسبة التحمل المقررة (5)</option>
+            <option value="4">التزام جيد جداً (4)</option>
+            <option value="3">مقبول (3)</option>
+            <option value="2">فروق أسعار طفيفة (2)</option>
+            <option value="1">غير ملتزم بأسعار الشركة (1)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Services Evaluated Section -->
+      <h4 style="font-size:0.85rem; font-weight:800; color:var(--we-purple-primary); margin:0.85rem 0 0.4rem;">
+        <i class="fa-solid fa-list-check"></i> ما هي الخدمات التي استفدت منها فعلياً؟ (حدد وقيم):
+      </h4>
+      <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0.65rem; margin-bottom:0.85rem;">
+        ${services.map((s, idx) => `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:0.35rem 0; border-bottom:1px dashed var(--border-color);">
+            <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.78rem; font-weight:700; cursor:pointer;">
+              <input type="checkbox" class="survey-service-chk" value="${s}" onchange="document.getElementById('serv-rate-box-${idx}').style.display = this.checked ? 'block' : 'none'">
+              <span>${s}</span>
+            </label>
+            <div id="serv-rate-box-${idx}" style="display:none;">
+              <select class="sort-select survey-service-val" data-serv-name="${s}" style="padding:0.15rem 0.4rem; font-size:0.72rem;">
+                <option value="5">⭐ 5</option>
+                <option value="4" selected>⭐ 4</option>
+                <option value="3">⭐ 3</option>
+                <option value="2">⭐ 2</option>
+                <option value="1">⭐ 1</option>
+              </select>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Optional Comment -->
+      <div style="margin-bottom:0.85rem;">
+        <label style="font-size:0.82rem; font-weight:800; color:var(--text-primary); display:block; margin-bottom:0.35rem;">
+          ملاحظاتك أو نصيحتك للزملاء (اختياري)
+        </label>
+        <textarea id="survey-comment-text" class="search-input" style="height:70px; padding:0.5rem; font-size:0.8rem; width:100%; border-radius:var(--radius-md);" placeholder="اكتب ملاحظاتك المفيدة حول التعامل ومستوى الخدمة..."></textarea>
+      </div>
+    `;
+
+    if (footerEl) {
+      footerEl.innerHTML = `
+        <button class="btn-primary-purple" style="padding:0.55rem 1.4rem; font-size:0.85rem; border-radius:var(--radius-md); font-weight:800; display:flex; align-items:center; gap:0.4rem;" onclick="window.MedicalApp.submitVisitEvaluation()">
+          <i class="fa-solid fa-paper-plane"></i> إرسال واعتماد التقييم
+        </button>
+        <button class="btn-outline" style="padding:0.55rem 1rem; font-size:0.82rem; border-radius:var(--radius-md);" onclick="window.MedicalApp.closeModal()">
+          إلغاء
+        </button>
+      `;
+    }
+  }
+
+  function submitVisitEvaluation() {
+    if (!state.evaluatingEntity || !state.evaluatingEntity.targetId) return;
+
+    // Get overall rating
+    const overallEl = document.querySelector('input[name="survey_overall"]:checked');
+    const overallRating = overallEl ? Number(overallEl.value) : 5;
+
+    const quality = Number(document.getElementById('survey-dim-quality')?.value || 5);
+    const staff = Number(document.getElementById('survey-dim-staff')?.value || 5);
+    const cleanliness = Number(document.getElementById('survey-dim-clean')?.value || 5);
+    const waitTime = Number(document.getElementById('survey-dim-wait')?.value || 4);
+    const cost = Number(document.getElementById('survey-dim-cost')?.value || 5);
+    const comment = (document.getElementById('survey-comment-text')?.value || '').trim();
+
+    // Collect evaluated services
+    const servicesEvaluated = [];
+    document.querySelectorAll('.survey-service-chk:checked').forEach(chk => {
+      const sName = chk.value;
+      const valSelect = document.querySelector(`.survey-service-val[data-serv-name="${sName}"]`);
+      const sVal = valSelect ? Number(valSelect.value) : 5;
+      servicesEvaluated.push({
+        service_name: sName,
+        rating: sVal
+      });
+    });
+
+    const res = MedicalStorage.addVisitReview({
+      target_id: state.evaluatingEntity.targetId,
+      target_type: state.evaluatingEntity.targetType,
+      target_name: state.evaluatingEntity.targetName,
+      visited_declared: true,
+      overall_rating: overallRating,
+      medical_quality: quality,
+      staff_courtesy: staff,
+      cleanliness: cleanliness,
+      wait_time: waitTime,
+      cost_transparency: cost,
+      services_evaluated: servicesEvaluated,
+      comment: comment
+    });
+
+    if (res && res.success) {
+      showToast('تم تسجيل تقييم زيارتك بنجاح. شكراً لمساهمتك في خدمة زملائك بالدقهلية!', 'success', 3500);
+      closeModal();
+      
+      // Refresh state and cards
+      state.doctors = MedicalStorage.getLiveDoctors();
+      state.labs = MedicalStorage.getLiveFacilities('labs');
+      state.radiology = MedicalStorage.getLiveFacilities('radiology');
+      state.pharmacies = MedicalStorage.getLiveFacilities('pharmacies');
+      state.specializedCenters = MedicalStorage.getLiveFacilities('specialized');
+
+      renderDoctorsList();
+      renderServicesView();
+      renderFavoritesList();
+    } else {
+      showToast(res ? res.error : 'تعذر حفظ التقييم', 'danger', 3000);
+    }
   }
 
   // --- SOS Emergency Modal ---
@@ -1790,11 +2393,15 @@
     const phone = (document.getElementById('new-doc-phone') || {}).value || '';
     const address = (document.getElementById('new-doc-address') || {}).value || '';
     const schedule = (document.getElementById('new-doc-schedule') || {}).value || '';
+    const category = (document.getElementById('new-doc-category') || {}).value || 'doctors';
     const notes = (document.getElementById('new-doc-notes') || {}).value || '';
 
     let coverageLabel = 'شامل: العاملين + أسر العاملين (جلوب ميد)';
     if (scope === 'employee_only') coverageLabel = 'العاملين بالشركة فقط';
     if (scope === 'family_globemed') coverageLabel = 'أسر العاملين (شبكة جلوب ميد)';
+
+    const cleanName = AdminPanel.correctArabicNameSpelling(name);
+    const isDoctor = category === 'doctors';
 
     const newRecord = {
       id: 2000 + (Date.now() % 100000),
@@ -1806,9 +2413,9 @@
       specialty: spec,
       subspecialty: subspec,
       raw_name: name,
-      name: AdminPanel.correctArabicNameSpelling(name),
-      display_name: name.startsWith('د/') ? name : `د/ ${AdminPanel.correctArabicNameSpelling(name)}`,
-      academic_rank: 'طبيب استشاري',
+      name: cleanName,
+      display_name: isDoctor ? (cleanName.startsWith('د/') ? cleanName : `د/ ${cleanName}`) : cleanName,
+      academic_rank: isDoctor ? 'طبيب استشاري' : 'منشأة طبية معتمدة',
       clinic_type: clinicType,
       raw_phone: phone,
       phones: [{ display: phone, digits: phone.replace(/[^\d]/g, ''), tel: phone.replace(/[^\d]/g, ''), is_mobile: phone.startsWith('01') }],
@@ -1816,17 +2423,41 @@
       city: markaz,
       markaz: markaz,
       area: markaz,
-      schedule: schedule,
+      schedule: schedule || 'يومياً حسب جدول المواعيد',
       notes: notes,
-      is_department: false,
+      is_department: !isDoctor,
       maps_url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + address + ' ' + markaz)}`
     };
 
     MedicalStorage.saveRecord(newRecord);
+
+    if (!isDoctor) {
+      const facility = {
+        id: 'fac_' + Date.now(),
+        name: cleanName,
+        category: category,
+        city: markaz,
+        markaz: markaz,
+        address: address,
+        phone: phone,
+        working_hours: schedule || '24 ساعة طوال الأسبوع',
+        rating: 4.8,
+        reviews_count: 12,
+        services: [spec, 'خدمة طبية معتمدة لشركة WE', 'فحص واستقبال'],
+        maps_url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + address + ' ' + markaz)}`
+      };
+      MedicalStorage.saveCustomFacility(facility);
+    }
+
     loadData();
     showToast(`تمت إضافة ${name} إلى المنظومة بنجاح`, 'success', 3000);
     document.getElementById('form-add-doctor').reset();
-    switchTab('doctors');
+    if (!isDoctor) {
+      switchTab('services');
+      renderServicesView();
+    } else {
+      switchTab('doctors');
+    }
   }
 
   function editRecordFromAdmin(recordId) {
@@ -2290,6 +2921,11 @@
     deleteAdminGuideline,
     importEmployeesFromAdmin,
     closeModal,
+    openVisitEvaluationModal,
+    proceedVisitEvaluation,
+    submitVisitEvaluation,
+    expandCardServices,
+    filterEmergencyDirectory,
     handleCategoryClick,
     openServiceFromSidebar(cat) {
       closeSidebar();

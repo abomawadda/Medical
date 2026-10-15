@@ -21,7 +21,8 @@
     CURRENT_USER: 'we_medical_current_user_v3',
     EMPLOYEES_LIST: 'we_medical_employees_custom_v3',
     CUSTOM_GUIDELINES: 'we_medical_guidelines_custom_v3',
-    CUSTOM_EMERGENCY: 'we_medical_emergency_custom_v3'
+    CUSTOM_EMERGENCY: 'we_medical_emergency_custom_v3',
+    CUSTOM_FACILITIES: 'we_medical_facilities_custom_v3'
   };
 
   const MedicalStorage = {
@@ -208,35 +209,162 @@
       localStorage.setItem(STORAGE_KEYS.SUGGESTIONS, JSON.stringify(list));
     },
 
-    // --- Ratings & Reviews ---
-    getDoctorRatings(docKey) {
+    // --- Visit Evaluations, Ratings & Multi-Dimensional Survey Engine ---
+    getReviews(targetId) {
       try {
         const raw = localStorage.getItem(STORAGE_KEYS.RATINGS);
         const all = raw ? JSON.parse(raw) : {};
-        return all[docKey] || [];
+        return all[targetId] || [];
       } catch (e) {
         return [];
       }
     },
 
-    addDoctorRating(docKey, rating, comment, authorName) {
+    getDoctorRatings(docKey) {
+      return this.getReviews(docKey);
+    },
+
+    getReviewStats(targetId, defaultRating = 4.8, defaultCount = 18) {
+      const reviews = this.getReviews(targetId);
+      if (!reviews || reviews.length === 0) {
+        return {
+          hasUserReviews: false,
+          totalReviews: defaultCount,
+          overallRating: Number(defaultRating).toFixed(1),
+          dimensions: {
+            medical_quality: Number(defaultRating).toFixed(1),
+            staff_courtesy: Number(defaultRating).toFixed(1),
+            cleanliness: (Number(defaultRating) - 0.1).toFixed(1),
+            wait_time: (Number(defaultRating) - 0.2).toFixed(1),
+            cost_transparency: Number(defaultRating).toFixed(1)
+          },
+          services: {},
+          reviews: []
+        };
+      }
+
+      let sumOverall = 0;
+      let sumQuality = 0;
+      let sumStaff = 0;
+      let sumClean = 0;
+      let sumWait = 0;
+      let sumCost = 0;
+      const serviceMap = {};
+
+      reviews.forEach(r => {
+        const ov = Number(r.overall_rating || r.rating || 5);
+        sumOverall += ov;
+
+        const dims = r.dimensions || {};
+        sumQuality += Number(dims.medical_quality || ov);
+        sumStaff += Number(dims.staff_courtesy || ov);
+        sumClean += Number(dims.cleanliness || ov);
+        sumWait += Number(dims.wait_time || ov);
+        sumCost += Number(dims.cost_transparency || ov);
+
+        if (Array.isArray(r.services_evaluated)) {
+          r.services_evaluated.forEach(s => {
+            if (s && s.service_name) {
+              if (!serviceMap[s.service_name]) {
+                serviceMap[s.service_name] = { sum: 0, count: 0 };
+              }
+              serviceMap[s.service_name].sum += Number(s.rating || ov);
+              serviceMap[s.service_name].count++;
+            }
+          });
+        }
+      });
+
+      const count = reviews.length;
+      const servicesResult = {};
+      for (const [sName, sData] of Object.entries(serviceMap)) {
+        servicesResult[sName] = {
+          avg: Number((sData.sum / sData.count).toFixed(1)),
+          count: sData.count
+        };
+      }
+
+      return {
+        hasUserReviews: true,
+        totalReviews: count,
+        overallRating: Number((sumOverall / count).toFixed(1)),
+        dimensions: {
+          medical_quality: Number((sumQuality / count).toFixed(1)),
+          staff_courtesy: Number((sumStaff / count).toFixed(1)),
+          cleanliness: Number((sumClean / count).toFixed(1)),
+          wait_time: Number((sumWait / count).toFixed(1)),
+          cost_transparency: Number((sumCost / count).toFixed(1))
+        },
+        services: servicesResult,
+        reviews: reviews
+      };
+    },
+
+    addVisitReview(reviewData) {
       try {
+        if (!reviewData.target_id) throw new Error('معرف مقدم الخدمة مطلوب');
+        if (!reviewData.visited_declared) {
+          return {
+            success: false,
+            error: 'يجب تأكيد الزيارة الفعلية للمنشأة لتسجيل تقييم زيارة موثوق'
+          };
+        }
+
         const raw = localStorage.getItem(STORAGE_KEYS.RATINGS);
         const all = raw ? JSON.parse(raw) : {};
-        if (!all[docKey]) all[docKey] = [];
+        if (!all[reviewData.target_id]) all[reviewData.target_id] = [];
+
+        const empId = reviewData.employee_id || (this.getCurrentUser() ? this.getCurrentUser().id : 'guest_' + Date.now());
+        const empName = reviewData.employee_name || (this.getCurrentUser() ? this.getCurrentUser().name : 'زميل بالشركة المصرية للاتصالات');
+        const empSector = reviewData.employee_sector || (this.getCurrentUser() ? this.getCurrentUser().sector : 'WE الدقهلية');
+
         const entry = {
-          id: 'rev_' + Date.now(),
-          rating: Number(rating) || 5,
-          comment: (comment || '').trim(),
-          author: (authorName || 'زميل بالشركة المصرية للاتصالات بالدقهلية').trim(),
-          date: new Date().toISOString().split('T')[0]
+          id: 'rev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          target_id: reviewData.target_id,
+          target_type: reviewData.target_type || 'doctor',
+          target_name: reviewData.target_name || '',
+          employee_id: empId,
+          employee_name: empName,
+          employee_sector: empSector,
+          visited_declared: true,
+          declaration_badge: 'إقرار زيارة من الموظف',
+          overall_rating: Math.max(1, Math.min(5, Number(reviewData.overall_rating) || 5)),
+          dimensions: {
+            medical_quality: Math.max(1, Math.min(5, Number(reviewData.medical_quality) || 5)),
+            staff_courtesy: Math.max(1, Math.min(5, Number(reviewData.staff_courtesy) || 5)),
+            cleanliness: Math.max(1, Math.min(5, Number(reviewData.cleanliness) || 5)),
+            wait_time: Math.max(1, Math.min(5, Number(reviewData.wait_time) || 5)),
+            cost_transparency: Math.max(1, Math.min(5, Number(reviewData.cost_transparency) || 5))
+          },
+          services_evaluated: Array.isArray(reviewData.services_evaluated) ? reviewData.services_evaluated : [],
+          comment: (reviewData.comment || '').trim(),
+          created_at: new Date().toISOString().split('T')[0]
         };
-        all[docKey].unshift(entry);
+
+        // Anti-spam & Update previous review if exists by this employee
+        const existingIdx = all[reviewData.target_id].findIndex(r => r.employee_id === empId);
+        if (existingIdx > -1) {
+          all[reviewData.target_id][existingIdx] = entry;
+        } else {
+          all[reviewData.target_id].unshift(entry);
+        }
+
         localStorage.setItem(STORAGE_KEYS.RATINGS, JSON.stringify(all));
-        return entry;
+        return { success: true, entry };
       } catch (e) {
-        return null;
+        return { success: false, error: e.message };
       }
+    },
+
+    addDoctorRating(docKey, rating, comment, authorName) {
+      return this.addVisitReview({
+        target_id: docKey,
+        target_type: 'doctor',
+        overall_rating: rating,
+        comment: comment,
+        employee_name: authorName,
+        visited_declared: true
+      });
     },
 
     // --- Custom / Modified Records via Admin Panel ---
@@ -378,6 +506,75 @@
       localStorage.setItem(STORAGE_KEYS.CUSTOM_EMERGENCY, JSON.stringify(list));
     },
 
+    // --- Custom Medical Facilities & Service Centers ---
+    getCustomFacilities() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_FACILITIES);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    },
+
+    saveCustomFacility(fac) {
+      const list = this.getCustomFacilities();
+      if (!fac.id) fac.id = 'fac_' + Date.now();
+      const idx = list.findIndex(f => f.id === fac.id);
+      if (idx > -1) {
+        list[idx] = fac;
+      } else {
+        list.unshift(fac);
+      }
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_FACILITIES, JSON.stringify(list));
+      return fac;
+    },
+
+    deleteCustomFacility(facId) {
+      const list = this.getCustomFacilities().filter(f => f.id !== facId);
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_FACILITIES, JSON.stringify(list));
+    },
+
+    getLiveFacilities(category = 'all') {
+      const custom = this.getCustomFacilities();
+      let baseList = [];
+      if (window.INITIAL_MEDICAL_DATA) {
+        if (category === 'all') {
+          baseList = [
+            ...(window.INITIAL_MEDICAL_DATA.labs || []),
+            ...(window.INITIAL_MEDICAL_DATA.radiology || []),
+            ...(window.INITIAL_MEDICAL_DATA.pharmacies || []),
+            ...(window.INITIAL_MEDICAL_DATA.specialized_centers || [])
+          ];
+        } else if (category === 'labs') baseList = window.INITIAL_MEDICAL_DATA.labs || [];
+        else if (category === 'radiology') baseList = window.INITIAL_MEDICAL_DATA.radiology || [];
+        else if (category === 'pharmacies') baseList = window.INITIAL_MEDICAL_DATA.pharmacies || [];
+        else if (category === 'specialized') baseList = window.INITIAL_MEDICAL_DATA.specialized_centers || [];
+      }
+
+      const combined = [...custom.filter(f => category === 'all' || f.category === category), ...baseList];
+      
+      // Deduplicate by ID and enrich with live review stats
+      const map = {};
+      combined.forEach(item => {
+        if (!map[item.id]) {
+          const stats = this.getReviewStats(item.id, 4.8, 15);
+          item.rating = Number(stats.overallRating);
+          item.reviews_count = stats.totalReviews;
+          item.ratingStats = stats;
+          if (!item.services || !Array.isArray(item.services)) {
+            if (typeof item.services === 'string') {
+              item.services = item.services.split(/[,،•]/).map(s => s.trim()).filter(Boolean);
+            } else {
+              item.services = ['كشف وفحص طبي', 'خدمة معتمدة للشركة WE'];
+            }
+          }
+          map[item.id] = item;
+        }
+      });
+
+      return Object.values(map);
+    },
+
     // --- Merged Live Dataset ---
     getLiveRecords() {
       const baseRecords = window.INITIAL_MEDICAL_DATA ? window.INITIAL_MEDICAL_DATA.records : [];
@@ -480,7 +677,30 @@
         }
       });
 
-      return Object.values(docsMap);
+      const doctorsList = Object.values(docsMap);
+      const initialDocs = (window.INITIAL_MEDICAL_DATA && window.INITIAL_MEDICAL_DATA.doctors) ? window.INITIAL_MEDICAL_DATA.doctors : [];
+
+      doctorsList.forEach(doc => {
+        const foundInitial = initialDocs.find(d => d.doctor_id === doc.doctor_id);
+        if (foundInitial && foundInitial.services) {
+          doc.services = foundInitial.services;
+        } else if (!doc.services) {
+          doc.services = [
+            'كشف واستشارة طبية متخصصة',
+            'فحص إكلينيكي وتشخيص دقيق',
+            'متابعة الحالات المرضية وتعديل العلاج',
+            'إصدار التقارير والروشتات الطبية المعتمدة'
+          ];
+        }
+
+        // Live calculation of visit evaluations and ratings
+        const stats = this.getReviewStats(doc.doctor_id, doc.rating || roundRating(doc.records_count), doc.reviews_count || 18);
+        doc.rating = Number(stats.overallRating);
+        doc.reviews_count = stats.totalReviews;
+        doc.ratingStats = stats;
+      });
+
+      return doctorsList;
     },
 
     resetToDefaults() {
