@@ -1,26 +1,30 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-  <title>منظومة الدليل الطبي الموحد — الشركة المصرية للاتصالات WE (الدقهلية)</title>
-  
-  <!-- PWA & Mobile Meta Tags -->
-  <meta name="description" content="منظومة الدليل الطبي التفاعلي الموحد للعاملين بالشركة المصرية للاتصالات وأبناء الدقهلية — إعداد وتنفيذ: الأستاذ / محمود العراقي">
-  <meta name="theme-color" content="#521d85">
+  <meta name="theme-color" content="#5B2C82">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="دليل WE">
+  <meta name="apple-mobile-web-app-title" content="دليل WE الطبي بالدقهلية">
+  <meta name="description" content="منظومة الدليل الطبي التفاعلي الموحد - الشركة المصرية للاتصالات WE بالدقهلية - إعداد وتنفيذ الأستاذ / محمود العراقي">
+
+  <title>منظومة الدليل الطبي الموحد | المصرية للاتصالات WE بالدقهلية</title>
+
+  <!-- PWA Manifest & Icons -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
   <link rel="apple-touch-icon" href="img/icon-192.png">
 
-  <!-- Fonts & Icons -->
+  <!-- Typography: Cairo & Tajawal -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome Icons 6.5 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  
+
+  <!-- Stylesheet -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -31,21 +35,19 @@
   <div id="splash-screen">
     <div class="splash-content">
       <div class="splash-logos">
-        <img src="img/we_logo.webp" alt="WE" class="splash-logo-we">
-        <img src="img/nekaba_logo.png" alt="النقابة" class="splash-logo-nekaba">
+        <img src="img/we_logo.webp" alt="WE Logo" class="splash-logo-we">
+        <img src="img/nekaba_logo.png" alt="اللجنة النقابية" class="splash-logo-nekaba">
       </div>
-      <h1 class="splash-title">دليل WE الطبي الموحد</h1>
-      <p class="splash-subtitle">اللجنة النقابية للعاملين بالمصرية للاتصالات بالدقهلية</p>
-      <div class="splash-author">
-        <i class="fa-solid fa-code"></i> إعداد وتنفيذ: الأستاذ / محمود العراقي
-      </div>
-      <div class="splash-loader"></div>
-      <p class="splash-footer-note" style="font-size: 0.8rem; opacity: 0.85;">جاري تحميل وتحديث المنظومة...</p>
+      <h1 class="splash-title">منظومة الدليل الطبي الموحد</h1>
+      <p class="splash-subtitle">الشركة المصرية للاتصالات WE — محافظة الدقهلية</p>
+      <div class="splash-author">إعداد وتنفيذ: الأستاذ / محمود العراقي</div>
+      <div class="splash-loading-spinner" style="margin-top: 1.5rem;"></div>
+      <p style="font-size: 0.8rem; opacity: 0.8; margin-top: 0.5rem;">جاري تحميل الدليل الطبي الشامل وشبكة جلوب ميد...</p>
     </div>
   </div>
 
   <!-- ====================================================================
-       Application Header: WE Logo (Right) | Title (Center) | Union Logo (Left)
+       App Header (Dual-Logo Symmetrical + User Profile Button)
        ==================================================================== -->
   <header class="app-header">
     <div class="header-inner">
@@ -65,8 +67,12 @@
         </div>
       </div>
 
-      <!-- Left Side: Dark Mode + Union Logo -->
+      <!-- Left Side: Employee Auth + Dark Mode + Union Logo -->
       <div class="header-left-side">
+        <button id="header-auth-btn" class="header-auth-btn" onclick="window.MedicalApp.openAuthModal()" title="تسجيل الدخول / بيانات الموظف">
+          <i class="fa-solid fa-id-card-clip"></i>
+          <span id="header-auth-text">دخول العاملين</span>
+        </button>
         <button id="btn-theme-toggle" class="icon-btn-compact" title="تبديل الوضع الليلي">
           <i class="fa-solid fa-moon"></i>
         </button>
@@ -77,18 +83,21 @@
 
   <!-- Desktop Navigation Bar -->
   <div class="desktop-nav-bar">
-    <div class="container" style="display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.4rem 1rem;">
+    <div class="container" style="display: flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.4rem 0.5rem; flex-wrap: wrap;">
       <button class="desktop-nav-link active" data-nav-tab="home">
         <i class="fa-solid fa-house"></i> الرئيسية
       </button>
       <button class="desktop-nav-link" data-nav-tab="doctors">
         <i class="fa-solid fa-user-doctor"></i> الأطباء والعيادات
       </button>
-      <button class="desktop-nav-link" data-nav-tab="specialties">
-        <i class="fa-solid fa-stethoscope"></i> التخصصات (14)
+      <button class="desktop-nav-link" data-nav-tab="guidelines">
+        <i class="fa-solid fa-book-medical"></i> التعليمات والإجراءات
       </button>
       <button class="desktop-nav-link" data-nav-tab="services">
         <i class="fa-solid fa-hospital-user"></i> المعامل والمراكز والصيدليات
+      </button>
+      <button class="desktop-nav-link" data-nav-tab="specialties">
+        <i class="fa-solid fa-stethoscope"></i> التخصصات (14)
       </button>
       <button class="desktop-nav-link" data-nav-tab="hospitals">
         <i class="fa-solid fa-hospital"></i> المستشفيات
@@ -97,7 +106,7 @@
         <i class="fa-solid fa-heart"></i> المفضلة
       </button>
       <button class="desktop-nav-link" data-nav-tab="emergency">
-        <i class="fa-solid fa-truck-medical"></i> الطوارئ والموافقات
+        <i class="fa-solid fa-truck-medical"></i> الطوارئ والاستغاثة
       </button>
       <button class="desktop-nav-link" data-nav-tab="admin">
         <i class="fa-solid fa-sliders"></i> لوحة الإدارة
@@ -106,14 +115,14 @@
   </div>
 
   <!-- ====================================================================
-       Mobile Sidebar Drawer (شريط جانبي مخصص للموبايل لكافة التخصصات)
+       Mobile Sidebar Drawer (شريط جانبي مخصص للموبايل للتخصصات والمراكز)
        ==================================================================== -->
   <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="window.MedicalApp.closeSidebar()"></div>
   <aside id="mobile-filter-sidebar" class="mobile-sidebar">
     <div class="sidebar-header">
       <div class="sidebar-title-group">
-        <h3><i class="fa-solid fa-sliders"></i> تخصصات وتصنيفات الدليل</h3>
-        <span>اختر للفلترة المباشرة</span>
+        <h3><i class="fa-solid fa-sliders"></i> تخصصات وفلاتر المنظومة</h3>
+        <span>تصفية بالمراكز والجهات والشبكات</span>
       </div>
       <button class="sidebar-close-btn" onclick="window.MedicalApp.closeSidebar()" title="إغلاق">
         <i class="fa-solid fa-xmark"></i>
@@ -124,8 +133,40 @@
       <!-- Reset / Show All Button -->
       <div class="sidebar-reset-row">
         <button class="btn-sidebar-reset" onclick="window.MedicalApp.resetFilters()">
-          <i class="fa-solid fa-rotate-left"></i> عرض كافة الأطباء (169 عيادة)
+          <i class="fa-solid fa-rotate-left"></i> عرض كافة السجلات والعيادات
         </button>
+      </div>
+
+      <!-- Network Scope in Sidebar -->
+      <div class="sidebar-section">
+        <h4 class="sidebar-section-title"><i class="fa-solid fa-network-wired"></i> نطاق التغطية والشبكة</h4>
+        <div class="sidebar-items-list">
+          <button class="sidebar-item-btn" onclick="window.MedicalApp.setCoverageScope('all'); window.MedicalApp.closeSidebar();">
+            <div class="sidebar-item-left"><i class="fa-solid fa-globe" style="color:var(--we-purple-primary)"></i> <span>الكل (شامل العاملين والأسرة)</span></div>
+          </button>
+          <button class="sidebar-item-btn" onclick="window.MedicalApp.setCoverageScope('employee_only'); window.MedicalApp.closeSidebar();">
+            <div class="sidebar-item-left"><i class="fa-solid fa-user-tie" style="color:#0288D1"></i> <span>العاملين بالشركة فقط</span></div>
+          </button>
+          <button class="sidebar-item-btn" onclick="window.MedicalApp.setCoverageScope('family_globemed'); window.MedicalApp.closeSidebar();">
+            <div class="sidebar-item-left"><i class="fa-solid fa-people-roof" style="color:#C2185B"></i> <span>أسر العاملين (شبكة جلوب ميد)</span></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Contract Entities in Sidebar -->
+      <div class="sidebar-section">
+        <h4 class="sidebar-section-title"><i class="fa-solid fa-handshake"></i> جهة التعاقد والتبعية</h4>
+        <div class="sidebar-items-list" id="sidebar-contracts-list">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Dakahlia Markaz in Sidebar -->
+      <div class="sidebar-section">
+        <h4 class="sidebar-section-title"><i class="fa-solid fa-location-dot"></i> مراكز ومدن محافظة الدقهلية</h4>
+        <div class="sidebar-items-list" id="sidebar-markaz-list">
+          <!-- Injected via JS -->
+        </div>
       </div>
 
       <!-- Partner Hospitals in Sidebar -->
@@ -149,31 +190,19 @@
         <h4 class="sidebar-section-title"><i class="fa-solid fa-hospital-user"></i> المعامل والمراكز والصيدليات</h4>
         <div class="sidebar-items-list">
           <button class="sidebar-item-btn" onclick="window.MedicalApp.openServiceFromSidebar('labs')">
-            <div class="sidebar-item-left">
-              <i class="fa-solid fa-vial-virus" style="color: #0288d1;"></i>
-              <span>معامل التحاليل الطبية</span>
-            </div>
-            <span class="sidebar-item-badge">4 معامل</span>
+            <div class="sidebar-item-left"><i class="fa-solid fa-vial-virus" style="color: #0288d1;"></i> <span>معامل التحاليل الطبية</span></div>
+            <span class="sidebar-item-badge">المختبر والبرج وألفا</span>
           </button>
           <button class="sidebar-item-btn" onclick="window.MedicalApp.openServiceFromSidebar('radiology')">
-            <div class="sidebar-item-left">
-              <i class="fa-solid fa-x-ray" style="color: #8e24aa;"></i>
-              <span>مراكز الأشعة والتصوير</span>
-            </div>
-            <span class="sidebar-item-badge">3 مراكز</span>
+            <div class="sidebar-item-left"><i class="fa-solid fa-x-ray" style="color: #8e24aa;"></i> <span>مراكز الأشعة والتصوير</span></div>
+            <span class="sidebar-item-badge">كايرو وألفا سكان</span>
           </button>
           <button class="sidebar-item-btn" onclick="window.MedicalApp.openServiceFromSidebar('pharmacies')">
-            <div class="sidebar-item-left">
-              <i class="fa-solid fa-prescription-bottle-medical" style="color: #10b981;"></i>
-              <span>الصيدليات والخدمة 24س</span>
-            </div>
-            <span class="sidebar-item-badge">4 سلاسل</span>
+            <div class="sidebar-item-left"><i class="fa-solid fa-prescription-bottle-medical" style="color: #10b981;"></i> <span>الصيدليات والخدمة 24س</span></div>
+            <span class="sidebar-item-badge">الطرشوبي وسالي والعزبي</span>
           </button>
           <button class="sidebar-item-btn" onclick="window.MedicalApp.openServiceFromSidebar('specialized')">
-            <div class="sidebar-item-left">
-              <i class="fa-solid fa-tooth" style="color: #00acc1;"></i>
-              <span>مراكز الأسنان والعيون والتأهيل</span>
-            </div>
+            <div class="sidebar-item-left"><i class="fa-solid fa-tooth" style="color: #00acc1;"></i> <span>مراكز الأسنان والعيون والتأهيل</span></div>
             <span class="sidebar-item-badge">مراكز معتمدة</span>
           </button>
         </div>
@@ -190,7 +219,7 @@
   <main class="container">
 
     <!-- ====================================================================
-         Persistent Search Bar (حقل البحث الموحد الثابت - لا يفقد التركيز نهائياً)
+         Persistent Search Bar & Scope Filters (حقل البحث الموحد وفلاتر الشبكة)
          ==================================================================== -->
     <section class="search-section">
       <div class="search-box-wrapper">
@@ -200,13 +229,30 @@
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
+
+      <!-- Network Scope Filter (العاملين vs أسر جلوب ميد) -->
+      <div class="network-scope-bar">
+        <button class="scope-pill-btn active" data-scope="all" onclick="window.MedicalApp.setCoverageScope('all')">
+          <i class="fa-solid fa-globe"></i> <span>الكل (شامل)</span>
+        </button>
+        <button class="scope-pill-btn" data-scope="employee_only" onclick="window.MedicalApp.setCoverageScope('employee_only')">
+          <i class="fa-solid fa-user-tie"></i> <span>العاملين بالشركة</span>
+        </button>
+        <button class="scope-pill-btn" data-scope="family_globemed" onclick="window.MedicalApp.setCoverageScope('family_globemed')">
+          <i class="fa-solid fa-people-roof"></i> <span>أسر العاملين (جلوب ميد)</span>
+        </button>
+      </div>
     </section>
 
     <!-- ====================================================================
          VIEW: Home (الرئيسية - Mobile Hub & Dashboard)
-         (Note: Doctors are revealed upon search or category tap)
          ==================================================================== -->
     <div id="view-home" class="view-section">
+      <!-- Logged-in Employee Personalized Welcome Banner (if authenticated) -->
+      <div id="home-user-card-banner" style="display: none; margin-bottom: 1rem;">
+        <!-- Injected via JS -->
+      </div>
+
       <!-- Hero Banner -->
       <section class="hero-banner">
         <div class="hero-header">
@@ -215,7 +261,7 @@
         </div>
         <h2 class="hero-title">المنظومة الطبية الموحدة للعاملين بالدقهلية</h2>
         <p class="hero-desc">
-          دليل رقمي تفاعلي شامل يضم الأطباء الاستشاريين، المستشفيات المتعاقدة، معامل التحاليل، مراكز الأشعة، والصيدليات بالمنصورة ومحافظة الدقهلية.
+          دليل رقمي تفاعلي شامل يخدم موظفي المصرية للاتصالات WE وأسرهم (شبكة جلوب ميد) في مدينة المنصورة وكافة مراكز محافظة الدقهلية.
         </p>
 
         <div class="hero-stats-grid">
@@ -249,6 +295,24 @@
         </div>
       </section>
 
+      <!-- Guidelines Quick Access Card -->
+      <section style="background: linear-gradient(135deg, #1b0c33, var(--we-purple-dark)); color:#fff; border-radius: var(--radius-lg); padding: 1.15rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.85rem; box-shadow: var(--shadow-md);">
+        <div>
+          <span style="background: rgba(255,255,255,0.18); padding: 0.2rem 0.6rem; border-radius: var(--radius-full); font-size: 0.72rem; font-weight: 800;">
+            <i class="fa-solid fa-book-medical"></i> دليل الإجراءات الرسمي
+          </span>
+          <h4 style="font-size: 1.05rem; font-family: var(--font-heading); margin: 0.35rem 0 0.2rem;">
+            تعليمات وإجراءات الحصول على الخدمة الطبية والموافقات
+          </h4>
+          <p style="font-size: 0.8rem; opacity: 0.9; max-width: 650px;">
+            دليل مبسط يوضح للموظف وأسرته خطوات دخول الطوارئ، إصدار الموافقات، صرف أدوية الأمراض المزمنة، وضوابط شبكة جلوب ميد بالدقهلية.
+          </p>
+        </div>
+        <button class="btn-accent-pink" style="padding: 0.55rem 1.15rem; border-radius: var(--radius-md); font-weight: 800; font-size:0.82rem;" onclick="window.MedicalApp.switchTab('guidelines')">
+          <i class="fa-solid fa-arrow-left"></i> فتح دليل التعليمات
+        </button>
+      </section>
+
       <!-- Partner Hospitals Highlights -->
       <section class="partner-hospitals-section">
         <div class="section-header-title">
@@ -261,28 +325,13 @@
           <!-- Injected via JS -->
         </div>
       </section>
-
-      <!-- Quick Approvals & Emergency Banner -->
-      <section style="background: linear-gradient(135deg, #1e1333, var(--we-purple-dark)); color:#fff; border-radius: var(--radius-lg); padding: 1.15rem; margin-bottom: 1.75rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.85rem;">
-        <div>
-          <h4 style="font-size: 1.05rem; font-family: var(--font-heading); margin-bottom: 0.25rem;">
-            <i class="fa-solid fa-file-medical-pulse" style="color: var(--we-pink-accent);"></i> طلب موافقة طبية لموظفي WE
-          </h4>
-          <p style="font-size: 0.8rem; opacity: 0.9; max-width: 600px;">
-            إرسال طلب موافقة طبية فوري معتمد إلى بريد مستشفى الخير (Elkhier.hospital@gmail.com) أو استعلام السلاب والحكمة بنقرة واحدة.
-          </p>
-        </div>
-        <button class="btn-accent-pink" style="padding: 0.55rem 1.1rem; border-radius: var(--radius-md); font-weight: 800; font-size:0.82rem;" onclick="window.MedicalApp.openApprovalEmailModal('مستشفى الخير', 'Elkhier.hospital@gmail.com')">
-          <i class="fa-solid fa-paper-plane"></i> نموذج طلب موافقة فوري
-        </button>
-      </section>
     </div>
 
     <!-- ====================================================================
          VIEW: Doctors & Search Results (دليل الأطباء والنتائج)
          ==================================================================== -->
     <div id="view-doctors" class="view-section" style="display: none;">
-      <!-- Smart Filter Bar (Replaces cluttered horizontal pills!) -->
+      <!-- Smart Filter Bar -->
       <div class="smart-filter-bar">
         <button class="btn-open-filter-sidebar" onclick="window.MedicalApp.openSidebar()">
           <i class="fa-solid fa-sliders"></i>
@@ -293,12 +342,29 @@
         </button>
       </div>
 
-      <!-- Secondary Controls Bar -->
-      <div class="secondary-filter-bar">
+      <!-- Secondary Controls Bar with Markaz & Contract Selectors -->
+      <div class="secondary-filter-bar" style="flex-wrap: wrap; gap: 0.5rem;">
         <div class="results-count-text">
           المطابق للبحث: <strong id="results-count-value">0</strong> عيادة وطبيب
         </div>
-        <div class="filter-actions-group">
+
+        <div class="filter-actions-group" style="flex-wrap: wrap; gap: 0.4rem;">
+          <!-- Dakahlia Markaz Selector -->
+          <select id="filter-markaz-select" class="filter-dropdown-select" onchange="window.MedicalApp.onMarkazSelectChange(this.value)">
+            <option value="all">📍 كافة مراكز الدقهلية</option>
+            <!-- Injected via JS -->
+          </select>
+
+          <!-- Contract Entity Selector -->
+          <select id="filter-contract-select" class="filter-dropdown-select" onchange="window.MedicalApp.onContractSelectChange(this.value)">
+            <option value="all">🏢 كافة جهات التعاقد</option>
+            <option value="مباشر من الشركة WE">مباشر من الشركة WE</option>
+            <option value="تابع لمستشفى الحكمة">تابع لمستشفى الحكمة</option>
+            <option value="تابع لمستشفى الجزيرة (السلاب)">تابع لمستشفى السلاب</option>
+            <option value="تابع لمستشفى الخير">تابع لمستشفى الخير</option>
+          </select>
+
+          <!-- Clinic Type -->
           <select id="filter-clinic-type" class="custom-select">
             <option value="all">جميع العيادات</option>
             <option value="عيادات داخلية">عيادات داخلية</option>
@@ -308,6 +374,7 @@
             <option value="قسم داخلي دائم">طوارئ وخدمات دائمة</option>
           </select>
 
+          <!-- Sort Order -->
           <select id="filter-sort-by" class="custom-select">
             <option value="default">الترتيب الافتراضي</option>
             <option value="name">الاسم أبجدياً</option>
@@ -319,6 +386,42 @@
 
       <!-- Doctors Cards Grid -->
       <div class="doctors-grid" id="doctors-grid-container">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         VIEW: Guidelines & Procedures (التعليمات والإجراءات الطبية)
+         ==================================================================== -->
+    <div id="view-guidelines" class="view-section" style="display: none;">
+      <div class="smart-filter-bar">
+        <div style="font-size: 0.95rem; font-weight: 800; color: var(--we-purple-primary);">
+          <i class="fa-solid fa-book-medical"></i> دليل التعليمات والإجراءات الطبية المعتمدة
+        </div>
+        <div style="display:flex; gap:0.4rem;">
+          <button class="btn-action-call" style="padding:0.4rem 0.8rem; border-radius:var(--radius-md); font-size:0.78rem;" onclick="window.print()">
+            <i class="fa-solid fa-print"></i> طباعة الدليل
+          </button>
+          <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
+            <i class="fa-solid fa-house"></i> الرئيسية
+          </button>
+        </div>
+      </div>
+
+      <!-- Guidelines Sub-tabs -->
+      <div class="admin-tabs-row" style="margin-bottom: 1.25rem;">
+        <button class="admin-tab-btn active" data-guide-tab="all">الكل</button>
+        <button class="admin-tab-btn" data-guide-tab="emergency"><i class="fa-solid fa-truck-medical"></i> دخول الطوارئ</button>
+        <button class="admin-tab-btn" data-guide-tab="approvals"><i class="fa-solid fa-file-signature"></i> الموافقات الطبية</button>
+        <button class="admin-tab-btn" data-guide-tab="globemed"><i class="fa-solid fa-users-line"></i> أسر العاملين (جلوب ميد)</button>
+        <button class="admin-tab-btn" data-guide-tab="medications"><i class="fa-solid fa-pills"></i> أدوية الأمراض المزمنة</button>
+        <button class="admin-tab-btn" data-guide-tab="benefits"><i class="fa-solid fa-glasses"></i> أسنان ونظارات</button>
+        <button class="admin-tab-btn" data-guide-tab="referrals"><i class="fa-solid fa-stethoscope"></i> عيادات خارجية</button>
+        <button class="admin-tab-btn" data-guide-tab="union"><i class="fa-solid fa-hand-holding-medical"></i> دعم النقابة</button>
+      </div>
+
+      <!-- Guidelines Container -->
+      <div class="guidelines-grid" id="guidelines-view-container">
         <!-- Injected via JS -->
       </div>
     </div>
@@ -414,37 +517,16 @@
     </div>
 
     <!-- ====================================================================
-         VIEW: Emergency (الطوارئ والموافقات الطبية)
+         VIEW: Emergency (الطوارئ والاستغاثة والموافقات الطبية)
          ==================================================================== -->
     <div id="view-emergency" class="view-section" style="display: none;">
       <div class="smart-filter-bar">
         <div style="font-size: 0.9rem; font-weight: 800; color: #dc2626;">
-          <i class="fa-solid fa-truck-medical"></i> طوارئ 24 ساعة والموافقات الطبية
+          <i class="fa-solid fa-truck-medical"></i> خطوط الاستغاثة العاجلة وطوارئ 24 ساعة
         </div>
         <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
           <i class="fa-solid fa-house"></i> الرئيسية
         </button>
-      </div>
-
-      <div class="approvals-guide-box">
-        <h3><i class="fa-solid fa-file-medical"></i> إجراءات الحصول على الموافقة الطبية لموظف WE</h3>
-        <div class="approvals-steps">
-          <div class="step-card">
-            <div class="step-number">1</div>
-            <h4>الكشف بالعيادات</h4>
-            <p>التوجه المباشر للعيادات المعتمدة بالدليل بالرقم التأميني أو كارنيه الشركة المصرية للاتصالات.</p>
-          </div>
-          <div class="step-card">
-            <div class="step-number">2</div>
-            <h4>الموافقات والعمليات</h4>
-            <p>إرسال تقرير الطبيب لبريد مستشفى الخير (Elkhier.hospital@gmail.com) أو مراجعة إدارة تعاقدات السلاب.</p>
-          </div>
-          <div class="step-card">
-            <div class="step-number">3</div>
-            <h4>طوارئ 24 ساعة</h4>
-            <p>قسطرة القلب الطارئة بمستشفى الخير (الدور 9) ووحدة الغسيل الكلوي (الدور 3) تعمل يومياً.</p>
-          </div>
-        </div>
       </div>
 
       <div class="emergency-grid" id="emergency-grid-container">
@@ -464,7 +546,7 @@
           </div>
           <h2 style="font-family: var(--font-heading); margin-bottom: 0.4rem;">لوحة إدارة المنظومة الطبية</h2>
           <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.15rem;">
-            مخصصة لمسؤولي اللجنة النقابية بالدقهلية لإضافة سجلات جديدة وتحديث بيانات الأطباء والمراكز.
+            مخصصة لمسؤولي اللجنة النقابية بالدقهلية لإدارة السجلات والخطوط العاجلة والنشرات الطبية.
           </p>
           <div class="form-group" style="margin-bottom: 1rem;">
             <input type="password" id="admin-pin-input" class="form-input" placeholder="رمز الدخول (الافتراضي: we2026)" style="text-align: center; font-size: 1.1rem; letter-spacing: 2px;">
@@ -495,15 +577,24 @@
           </div>
 
           <!-- Admin Sub-navigation Tabs -->
-          <div class="admin-tabs-row" id="admin-tabs-control">
+          <div class="admin-tabs-row" id="admin-tabs-control" style="flex-wrap: wrap;">
             <button class="admin-tab-btn active" data-admin-view="add-new">
-              <i class="fa-solid fa-user-plus"></i> إضافة جهة / طبيب جديد
+              <i class="fa-solid fa-user-plus"></i> إضافة جهة / طبيب
+            </button>
+            <button class="admin-tab-btn" data-admin-view="manage-distress">
+              <i class="fa-solid fa-phone-volume"></i> أرقام الاستغاثة والطوارئ
+            </button>
+            <button class="admin-tab-btn" data-admin-view="manage-guidelines">
+              <i class="fa-solid fa-book-medical"></i> التعليمات والنشرات
+            </button>
+            <button class="admin-tab-btn" data-admin-view="manage-employees">
+              <i class="fa-solid fa-users"></i> كشف العاملين
             </button>
             <button class="admin-tab-btn" data-admin-view="auditor">
-              <i class="fa-solid fa-clipboard-check"></i> مدقق جودة البيانات (<span id="admin-audit-badge">0</span>)
+              <i class="fa-solid fa-clipboard-check"></i> مدقق الجودة (<span id="admin-audit-badge">0</span>)
             </button>
             <button class="admin-tab-btn" data-admin-view="duplicates">
-              <i class="fa-solid fa-fingerprint"></i> كاشف التكرار الذكي
+              <i class="fa-solid fa-fingerprint"></i> كاشف التكرار
             </button>
             <button class="admin-tab-btn" data-admin-view="suggestions">
               <i class="fa-solid fa-inbox"></i> مقترحات المستخدمين (<span id="admin-sug-badge">0</span>)
@@ -513,11 +604,16 @@
           <!-- TAB 1: Add New Doctor / Facility Form -->
           <div id="admin-tab-add-new" class="admin-subview">
             <div style="background: var(--bg-subtle); border-radius: var(--radius-md); padding: 1.15rem; margin-bottom: 1.25rem; border: 1px solid var(--border-color);">
-              <h3 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--we-purple-primary); margin-bottom: 0.6rem;">
-                <i class="fa-solid fa-circle-plus"></i> نموذج إضافة جهة طبية أو عيادة أو طبيب جديد
-              </h3>
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem;">
+                <h3 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--we-purple-primary);">
+                  <i class="fa-solid fa-circle-plus"></i> نموذج إضافة جهة طبية أو عيادة أو طبيب جديد
+                </h3>
+                <button type="button" class="btn-accent-pink" style="padding: 0.35rem 0.8rem; border-radius: var(--radius-full); font-size: 0.78rem;" onclick="window.MedicalApp.autoEnrichNewProvider()">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> كشف وربط ذكي تلقائي (GPS & تصحيح)
+                </button>
+              </div>
               <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                البيانات المدخلة تحفظ مباشرة في قاعدة البيانات المحلية وتظهر فوراً للمستخدمين دون الحاجة لتعديل في الأكواد.
+                اكتب اسم الطبيب أو الجهة والعنوان واضغط على "كشف وربط ذكي" لتصحيح الاسم وضبط التخصص والمركز ورابط خرائط Google تلقائياً.
               </p>
 
               <form id="form-add-doctor" onsubmit="window.MedicalApp.submitNewDoctor(event)">
@@ -556,6 +652,32 @@
                   </div>
 
                   <div class="form-group">
+                    <label class="form-label">جهة التعاقد والتبعية *</label>
+                    <select id="new-doc-contract-entity" class="form-select" required>
+                      <option value="مباشر من الشركة WE">مباشر من الشركة WE</option>
+                      <option value="تابع لمستشفى الحكمة">تابع لمستشفى الحكمة</option>
+                      <option value="تابع لمستشفى الجزيرة (السلاب)">تابع لمستشفى الجزيرة (السلاب)</option>
+                      <option value="تابع لمستشفى الخير">تابع لمستشفى الخير</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">نطاق التغطية والشبكة *</label>
+                    <select id="new-doc-coverage-scope" class="form-select" required>
+                      <option value="both">شامل: العاملين + أسر العاملين (جلوب ميد)</option>
+                      <option value="employee_only">العاملين بالشركة فقط</option>
+                      <option value="family_globemed">أسر العاملين (شبكة جلوب ميد) فقط</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">مركز / مدينة الدقهلية *</label>
+                    <select id="new-doc-markaz" class="form-select" required>
+                      <!-- Populated via JS -->
+                    </select>
+                  </div>
+
+                  <div class="form-group">
                     <label class="form-label">المستشفى التابع لها / المركز المتعاقد معه *</label>
                     <select id="new-doc-hospital" class="form-select" required>
                       <option value="مستشفى الحكمة">مستشفى الحكمة بالمنصورة</option>
@@ -580,11 +702,6 @@
                   <div class="form-group">
                     <label class="form-label">أرقام التليفون / الحجز / الموبايل *</label>
                     <input type="text" id="new-doc-phone" class="form-input" required placeholder="مثال: 01012345678 - 050/2200000">
-                  </div>
-
-                  <div class="form-group">
-                    <label class="form-label">المدينة والمنطقة</label>
-                    <input type="text" id="new-doc-area" class="form-input" placeholder="مثال: المنصورة - ش جيهان أو طلخا">
                   </div>
 
                   <div class="form-group full-width">
@@ -612,14 +729,63 @@
             </div>
           </div>
 
-          <!-- TAB 2: Data Auditor -->
+          <!-- TAB 2: Manage Distress Lines & SOS -->
+          <div id="admin-tab-manage-distress" class="admin-subview" style="display: none;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; flex-wrap: wrap;">
+              <h3 style="font-size: 1.1rem; font-family: var(--font-heading); color: var(--text-primary);">
+                <i class="fa-solid fa-phone-volume"></i> إدارة خطوط الاستغاثة وأرقام الطوارئ العاجلة
+              </h3>
+              <button class="btn-primary-purple" style="padding: 0.4rem 0.8rem; border-radius: var(--radius-md); font-size: 0.78rem;" onclick="window.MedicalApp.openAddDistressModal()">
+                <i class="fa-solid fa-plus"></i> إضافة رقم استغاثة جديد
+              </button>
+            </div>
+            <div id="admin-distress-list-container">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+          <!-- TAB 3: Manage Guidelines & Circulars -->
+          <div id="admin-tab-manage-guidelines" class="admin-subview" style="display: none;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; flex-wrap: wrap;">
+              <h3 style="font-size: 1.1rem; font-family: var(--font-heading); color: var(--text-primary);">
+                <i class="fa-solid fa-book-medical"></i> إدارة التعليمات والنشرات الطبية الدورية
+              </h3>
+              <button class="btn-primary-purple" style="padding: 0.4rem 0.8rem; border-radius: var(--radius-md); font-size: 0.78rem;" onclick="window.MedicalApp.openAddGuidelineModal()">
+                <i class="fa-solid fa-plus"></i> إضافة نشرة / إجراء جديد
+              </button>
+            </div>
+            <div id="admin-guidelines-list-container">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+          <!-- TAB 4: Manage Employees Database -->
+          <div id="admin-tab-manage-employees" class="admin-subview" style="display: none;">
+            <h3 style="font-size: 1.1rem; font-family: var(--font-heading); margin-bottom: 0.4rem; color: var(--text-primary);">
+              <i class="fa-solid fa-users"></i> كشف العاملين بالشركة بالدقهلية (تسجيل الدخول الذكي)
+            </h3>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.85rem;">
+              يمكنك استيراد أو تحديث كشف العاملين (الاسم، رقم الموبايل، آخر 4 أرقام من الرقم القومي، جهة العمل).
+            </p>
+            <div style="background: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem; border: 1px solid var(--border-color);">
+              <label class="form-label">لصق بيانات العاملين (صيغة JSON أو قائمة):</label>
+              <textarea id="admin-employees-json-input" class="form-input" rows="4" placeholder='[{"name": "...", "phone": "010...", "national_id_last4": "1234", "sector": "المنصورة", "role": "employee"}]'></textarea>
+              <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.6rem;">
+                <button class="btn-primary-purple" style="padding: 0.45rem 1rem; border-radius: var(--radius-md); font-size:0.8rem;" onclick="window.MedicalApp.importEmployeesFromAdmin()">
+                  <i class="fa-solid fa-upload"></i> حفظ وتحديث كشف العاملين
+                </button>
+              </div>
+            </div>
+            <div id="admin-employees-list-container">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+          <!-- TAB 5: Data Auditor -->
           <div id="admin-tab-auditor" class="admin-subview" style="display: none;">
             <h3 style="font-size: 1.1rem; font-family: var(--font-heading); margin-bottom: 0.4rem; color: var(--text-primary);">
               <i class="fa-solid fa-clipboard-check"></i> مدقق جودة السجلات الطبية
             </h3>
-            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.85rem;">
-              يعرض السجلات التي تحتاج لتدقيق أرقام هواتف أو تحديد ساعات عمل واضحة.
-            </p>
             <div class="data-table-wrapper">
               <table class="data-table">
                 <thead>
@@ -638,7 +804,7 @@
             </div>
           </div>
 
-          <!-- TAB 3: Duplicate Scanner -->
+          <!-- TAB 6: Duplicate Scanner -->
           <div id="admin-tab-duplicates" class="admin-subview" style="display: none;">
             <h3 style="font-size: 1.1rem; font-family: var(--font-heading); margin-bottom: 0.4rem; color: var(--text-primary);">
               <i class="fa-solid fa-fingerprint"></i> كاشف التكرار الذكي (Duplicate Scanner)
@@ -648,7 +814,7 @@
             </div>
           </div>
 
-          <!-- TAB 4: User Suggestions -->
+          <!-- TAB 7: User Suggestions -->
           <div id="admin-tab-suggestions" class="admin-subview" style="display: none;">
             <h3 style="font-size: 1.1rem; font-family: var(--font-heading); margin-bottom: 0.4rem; color: var(--text-primary);">
               <i class="fa-solid fa-inbox"></i> مقترحات وترشيحات الزملاء بالشركة
@@ -677,11 +843,13 @@
   <!-- ====================================================================
        Floating Action Buttons (SOS & User Suggestion)
        ==================================================================== -->
+  <!-- Floating SOS Emergency Button -->
+  <button class="fab-sos-btn" onclick="window.MedicalApp.openSOSModal()" title="طوارئ واستغاثة عاجلة 24س">
+    <i class="fa-solid fa-bell"></i>
+    <span>استغاثة عاجلة 🆘</span>
+  </button>
+
   <div class="fab-container">
-    <button class="fab-sos" onclick="window.MedicalApp.switchTab('emergency')" title="طوارئ وإسعاف فوري 24 ساعة">
-      <i class="fa-solid fa-truck-medical"></i>
-      <span>طوارئ</span>
-    </button>
     <button class="fab-suggest" onclick="window.MedicalApp.openSuggestModal()" title="اقتراح إضافة طبيب أو جهة جديدة">
       <i class="fa-solid fa-plus"></i>
     </button>
@@ -723,9 +891,9 @@
       <i class="fa-solid fa-user-doctor"></i>
       <span>الأطباء</span>
     </button>
-    <button class="nav-item" data-nav-tab="specialties">
-      <i class="fa-solid fa-stethoscope"></i>
-      <span>التخصصات</span>
+    <button class="nav-item" data-nav-tab="guidelines">
+      <i class="fa-solid fa-book-medical"></i>
+      <span>التعليمات</span>
     </button>
     <button class="nav-item" data-nav-tab="services">
       <i class="fa-solid fa-hospital-user"></i>
@@ -745,7 +913,7 @@
   <footer class="app-footer">
     <p>منظومة الدليل الطبي الموحد — الشركة المصرية للاتصالات WE بالدقهلية</p>
     <p style="margin-top: 0.25rem;">
-      <strong>إعداد وتنفيذ: الأستاذ / محمود العراقي</strong> • برعاية اللجنة النقابية بالدقهلية
+      <strong>إعداد وتنفيذ: الأستاذ / محمود العراقي</strong> • برعاية اللجنة النقابية للعاملين بالدقهلية
     </p>
   </footer>
 

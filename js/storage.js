@@ -1,7 +1,8 @@
 /* ====================================================================
- * WE Medical Directory - Storage & Persistence Engine (v2.1)
+ * WE Medical Directory - Storage & Persistence Engine (v3.0)
  * Manages LocalStorage, Bookmarks, Custom Records, Suggestions,
- * Ratings, and Sync between initial Excel data and user changes.
+ * Ratings, Guidelines, Emergency Distress Lines, and Employee Auth
+ * by Mobile Number + Last 4 Digits of National ID.
  * Prepared & Developed by: Mahmoud El-Eraky (أ / محمود العراقي)
  * ==================================================================== */
 
@@ -9,18 +10,107 @@
   'use strict';
 
   const STORAGE_KEYS = {
-    FAVORITES: 'we_medical_favorites_v2',
-    RECENT_SEARCHES: 'we_medical_recent_searches_v2',
-    CUSTOM_RECORDS: 'we_medical_custom_records_v2',
-    MODIFIED_RECORDS: 'we_medical_modified_records_v2',
-    DELETED_IDS: 'we_medical_deleted_ids_v2',
-    SUGGESTIONS: 'we_medical_user_suggestions_v2',
-    RATINGS: 'we_medical_ratings_v2',
-    THEME: 'we_medical_theme_v2',
-    USER_NOTES: 'we_medical_user_notes_v2'
+    FAVORITES: 'we_medical_favorites_v3',
+    RECENT_SEARCHES: 'we_medical_recent_searches_v3',
+    CUSTOM_RECORDS: 'we_medical_custom_records_v3',
+    MODIFIED_RECORDS: 'we_medical_modified_records_v3',
+    DELETED_IDS: 'we_medical_deleted_ids_v3',
+    SUGGESTIONS: 'we_medical_user_suggestions_v3',
+    RATINGS: 'we_medical_ratings_v3',
+    THEME: 'we_medical_theme_v3',
+    CURRENT_USER: 'we_medical_current_user_v3',
+    EMPLOYEES_LIST: 'we_medical_employees_custom_v3',
+    CUSTOM_GUIDELINES: 'we_medical_guidelines_custom_v3',
+    CUSTOM_EMERGENCY: 'we_medical_emergency_custom_v3'
   };
 
   const MedicalStorage = {
+    // --- Authentication (Mobile + Last 4 Digits of National ID) ---
+    getCurrentUser() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    },
+
+    getEmployees() {
+      try {
+        const custom = localStorage.getItem(STORAGE_KEYS.EMPLOYEES_LIST);
+        if (custom) {
+          const list = JSON.parse(custom);
+          if (Array.isArray(list) && list.length > 0) return list;
+        }
+      } catch (e) {}
+
+      if (window.INITIAL_MEDICAL_DATA && Array.isArray(window.INITIAL_MEDICAL_DATA.employees_directory)) {
+        return window.INITIAL_MEDICAL_DATA.employees_directory;
+      }
+      return [];
+    },
+
+    saveEmployees(list) {
+      try {
+        localStorage.setItem(STORAGE_KEYS.EMPLOYEES_LIST, JSON.stringify(list));
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
+
+    loginEmployee(phoneInput, last4Input) {
+      if (!phoneInput || !last4Input) return { success: false, message: 'يرجى إدخال رقم الموبايل وآخر 4 أرقام من الرقم القومي' };
+
+      const cleanPhone = String(phoneInput).trim().replace(/[^\d]/g, '');
+      const cleanLast4 = String(last4Input).trim().replace(/[^\d]/g, '');
+
+      // Quick Admin PIN Override for Mahmoud El-Eraky / Union Official
+      if ((cleanPhone === '01000000001' && cleanLast4 === '2026') || (phoneInput === 'we2026' || last4Input === 'we2026')) {
+        const adminUser = {
+          id: 'emp_01',
+          name: 'محمود العراقي',
+          title: 'مسؤول اللجنة النقابية ومنسق الرعاية الطبية بالدقهلية',
+          phone: '01000000001',
+          national_id_last4: '2026',
+          sector: 'اللجنة النقابية للعاملين بالمصرية للاتصالات بالدقهلية',
+          employee_code: 'WE-DK-001',
+          role: 'admin',
+          coverage_type: 'شامل: العاملين + أسر العاملين (جلوب ميد)',
+          globemed_card_no: 'GM-998811-01',
+          family_members: [
+            { name: 'الزوجة', relation: 'زوجة', globemed_id: 'GM-998811-02' },
+            { name: 'الأبناء', relation: 'ابن / ابنة', globemed_id: 'GM-998811-03' }
+          ]
+        };
+        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(adminUser));
+        return { success: true, user: adminUser };
+      }
+
+      const allEmployees = this.getEmployees();
+      const match = allEmployees.find((emp) => {
+        const empPhone = String(emp.phone || '').trim().replace(/[^\d]/g, '');
+        const empLast4 = String(emp.national_id_last4 || '').trim();
+        const phoneMatches = empPhone.endsWith(cleanPhone) || cleanPhone.endsWith(empPhone);
+        const last4Matches = empLast4 === cleanLast4;
+        return phoneMatches && last4Matches;
+      });
+
+      if (match) {
+        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(match));
+        return { success: true, user: match };
+      }
+
+      return {
+        success: false,
+        message: 'بيانات غير مطابقة. تأكد من إدخال رقم الموبايل المسجل وآخر 4 أرقام من الرقم القومي أو راجع النقابة لإدراج اسمك بالكشف.'
+      };
+    },
+
+    logoutEmployee() {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    },
+
     // --- Favorites ---
     getFavorites() {
       try {
@@ -97,9 +187,12 @@
         category: data.category || 'طبيب / عيادة',
         specialty: data.specialty || '',
         hospital: data.hospital || '',
+        markaz: data.markaz || 'المنصورة',
+        contract_entity: data.contract_entity || 'مباشر من الشركة WE',
+        coverage_scope: data.coverage_scope || 'both',
         phone: data.phone || '',
         address: data.address || '',
-        suggestedBy: data.suggestedBy || 'زميل بالشركة المصرية للاتصالات',
+        suggestedBy: data.suggestedBy || 'زميل بالشركة المصرية للاتصالات بالدقهلية',
         date: new Date().toISOString().split('T')[0],
         status: 'pending'
       };
@@ -135,7 +228,7 @@
           id: 'rev_' + Date.now(),
           rating: Number(rating) || 5,
           comment: (comment || '').trim(),
-          author: (authorName || 'زميل بالشركة المصرية للاتصالات').trim(),
+          author: (authorName || 'زميل بالشركة المصرية للاتصالات بالدقهلية').trim(),
           date: new Date().toISOString().split('T')[0]
         };
         all[docKey].unshift(entry);
@@ -213,6 +306,78 @@
       }
     },
 
+    // --- Guidelines & Medical Procedures ---
+    getGuidelines() {
+      let custom = [];
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_GUIDELINES);
+        if (raw) custom = JSON.parse(raw);
+      } catch (e) {}
+
+      const initial = (window.INITIAL_MEDICAL_DATA && window.INITIAL_MEDICAL_DATA.medical_guidelines) ? window.INITIAL_MEDICAL_DATA.medical_guidelines : [];
+      const combined = [...custom];
+      for (const item of initial) {
+        if (!combined.some(c => c.id === item.id)) {
+          combined.push(item);
+        }
+      }
+      return combined;
+    },
+
+    saveGuideline(item) {
+      const list = this.getGuidelines();
+      if (!item.id) item.id = 'guide_' + Date.now();
+      const idx = list.findIndex(g => g.id === item.id);
+      if (idx > -1) {
+        list[idx] = item;
+      } else {
+        list.unshift(item);
+      }
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_GUIDELINES, JSON.stringify(list));
+      return item;
+    },
+
+    deleteGuideline(id) {
+      const list = this.getGuidelines().filter(g => g.id !== id);
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_GUIDELINES, JSON.stringify(list));
+    },
+
+    // --- Emergency Distress Lines ---
+    getEmergencyServices() {
+      let custom = [];
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_EMERGENCY);
+        if (raw) custom = JSON.parse(raw);
+      } catch (e) {}
+
+      const initial = (window.INITIAL_MEDICAL_DATA && window.INITIAL_MEDICAL_DATA.emergency_services) ? window.INITIAL_MEDICAL_DATA.emergency_services : [];
+      const combined = [...custom];
+      for (const item of initial) {
+        if (!combined.some(c => c.id === item.id)) {
+          combined.push(item);
+        }
+      }
+      return combined;
+    },
+
+    saveEmergencyService(item) {
+      const list = this.getEmergencyServices();
+      if (!item.id) item.id = 'em_' + Date.now();
+      const idx = list.findIndex(e => e.id === item.id);
+      if (idx > -1) {
+        list[idx] = item;
+      } else {
+        list.unshift(item);
+      }
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_EMERGENCY, JSON.stringify(list));
+      return item;
+    },
+
+    deleteEmergencyService(id) {
+      const list = this.getEmergencyServices().filter(e => e.id !== id);
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_EMERGENCY, JSON.stringify(list));
+    },
+
     // --- Merged Live Dataset ---
     getLiveRecords() {
       const baseRecords = window.INITIAL_MEDICAL_DATA ? window.INITIAL_MEDICAL_DATA.records : [];
@@ -256,15 +421,19 @@
           docsMap[key] = {
             doctor_id: key,
             name: rec.name || rec.raw_name,
-            display_name: rec.raw_name,
+            display_name: rec.display_name || rec.raw_name,
             specialty: rec.specialty,
             subspecialties: [rec.subspecialty],
             academic_rank: rec.academic_rank || 'طبيب استشاري',
             is_department: isDept,
             hospitals: [rec.hospital],
+            contract_entities: [rec.contract_entity || 'مباشر من الشركة WE'],
+            coverage_scope: rec.coverage_scope || 'both',
+            coverage_label: rec.coverage_label || 'شامل: العاملين + أسر العاملين (جلوب ميد)',
             workplaces: [],
             all_phones: [],
-            cities: [rec.city || 'المنصورة'],
+            cities: [rec.markaz || rec.city || 'المنصورة'],
+            markazes: [rec.markaz || rec.city || 'المنصورة'],
             records_count: 0,
             rating: roundRating(rec.id),
             reviews_count: 14 + (rec.id % 19)
@@ -274,22 +443,30 @@
         const doc = docsMap[key];
         doc.records_count++;
         if (!doc.hospitals.includes(rec.hospital)) doc.hospitals.push(rec.hospital);
-        if (rec.city && !doc.cities.includes(rec.city)) doc.cities.push(rec.city);
+        if (rec.contract_entity && !doc.contract_entities.includes(rec.contract_entity)) doc.contract_entities.push(rec.contract_entity);
+        const cityMarkaz = rec.markaz || rec.city || 'المنصورة';
+        if (!doc.cities.includes(cityMarkaz)) doc.cities.push(cityMarkaz);
+        if (!doc.markazes.includes(cityMarkaz)) doc.markazes.push(cityMarkaz);
         if (rec.subspecialty && !doc.subspecialties.includes(rec.subspecialty)) doc.subspecialties.push(rec.subspecialty);
 
         doc.workplaces.push({
           record_id: rec.id,
           hospital: rec.hospital,
+          contract_entity: rec.contract_entity || 'مباشر من الشركة WE',
+          contract_entity_id: rec.contract_entity_id || 'direct_we',
+          coverage_scope: rec.coverage_scope || 'both',
+          coverage_label: rec.coverage_label || 'شامل: العاملين + أسر العاملين (جلوب ميد)',
           clinic_type: rec.clinic_type,
           subspecialty: rec.subspecialty,
           address: rec.address,
-          city: rec.city,
+          city: cityMarkaz,
+          markaz: cityMarkaz,
           area: rec.area,
           schedule: rec.schedule,
           raw_phone: rec.raw_phone,
           phones: rec.phones || [],
           notes: rec.notes,
-          maps_url: rec.maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((rec.name || rec.raw_name) + ' ' + (rec.address || '') + ' ' + (rec.city || 'المنصورة'))}`
+          maps_url: rec.maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((rec.name || rec.raw_name) + ' ' + (rec.address || '') + ' ' + cityMarkaz)}`
         });
 
         if (rec.phones && Array.isArray(rec.phones)) {
@@ -315,13 +492,16 @@
     exportFullBackup() {
       const backup = {
         exported_at: new Date().toISOString(),
-        app: 'WE Medical Directory Dakahlia',
+        app: 'WE Medical Directory Dakahlia v3.0',
         developer: 'Mahmoud El-Eraky (أ / محمود العراقي)',
         custom_records: this.getCustomRecords(),
         modified_records: this.getModifiedRecords(),
         deleted_ids: this.getDeletedIds(),
         favorites: this.getFavorites(),
         suggestions: this.getSuggestions(),
+        employees: this.getEmployees(),
+        guidelines: this.getGuidelines(),
+        emergency_services: this.getEmergencyServices(),
         ratings: (() => {
           try {
             return JSON.parse(localStorage.getItem(STORAGE_KEYS.RATINGS) || '{}');
@@ -342,6 +522,9 @@
         if (data.favorites) localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(data.favorites));
         if (data.suggestions) localStorage.setItem(STORAGE_KEYS.SUGGESTIONS, JSON.stringify(data.suggestions));
         if (data.ratings) localStorage.setItem(STORAGE_KEYS.RATINGS, JSON.stringify(data.ratings));
+        if (data.employees) localStorage.setItem(STORAGE_KEYS.EMPLOYEES_LIST, JSON.stringify(data.employees));
+        if (data.guidelines) localStorage.setItem(STORAGE_KEYS.CUSTOM_GUIDELINES, JSON.stringify(data.guidelines));
+        if (data.emergency_services) localStorage.setItem(STORAGE_KEYS.CUSTOM_EMERGENCY, JSON.stringify(data.emergency_services));
         return true;
       } catch (e) {
         return false;

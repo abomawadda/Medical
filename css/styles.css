@@ -1692,3 +1692,419 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .app-footer strong {
   color: var(--we-purple-primary);
 }
+
+/* ====================================================================
+ * v3.0 Enhancements: Network Scope, Markaz, Guidelines, Auth & SOS
+ * ==================================================================== */
+
+/* Header Auth Button */
+.header-auth-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--we-purple-soft);
+  color: var(--we-purple-primary);
+  border: 1px solid var(--border-color);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .header-auth-btn {
+  background: #2a1b4d;
+  color: #e9d5ff;
+}
+
+.header-auth-btn:hover {
+  background: var(--we-purple-primary);
+  color: #ffffff;
+}
+
+.header-auth-btn.logged-in {
+  background: linear-gradient(135deg, var(--we-purple-primary), var(--we-pink-accent));
+  color: #ffffff;
+  border: none;
+}
+
+/* Network Scope Toggle Bar (العاملين vs أسر جلوب ميد) */
+.network-scope-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.scope-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.scope-pill-btn:hover {
+  border-color: var(--we-purple-light);
+  color: var(--we-purple-primary);
+}
+
+.scope-pill-btn.active {
+  background: linear-gradient(135deg, var(--we-purple-primary), var(--we-purple-light));
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(91, 44, 130, 0.3);
+}
+
+/* Filter Dropdowns in Secondary Bar */
+.filter-dropdown-select {
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.filter-dropdown-select:focus {
+  border-color: var(--we-purple-primary);
+}
+
+/* Doctor & Facility Card Badges (Contract Entity, Markaz, Scope) */
+.card-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-top: 0.45rem;
+  margin-bottom: 0.5rem;
+}
+
+.badge-contract-entity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--we-purple-soft);
+  color: var(--we-purple-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .badge-contract-entity {
+  background: #2a1b4d;
+  color: #d8b4fe;
+}
+
+.badge-coverage-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #ecfdf5;
+  color: #065f46;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+}
+
+[data-theme="dark"] .badge-coverage-scope {
+  background: #064e3b;
+  color: #a7f3d0;
+}
+
+.badge-coverage-scope.family-only {
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.badge-markaz {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+}
+
+/* Guidelines & Procedures View */
+.guidelines-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.15rem;
+}
+
+@media (min-width: 768px) {
+  .guidelines-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.guideline-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.guideline-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--we-purple-light);
+}
+
+.guideline-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.guideline-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--we-purple-soft);
+  color: var(--we-purple-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .guideline-icon {
+  background: #2a1b4d;
+  color: #d8b4fe;
+}
+
+.guideline-title-group h3 {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.35;
+  margin-bottom: 0.2rem;
+}
+
+.guideline-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: 0.68rem;
+  font-weight: 800;
+  background: var(--we-pink-soft);
+  color: var(--we-pink-accent);
+}
+
+.guideline-summary {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  line-height: 1.45;
+}
+
+.guideline-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  border-top: 1px dashed var(--border-color);
+  padding-top: 0.85rem;
+}
+
+.guideline-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+.guideline-step-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--we-purple-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Floating Emergency SOS Button */
+.fab-sos-btn {
+  position: fixed;
+  bottom: calc(var(--bottom-nav-height) + 20px + env(safe-area-inset-bottom));
+  left: 18px;
+  z-index: 9999;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 18px rgba(220, 38, 38, 0.45);
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  animation: sosPulse 2.5s infinite;
+}
+
+.fab-sos-btn:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 6px 22px rgba(220, 38, 38, 0.6);
+}
+
+@keyframes sosPulse {
+  0%, 100% { box-shadow: 0 4px 18px rgba(220, 38, 38, 0.45); }
+  50% { box-shadow: 0 4px 26px rgba(220, 38, 38, 0.8); }
+}
+
+/* SOS Sheet Actions Grid */
+.sos-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+@media (min-width: 600px) {
+  .sos-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.sos-action-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.sos-action-card:hover {
+  border-color: #dc2626;
+  transform: translateY(-2px);
+}
+
+.sos-action-card.hot {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+[data-theme="dark"] .sos-action-card.hot {
+  background: #2a0e12;
+  border-color: #7f1d1d;
+}
+
+.sos-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.sos-card-info h4 {
+  font-size: 0.9rem;
+  font-weight: 800;
+  margin-bottom: 0.15rem;
+  color: var(--text-primary);
+}
+
+.sos-card-info p {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Digital Medical ID Card */
+.medical-id-card {
+  background: linear-gradient(135deg, #1b0c33 0%, var(--we-purple-dark) 45%, var(--we-pink-accent) 100%);
+  color: #ffffff;
+  border-radius: var(--radius-lg);
+  padding: 1.35rem;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+
+.medical-id-card::after {
+  content: '';
+  position: absolute;
+  top: -60px;
+  left: -60px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+}
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.card-emp-name {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-bottom: 0.2rem;
+}
+
+.card-emp-meta {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.card-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.65rem;
+  margin-top: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  padding: 0.85rem;
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+}
