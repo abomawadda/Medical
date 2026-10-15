@@ -1,0 +1,64 @@
+{
+  "name": "منظومة الدليل الطبي الموحد - المصرية للاتصالات WE (الدقهلية)",
+  "short_name": "دليل WE الطبي",
+  "description": "الدليل الطبي التفاعلي الموحد للعاملين بالشركة المصرية للاتصالات وأبناء الدقهلية - برعاية اللجنة النقابية بالدقهلية",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#4A148C",
+  "theme_color": "#5B2C82",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["medical", "health", "productivity"],
+  "icons": [
+    {
+      "src": "img/favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "img/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "طوارئ وموافقات طبية",
+      "short_name": "الطوارئ",
+      "url": "./index.html#emergency",
+      "icons": [{ "src": "img/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "بحث الأطباء والاستشاريين",
+      "short_name": "الأطباء",
+      "url": "./index.html#doctors",
+      "icons": [{ "src": "img/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "المستشفيات المعتمدة",
+      "short_name": "المستشفيات",
+      "url": "./index.html#hospitals",
+      "icons": [{ "src": "img/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "أطبائي المفضلون",
+      "short_name": "المفضلة",
+      "url": "./index.html#favorites",
+      "icons": [{ "src": "img/icon-96.png", "sizes": "96x96" }]
+    }
+  ]
+}
