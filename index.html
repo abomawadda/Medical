@@ -190,6 +190,19 @@
   <main class="container">
 
     <!-- ====================================================================
+         Persistent Search Bar (حقل البحث الموحد الثابت - لا يفقد التركيز نهائياً)
+         ==================================================================== -->
+    <section class="search-section">
+      <div class="search-box-wrapper">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="main-search-input" class="search-input" placeholder="ابحث باسم الطبيب، التخصص، المستشفى، المعمل، أو الشارع..." autocomplete="off">
+        <button id="search-clear-btn" class="search-clear-btn" title="مسح البحث">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- ====================================================================
          VIEW: Home (الرئيسية - Mobile Hub & Dashboard)
          (Note: Doctors are revealed upon search or category tap)
          ==================================================================== -->
@@ -222,17 +235,6 @@
             <div class="stat-number" id="hero-stat-hosps">3</div>
             <div class="stat-label">صروح طبية كبرى</div>
           </div>
-        </div>
-      </section>
-
-      <!-- Prominent Search Bar -->
-      <section class="search-section">
-        <div class="search-box-wrapper">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" id="main-search-input" class="search-input" placeholder="ابحث باسم الطبيب، التخصص، المستشفى، المعمل، أو الشارع...">
-          <button id="search-clear-btn" class="search-clear-btn" title="مسح البحث">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
         </div>
       </section>
 

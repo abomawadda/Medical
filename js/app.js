@@ -122,15 +122,23 @@
         state.searchQuery = e.target.value;
         if (searchClear) searchClear.classList.toggle('visible', !!e.target.value);
         if (state.searchQuery.trim().length > 0) {
-          if (state.currentTab !== 'doctors') switchTab('doctors');
+          if (state.currentTab !== 'doctors') {
+            switchTab('doctors', false); // Keep view stable and maintain focus
+          } else {
+            renderDoctorsList();
+          }
+        } else {
           renderDoctorsList();
         }
       });
 
       searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-          MedicalStorage.addRecentSearch(state.searchQuery);
-          switchTab('doctors');
+          e.preventDefault();
+          if (state.searchQuery.trim()) {
+            MedicalStorage.addRecentSearch(state.searchQuery.trim());
+          }
+          if (state.currentTab !== 'doctors') switchTab('doctors', false);
           renderDoctorsList();
         }
       });
@@ -138,7 +146,10 @@
 
     if (searchClear) {
       searchClear.addEventListener('click', () => {
-        if (searchInput) searchInput.value = '';
+        if (searchInput) {
+          searchInput.value = '';
+          searchInput.focus();
+        }
         state.searchQuery = '';
         searchClear.classList.remove('visible');
         renderDoctorsList();
@@ -223,9 +234,14 @@
     window.addEventListener('popstate', handleHashRouting);
   }
 
-  function switchTab(tabId) {
+  function switchTab(tabId, shouldScroll = true) {
     state.currentTab = tabId;
-    window.location.hash = tabId;
+
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', `#${tabId}`);
+    } else {
+      window.location.hash = tabId;
+    }
 
     document.querySelectorAll('[data-nav-tab]').forEach((btn) => {
       const match = btn.getAttribute('data-nav-tab') === tabId;
@@ -239,7 +255,15 @@
     const target = document.getElementById(`view-${tabId}`);
     if (target) {
       target.style.display = 'block';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (shouldScroll) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    // Toggle search section: hide on admin view, keep visible everywhere else
+    const searchSec = document.querySelector('.search-section');
+    if (searchSec) {
+      searchSec.style.display = (tabId === 'admin') ? 'none' : 'block';
     }
 
     if (tabId === 'doctors') {

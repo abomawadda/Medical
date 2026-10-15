@@ -534,7 +534,7 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   background: linear-gradient(135deg, var(--we-purple-dark) 0%, var(--we-purple-primary) 60%, var(--we-pink-accent) 100%);
   color: #ffffff;
   padding: 1.25rem 1rem 1.75rem;
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  border-radius: var(--radius-lg);
   margin-bottom: 1.25rem;
   box-shadow: var(--shadow-md);
   position: relative;
@@ -635,12 +635,12 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 
 /* ====================================================================
- * Search Section
+ * Search Section (Persistent & Non-blurring)
  * ==================================================================== */
 .search-section {
   position: relative;
-  margin-top: -1.15rem;
-  margin-bottom: 1.25rem;
+  margin-top: 0.85rem;
+  margin-bottom: 0.85rem;
   z-index: 20;
 }
 
