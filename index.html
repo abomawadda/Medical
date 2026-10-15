@@ -3,37 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-  <title>منظومة الدليل الطبي الموحد — المصرية للاتصالات WE (الدقهلية)</title>
+  <title>منظومة الدليل الطبي الموحد — الشركة المصرية للاتصالات WE (الدقهلية)</title>
   
-  <!-- PWA & Mobile Optimization Meta Tags -->
+  <!-- PWA & Mobile Meta Tags -->
   <meta name="description" content="منظومة الدليل الطبي التفاعلي الموحد للعاملين بالشركة المصرية للاتصالات وأبناء الدقهلية — إعداد وتنفيذ: الأستاذ / محمود العراقي">
   <meta name="theme-color" content="#521d85">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="دليل WE الطبي">
+  <meta name="apple-mobile-web-app-title" content="دليل WE">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
   <link rel="apple-touch-icon" href="img/icon-192.png">
 
-  <!-- Arabic Typography & Icons -->
+  <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
-  <!-- App Stylesheet -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
   <!-- ====================================================================
-       Splash Screen (Attribution to Mahmoud El-Eraky)
+       Splash Screen
        ==================================================================== -->
   <div id="splash-screen">
     <div class="splash-content">
       <div class="splash-logos">
-        <img src="img/we_logo.webp" alt="شعار المصرية للاتصالات WE" class="splash-logo-we">
-        <img src="img/nekaba_logo.png" alt="شعار اللجنة النقابية للعاملين بالاتصالات بالدقهلية" class="splash-logo-nekaba">
+        <img src="img/we_logo.webp" alt="WE" class="splash-logo-we">
+        <img src="img/nekaba_logo.png" alt="النقابة" class="splash-logo-nekaba">
       </div>
       <h1 class="splash-title">دليل WE الطبي الموحد</h1>
       <p class="splash-subtitle">اللجنة النقابية للعاملين بالمصرية للاتصالات بالدقهلية</p>
@@ -41,51 +40,52 @@
         <i class="fa-solid fa-code"></i> إعداد وتنفيذ: الأستاذ / محمود العراقي
       </div>
       <div class="splash-loader"></div>
-      <p class="splash-footer-note" style="font-size: 0.8rem; opacity: 0.85;">جاري تحميل المنظومة وتحديث البيانات...</p>
+      <p class="splash-footer-note" style="font-size: 0.8rem; opacity: 0.85;">جاري تحميل وتحديث المنظومة...</p>
     </div>
   </div>
 
   <!-- ====================================================================
-       Application Header: WE Logo (Right), Title (Center), Union Logo (Left)
+       Application Header: WE Logo (Right) | Title (Center) | Union Logo (Left)
        ==================================================================== -->
   <header class="app-header">
     <div class="header-inner">
-      <!-- Right Side: Official WE Logo -->
-      <div class="header-right-logo">
-        <img src="img/we_logo.webp" alt="المصرية للاتصالات WE" class="header-logo-img" title="الشركة المصرية للاتصالات WE">
+      <!-- Right Side: Sidebar Toggle + Official WE Logo -->
+      <div class="header-right-side">
+        <button id="btn-open-sidebar" class="sidebar-toggle-btn" onclick="window.MedicalApp.openSidebar()" title="فتح قائمة التخصصات والتصنيفات">
+          <i class="fa-solid fa-bars-staggered"></i>
+        </button>
+        <img src="img/we_logo.webp" alt="WE" class="header-logo-img" title="الشركة المصرية للاتصالات WE">
       </div>
 
       <!-- Center: App Title & Developer Credit -->
       <div class="header-center-info">
-        <h1>دليل WE الطبي الموحد</h1>
-        <span class="author-credit"><i class="fa-solid fa-user-check"></i> إعداد وتنفيذ: أ / محمود العراقي</span>
-        <span class="sub-credit">اللجنة النقابية للعاملين بالاتصالات بالدقهلية</span>
+        <h1 class="header-title">دليل WE الطبي</h1>
+        <div class="author-credit-tag">
+          <i class="fa-solid fa-user-check"></i> إعداد وتنفيذ: أ / محمود العراقي
+        </div>
       </div>
 
-      <!-- Left Side: Official Union Logo & Actions -->
-      <div class="header-left-actions">
-        <img src="img/nekaba_logo.png" alt="اللجنة النقابية بالدقهلية" class="header-logo-img" title="اللجنة النقابية للعاملين بالاتصالات بالدقهلية">
-        <button id="btn-theme-toggle" class="icon-btn" title="تبديل الوضع الليلي / النهاري">
+      <!-- Left Side: Dark Mode + Union Logo -->
+      <div class="header-left-side">
+        <button id="btn-theme-toggle" class="icon-btn-compact" title="تبديل الوضع الليلي">
           <i class="fa-solid fa-moon"></i>
         </button>
-        <button id="btn-install-header" class="btn-install-pwa" title="تثبيت التطبيق على جهازك">
-          <i class="fa-solid fa-download"></i> <span>تثبيت</span>
-        </button>
+        <img src="img/nekaba_logo.png" alt="النقابة" class="header-logo-img" title="اللجنة النقابية للعاملين بالاتصالات بالدقهلية">
       </div>
     </div>
   </header>
 
   <!-- Desktop Navigation Bar -->
-  <div style="background: var(--bg-card); border-bottom: 1px solid var(--border-color); display: none;" class="desktop-nav-bar">
-    <div class="container" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem 1rem;">
+  <div class="desktop-nav-bar">
+    <div class="container" style="display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.4rem 1rem;">
       <button class="desktop-nav-link active" data-nav-tab="home">
         <i class="fa-solid fa-house"></i> الرئيسية
       </button>
       <button class="desktop-nav-link" data-nav-tab="doctors">
-        <i class="fa-solid fa-user-doctor"></i> بحث الأطباء والعيادات
+        <i class="fa-solid fa-user-doctor"></i> الأطباء والعيادات
       </button>
       <button class="desktop-nav-link" data-nav-tab="specialties">
-        <i class="fa-solid fa-stethoscope"></i> التخصصات
+        <i class="fa-solid fa-stethoscope"></i> التخصصات (14)
       </button>
       <button class="desktop-nav-link" data-nav-tab="services">
         <i class="fa-solid fa-hospital-user"></i> المعامل والمراكز والصيدليات
@@ -105,11 +105,93 @@
     </div>
   </div>
 
+  <!-- ====================================================================
+       Mobile Sidebar Drawer (شريط جانبي مخصص للموبايل لكافة التخصصات)
+       ==================================================================== -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="window.MedicalApp.closeSidebar()"></div>
+  <aside id="mobile-filter-sidebar" class="mobile-sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title-group">
+        <h3><i class="fa-solid fa-sliders"></i> تخصصات وتصنيفات الدليل</h3>
+        <span>اختر للفلترة المباشرة</span>
+      </div>
+      <button class="sidebar-close-btn" onclick="window.MedicalApp.closeSidebar()" title="إغلاق">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="sidebar-body">
+      <!-- Reset / Show All Button -->
+      <div class="sidebar-reset-row">
+        <button class="btn-sidebar-reset" onclick="window.MedicalApp.resetFilters()">
+          <i class="fa-solid fa-rotate-left"></i> عرض كافة الأطباء (169 عيادة)
+        </button>
+      </div>
+
+      <!-- Partner Hospitals in Sidebar -->
+      <div class="sidebar-section">
+        <h4 class="sidebar-section-title"><i class="fa-solid fa-hospital"></i> المستشفيات الشريكة</h4>
+        <div class="sidebar-items-list" id="sidebar-hospitals-list">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- 14 Medical Specialties in Sidebar -->
+      <div class="sidebar-section">
+        <h4 class="sidebar-section-title"><i class="fa-solid fa-stethoscope"></i> التخصصات الطبية (14 تخصصاً)</h4>
+        <div class="sidebar-items-list" id="sidebar-specialties-list">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Other Medical Services in Sidebar -->
+      <div class="sidebar-section">
+        <h4 class="sidebar-section-title"><i class="fa-solid fa-hospital-user"></i> المعامل والمراكز والصيدليات</h4>
+        <div class="sidebar-items-list">
+          <button class="sidebar-item-btn" onclick="window.MedicalApp.openServiceFromSidebar('labs')">
+            <div class="sidebar-item-left">
+              <i class="fa-solid fa-vial-virus" style="color: #0288d1;"></i>
+              <span>معامل التحاليل الطبية</span>
+            </div>
+            <span class="sidebar-item-badge">4 معامل</span>
+          </button>
+          <button class="sidebar-item-btn" onclick="window.MedicalApp.openServiceFromSidebar('radiology')">
+            <div class="sidebar-item-left">
+              <i class="fa-solid fa-x-ray" style="color: #8e24aa;"></i>
+              <span>مراكز الأشعة والتصوير</span>
+            </div>
+            <span class="sidebar-item-badge">3 مراكز</span>
+          </button>
+          <button class="sidebar-item-btn" onclick="window.MedicalApp.openServiceFromSidebar('pharmacies')">
+            <div class="sidebar-item-left">
+              <i class="fa-solid fa-prescription-bottle-medical" style="color: #10b981;"></i>
+              <span>الصيدليات والخدمة 24س</span>
+            </div>
+            <span class="sidebar-item-badge">4 سلاسل</span>
+          </button>
+          <button class="sidebar-item-btn" onclick="window.MedicalApp.openServiceFromSidebar('specialized')">
+            <div class="sidebar-item-left">
+              <i class="fa-solid fa-tooth" style="color: #00acc1;"></i>
+              <span>مراكز الأسنان والعيون والتأهيل</span>
+            </div>
+            <span class="sidebar-item-badge">مراكز معتمدة</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-primary-purple" style="width: 100%; padding: 0.65rem; border-radius: var(--radius-md); font-weight: 800;" onclick="window.MedicalApp.closeSidebar()">
+        تطبيق وعرض النتائج
+      </button>
+    </div>
+  </aside>
+
   <main class="container">
 
     <!-- ====================================================================
          VIEW: Home (الرئيسية - Mobile Hub & Dashboard)
-         (Note: Doctors are NOT dumped here, only revealed upon search or category tap)
+         (Note: Doctors are revealed upon search or category tap)
          ==================================================================== -->
     <div id="view-home" class="view-section">
       <!-- Hero Banner -->
@@ -120,7 +202,7 @@
         </div>
         <h2 class="hero-title">المنظومة الطبية الموحدة للعاملين بالدقهلية</h2>
         <p class="hero-desc">
-          دليل رقمي تفاعلي شامل يضم الأطباء الاستشاريين، المستشفيات المتعاقدة، معامل التحاليل، مراكز الأشعة، الصيدليات، ومراكز الطوارئ والرعاية المنزلية بالمنصورة ومحافظة الدقهلية.
+          دليل رقمي تفاعلي شامل يضم الأطباء الاستشاريين، المستشفيات المتعاقدة، معامل التحاليل، مراكز الأشعة، والصيدليات بالمنصورة ومحافظة الدقهلية.
         </p>
 
         <div class="hero-stats-grid">
@@ -158,10 +240,10 @@
       <section class="hub-categories-section">
         <div class="section-header-title">
           <h3><i class="fa-solid fa-shapes"></i> أقسام الدليل والخدمات الطبية</h3>
-          <span style="font-size: 0.8rem; color: var(--text-muted);">اختر القسم المطلوب للتصفح الفوري</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">اختر القسم المطلوب للتصفح الفوري</span>
         </div>
         <div class="categories-grid" id="home-categories-grid">
-          <!-- Injected via JavaScript -->
+          <!-- Injected via JS -->
         </div>
       </section>
 
@@ -169,26 +251,26 @@
       <section class="partner-hospitals-section">
         <div class="section-header-title">
           <h3><i class="fa-solid fa-hospital"></i> المستشفيات الشريكة الرئيسية بالمنصورة</h3>
-          <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('hospitals')" style="font-size: 0.8rem;">
-            عرض التفاصيل كاملة <i class="fa-solid fa-arrow-left"></i>
+          <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('hospitals')" style="font-size: 0.78rem;">
+            عرض التفاصيل <i class="fa-solid fa-arrow-left"></i>
           </button>
         </div>
         <div class="partner-hospitals-grid" id="home-hospitals-grid">
-          <!-- Injected via JavaScript -->
+          <!-- Injected via JS -->
         </div>
       </section>
 
       <!-- Quick Approvals & Emergency Banner -->
-      <section style="background: linear-gradient(135deg, #1e1333, var(--we-purple-dark)); color:#fff; border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+      <section style="background: linear-gradient(135deg, #1e1333, var(--we-purple-dark)); color:#fff; border-radius: var(--radius-lg); padding: 1.15rem; margin-bottom: 1.75rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.85rem;">
         <div>
-          <h4 style="font-size: 1.15rem; font-family: var(--font-heading); margin-bottom: 0.3rem;">
+          <h4 style="font-size: 1.05rem; font-family: var(--font-heading); margin-bottom: 0.25rem;">
             <i class="fa-solid fa-file-medical-pulse" style="color: var(--we-pink-accent);"></i> طلب موافقة طبية لموظفي WE
           </h4>
-          <p style="font-size: 0.85rem; opacity: 0.9; max-width: 600px;">
-            يمكنك إرسال طلب موافقة طبية فوري معتمد إلى بريد مستشفى الخير (Elkhier.hospital@gmail.com) أو استعلام السلاب والحكمة بنقرة واحدة.
+          <p style="font-size: 0.8rem; opacity: 0.9; max-width: 600px;">
+            إرسال طلب موافقة طبية فوري معتمد إلى بريد مستشفى الخير (Elkhier.hospital@gmail.com) أو استعلام السلاب والحكمة بنقرة واحدة.
           </p>
         </div>
-        <button class="btn-accent-pink" style="padding: 0.6rem 1.2rem; border-radius: var(--radius-md); font-weight: 800;" onclick="window.MedicalApp.openApprovalEmailModal('مستشفى الخير', 'Elkhier.hospital@gmail.com')">
+        <button class="btn-accent-pink" style="padding: 0.55rem 1.1rem; border-radius: var(--radius-md); font-weight: 800; font-size:0.82rem;" onclick="window.MedicalApp.openApprovalEmailModal('مستشفى الخير', 'Elkhier.hospital@gmail.com')">
           <i class="fa-solid fa-paper-plane"></i> نموذج طلب موافقة فوري
         </button>
       </section>
@@ -198,24 +280,15 @@
          VIEW: Doctors & Search Results (دليل الأطباء والنتائج)
          ==================================================================== -->
     <div id="view-doctors" class="view-section" style="display: none;">
-      <!-- Navigation Breadcrumb -->
-      <div class="directory-nav-banner">
-        <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
-          <i class="fa-solid fa-arrow-right"></i> عودة للأقسام والتصنيفات
+      <!-- Smart Filter Bar (Replaces cluttered horizontal pills!) -->
+      <div class="smart-filter-bar">
+        <button class="btn-open-filter-sidebar" onclick="window.MedicalApp.openSidebar()">
+          <i class="fa-solid fa-sliders"></i>
+          <span id="active-filter-badge">تصفية وفلترة التخصصات والمستشفيات</span>
         </button>
-        <div id="active-filter-badge" style="font-size: 0.85rem; font-weight: 700; color: var(--we-purple-primary);">
-          عرض الأطباء والاستشاريين المعتمدين
-        </div>
-      </div>
-
-      <!-- Quick Hospital Pills -->
-      <div class="hospital-pills-bar" id="hospital-pills-container">
-        <!-- Injected via JavaScript -->
-      </div>
-
-      <!-- Specialty Chips Scroller -->
-      <div class="specialty-scroll-bar" id="specialties-chips-container">
-        <!-- Injected via JavaScript -->
+        <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
+          <i class="fa-solid fa-house"></i> الرئيسية
+        </button>
       </div>
 
       <!-- Secondary Controls Bar -->
@@ -225,17 +298,17 @@
         </div>
         <div class="filter-actions-group">
           <select id="filter-clinic-type" class="custom-select">
-            <option value="all">جميع أنواع العيادات</option>
-            <option value="عيادات داخلية">عيادات داخلية بالمستشفى</option>
-            <option value="عيادة خارجية متعاقدة">عيادات خارجية متعاقدة</option>
-            <option value="عيادات داخلية وخارجية">عيادات داخلية وخارجية</option>
-            <option value="تحويل خارجي">تحويل خارجي معتمد</option>
-            <option value="قسم داخلي دائم">أقسام طوارئ وخدمات دائمة</option>
+            <option value="all">جميع العيادات</option>
+            <option value="عيادات داخلية">عيادات داخلية</option>
+            <option value="عيادة خارجية متعاقدة">خارجية متعاقدة</option>
+            <option value="عيادات داخلية وخارجية">داخلية وخارجية</option>
+            <option value="تحويل خارجي">تحويل خارجي</option>
+            <option value="قسم داخلي دائم">طوارئ وخدمات دائمة</option>
           </select>
 
           <select id="filter-sort-by" class="custom-select">
             <option value="default">الترتيب الافتراضي</option>
-            <option value="name">اسم الطبيب (أبجدياً)</option>
+            <option value="name">الاسم أبجدياً</option>
             <option value="workplaces">الأكثر في أماكن العمل</option>
             <option value="rating">الأعلى تقييماً</option>
           </select>
@@ -244,34 +317,34 @@
 
       <!-- Doctors Cards Grid -->
       <div class="doctors-grid" id="doctors-grid-container">
-        <!-- Injected via JavaScript -->
+        <!-- Injected via JS -->
       </div>
     </div>
 
     <!-- ====================================================================
-         VIEW: Medical Services (معامل التحاليل، مراكز الأشعة، الصيدليات...)
+         VIEW: Medical Services (معامل، أشعة، صيدليات...)
          ==================================================================== -->
     <div id="view-services" class="view-section" style="display: none;">
-      <div class="directory-nav-banner">
-        <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
-          <i class="fa-solid fa-arrow-right"></i> عودة للرئيسية
-        </button>
-        <div id="services-active-title" style="font-size: 0.92rem; font-weight: 800; color: var(--we-purple-primary);">
-          كافة الخدمات الطبية والمراكز التخصصية
+      <div class="smart-filter-bar">
+        <div style="font-size: 0.9rem; font-weight: 800; color: var(--we-purple-primary);" id="services-active-title">
+          <i class="fa-solid fa-hospital-user"></i> المعامل والمراكز التخصصية والصيدليات
         </div>
+        <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
+          <i class="fa-solid fa-house"></i> الرئيسية
+        </button>
       </div>
 
       <!-- Sub-tabs for Medical Services -->
-      <div class="admin-tabs-row" style="margin-bottom: 1.25rem;">
+      <div class="admin-tabs-row" style="margin-bottom: 1rem;">
         <button class="admin-tab-btn active" data-serv-tab="all">الكل</button>
         <button class="admin-tab-btn" data-serv-tab="labs"><i class="fa-solid fa-vial-virus"></i> معامل التحاليل</button>
         <button class="admin-tab-btn" data-serv-tab="radiology"><i class="fa-solid fa-x-ray"></i> مراكز الأشعة</button>
         <button class="admin-tab-btn" data-serv-tab="pharmacies"><i class="fa-solid fa-prescription-bottle-medical"></i> الصيدليات والدليفري</button>
-        <button class="admin-tab-btn" data-serv-tab="specialized"><i class="fa-solid fa-tooth"></i> مراكز الأسنان والعيون والعلاج الطبيعي</button>
+        <button class="admin-tab-btn" data-serv-tab="specialized"><i class="fa-solid fa-tooth"></i> مراكز الأسنان والعيون والتأهيل</button>
       </div>
 
       <div class="doctors-grid" id="services-grid-container">
-        <!-- Injected via JavaScript -->
+        <!-- Injected via JS -->
       </div>
     </div>
 
@@ -279,39 +352,35 @@
          VIEW: Specialties (مصفوفة التخصصات الطبية)
          ==================================================================== -->
     <div id="view-specialties" class="view-section" style="display: none;">
-      <div class="directory-nav-banner">
-        <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
-          <i class="fa-solid fa-arrow-right"></i> عودة للرئيسية
-        </button>
-        <div style="font-size: 0.92rem; font-weight: 800; color: var(--we-purple-primary);">
-          مصفوفة التخصصات الطبية الموحدة (14 تخصصاً)
+      <div class="smart-filter-bar">
+        <div style="font-size: 0.9rem; font-weight: 800; color: var(--we-purple-primary);">
+          <i class="fa-solid fa-stethoscope"></i> التخصصات الطبية الموحدة (14 تخصصاً)
         </div>
+        <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
+          <i class="fa-solid fa-house"></i> الرئيسية
+        </button>
       </div>
 
-      <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1.25rem;">
-        اضغط على أي تخصص لعرض كافة الأطباء والاستشاريين المعتمدين به فوراً في مستشفيات الحكمة والسلاب والخير.
-      </p>
-
       <div class="specialties-grid" id="specialties-view-grid">
-        <!-- Injected via JavaScript -->
+        <!-- Injected via JS -->
       </div>
     </div>
 
     <!-- ====================================================================
-         VIEW: Hospitals (المستشفيات والجهات المتعاقدة)
+         VIEW: Hospitals (المستشفيات الشريكة)
          ==================================================================== -->
     <div id="view-hospitals" class="view-section" style="display: none;">
-      <div class="directory-nav-banner">
-        <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
-          <i class="fa-solid fa-arrow-right"></i> عودة للرئيسية
-        </button>
-        <div style="font-size: 0.92rem; font-weight: 800; color: var(--we-purple-primary);">
-          الصروح الطبية المتعاقدة بالدقهلية
+      <div class="smart-filter-bar">
+        <div style="font-size: 0.9rem; font-weight: 800; color: var(--we-purple-primary);">
+          <i class="fa-solid fa-hospital"></i> الصروح الطبية الشريكة بالدقهلية
         </div>
+        <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
+          <i class="fa-solid fa-house"></i> الرئيسية
+        </button>
       </div>
 
       <div class="hospitals-view" id="hospitals-view-container">
-        <!-- Injected via JavaScript -->
+        <!-- Injected via JS -->
       </div>
     </div>
 
@@ -319,26 +388,26 @@
          VIEW: Favorites (المفضلة)
          ==================================================================== -->
     <div id="view-favorites" class="view-section" style="display: none;">
-      <div class="directory-nav-banner">
-        <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
-          <i class="fa-solid fa-arrow-right"></i> عودة للرئيسية
-        </button>
-        <div style="font-size: 0.92rem; font-weight: 800; color: var(--we-pink-accent);">
+      <div class="smart-filter-bar">
+        <div style="font-size: 0.9rem; font-weight: 800; color: var(--we-pink-accent);">
           <i class="fa-solid fa-heart"></i> أطبائي واستشاريي المفضلون
         </div>
+        <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
+          <i class="fa-solid fa-house"></i> الرئيسية
+        </button>
       </div>
 
       <div id="favorites-empty-notice" class="empty-state" style="display: none;">
         <div class="empty-state-icon"><i class="fa-regular fa-heart"></i></div>
         <h3>قائمة المفضلة فارغة حالياً</h3>
         <p>اضغط على أيقونة القلب في بطاقة أي طبيب لحفظه هنا والوصول السريع إليه دون اتصال بالإنترنت.</p>
-        <button class="btn-primary-purple" style="padding: 0.6rem 1.2rem; border-radius: var(--radius-md);" onclick="window.MedicalApp.switchTab('doctors')">
+        <button class="btn-primary-purple" style="padding: 0.55rem 1.15rem; border-radius: var(--radius-md);" onclick="window.MedicalApp.switchTab('doctors')">
           تصفح الأطباء الآن
         </button>
       </div>
 
       <div class="doctors-grid" id="favorites-grid-container">
-        <!-- Injected via JavaScript -->
+        <!-- Injected via JS -->
       </div>
     </div>
 
@@ -346,13 +415,13 @@
          VIEW: Emergency (الطوارئ والموافقات الطبية)
          ==================================================================== -->
     <div id="view-emergency" class="view-section" style="display: none;">
-      <div class="directory-nav-banner">
-        <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
-          <i class="fa-solid fa-arrow-right"></i> عودة للرئيسية
-        </button>
-        <div style="font-size: 0.92rem; font-weight: 800; color: #dc2626;">
+      <div class="smart-filter-bar">
+        <div style="font-size: 0.9rem; font-weight: 800; color: #dc2626;">
           <i class="fa-solid fa-truck-medical"></i> طوارئ 24 ساعة والموافقات الطبية
         </div>
+        <button class="btn-back-hub" onclick="window.MedicalApp.switchTab('home')">
+          <i class="fa-solid fa-house"></i> الرئيسية
+        </button>
       </div>
 
       <div class="approvals-guide-box">
@@ -377,7 +446,7 @@
       </div>
 
       <div class="emergency-grid" id="emergency-grid-container">
-        <!-- Injected via JavaScript -->
+        <!-- Injected via JS -->
       </div>
     </div>
 
@@ -387,18 +456,18 @@
     <div id="view-admin" class="view-section" style="display: none;">
       <div class="admin-wrapper">
         <!-- Login Gate -->
-        <div id="admin-login-box" style="max-width: 420px; margin: 2rem auto; text-align: center;">
-          <div style="font-size: 3rem; color: var(--we-purple-primary); margin-bottom: 1rem;">
+        <div id="admin-login-box" style="max-width: 420px; margin: 1.5rem auto; text-align: center;">
+          <div style="font-size: 2.75rem; color: var(--we-purple-primary); margin-bottom: 0.75rem;">
             <i class="fa-solid fa-shield-halved"></i>
           </div>
-          <h2 style="font-family: var(--font-heading); margin-bottom: 0.5rem;">لوحة إدارة المنظومة الطبية</h2>
-          <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1.25rem;">
+          <h2 style="font-family: var(--font-heading); margin-bottom: 0.4rem;">لوحة إدارة المنظومة الطبية</h2>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.15rem;">
             مخصصة لمسؤولي اللجنة النقابية بالدقهلية لإضافة سجلات جديدة وتحديث بيانات الأطباء والمراكز.
           </p>
           <div class="form-group" style="margin-bottom: 1rem;">
             <input type="password" id="admin-pin-input" class="form-input" placeholder="رمز الدخول (الافتراضي: we2026)" style="text-align: center; font-size: 1.1rem; letter-spacing: 2px;">
           </div>
-          <button class="btn-primary-purple" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); font-weight: 800;" onclick="window.MedicalApp.loginAdmin()">
+          <button class="btn-primary-purple" style="width: 100%; padding: 0.7rem; border-radius: var(--radius-md); font-weight: 800;" onclick="window.MedicalApp.loginAdmin()">
             دخول لوحة التحكم
           </button>
         </div>
@@ -408,16 +477,16 @@
           <div class="admin-header">
             <div>
               <h2>لوحة تحكم الدليل الطبي الموحد</h2>
-              <p style="font-size: 0.85rem; color: var(--text-secondary);">إشراف وإدارة: اللجنة النقابية للعاملين بالمصرية للاتصالات بالدقهلية</p>
+              <p style="font-size: 0.82rem; color: var(--text-secondary);">إشراف وإدارة: اللجنة النقابية للعاملين بالمصرية للاتصالات بالدقهلية</p>
             </div>
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button class="btn-action-call" style="padding: 0.5rem 0.9rem; border-radius: var(--radius-md);" onclick="window.MedicalApp.exportCSV()">
-                <i class="fa-solid fa-file-csv"></i> تصدير Excel / CSV
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+              <button class="btn-action-call" style="padding: 0.45rem 0.8rem; border-radius: var(--radius-md);" onclick="window.MedicalApp.exportCSV()">
+                <i class="fa-solid fa-file-csv"></i> تصدير Excel
               </button>
-              <button class="btn-action-details" style="padding: 0.5rem 0.9rem; border-radius: var(--radius-md);" onclick="window.MedicalApp.exportJSON()">
+              <button class="btn-action-details" style="padding: 0.45rem 0.8rem; border-radius: var(--radius-md);" onclick="window.MedicalApp.exportJSON()">
                 <i class="fa-solid fa-download"></i> نسخة احتياطية
               </button>
-              <button class="btn-outline" style="padding: 0.5rem 0.85rem; border-radius: var(--radius-md);" onclick="window.MedicalApp.logoutAdmin()">
+              <button class="btn-outline" style="padding: 0.45rem 0.75rem; border-radius: var(--radius-md);" onclick="window.MedicalApp.logoutAdmin()">
                 <i class="fa-solid fa-right-from-bracket"></i> خروج
               </button>
             </div>
@@ -441,12 +510,12 @@
 
           <!-- TAB 1: Add New Doctor / Facility Form -->
           <div id="admin-tab-add-new" class="admin-subview">
-            <div style="background: var(--bg-subtle); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
-              <h3 style="font-family: var(--font-heading); font-size: 1.15rem; color: var(--we-purple-primary); margin-bottom: 0.75rem;">
+            <div style="background: var(--bg-subtle); border-radius: var(--radius-md); padding: 1.15rem; margin-bottom: 1.25rem; border: 1px solid var(--border-color);">
+              <h3 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--we-purple-primary); margin-bottom: 0.6rem;">
                 <i class="fa-solid fa-circle-plus"></i> نموذج إضافة جهة طبية أو عيادة أو طبيب جديد
               </h3>
-              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
-                البيانات المدخلة تحفظ مباشرة في قاعدة البيانات المحلية وتظهر فوراً للمستخدمين دون الحاجة لتعديل يدوي في الأكواد.
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                البيانات المدخلة تحفظ مباشرة في قاعدة البيانات المحلية وتظهر فوراً للمستخدمين دون الحاجة لتعديل في الأكواد.
               </p>
 
               <form id="form-add-doctor" onsubmit="window.MedicalApp.submitNewDoctor(event)">
@@ -532,8 +601,8 @@
                   </div>
                 </div>
 
-                <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
-                  <button type="submit" class="btn-primary-purple" style="padding: 0.65rem 1.5rem; border-radius: var(--radius-md); font-weight: 800;">
+                <div style="display: flex; gap: 0.65rem; justify-content: flex-end; margin-top: 0.85rem;">
+                  <button type="submit" class="btn-primary-purple" style="padding: 0.6rem 1.35rem; border-radius: var(--radius-md); font-weight: 800;">
                     <i class="fa-solid fa-floppy-disk"></i> حفظ وإدراج السجل في المنظومة فوراً
                   </button>
                 </div>
@@ -543,11 +612,11 @@
 
           <!-- TAB 2: Data Auditor -->
           <div id="admin-tab-auditor" class="admin-subview" style="display: none;">
-            <h3 style="font-size: 1.15rem; font-family: var(--font-heading); margin-bottom: 0.5rem; color: var(--text-primary);">
+            <h3 style="font-size: 1.1rem; font-family: var(--font-heading); margin-bottom: 0.4rem; color: var(--text-primary);">
               <i class="fa-solid fa-clipboard-check"></i> مدقق جودة السجلات الطبية
             </h3>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
-              يعرض السجلات التي تحتاج لتدقيق أرقام هواتف أو تحديد ساعات عمل واضحة لتسهيل وصول الموظفين.
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.85rem;">
+              يعرض السجلات التي تحتاج لتدقيق أرقام هواتف أو تحديد ساعات عمل واضحة.
             </p>
             <div class="data-table-wrapper">
               <table class="data-table">
@@ -569,12 +638,9 @@
 
           <!-- TAB 3: Duplicate Scanner -->
           <div id="admin-tab-duplicates" class="admin-subview" style="display: none;">
-            <h3 style="font-size: 1.15rem; font-family: var(--font-heading); margin-bottom: 0.5rem; color: var(--text-primary);">
+            <h3 style="font-size: 1.1rem; font-family: var(--font-heading); margin-bottom: 0.4rem; color: var(--text-primary);">
               <i class="fa-solid fa-fingerprint"></i> كاشف التكرار الذكي (Duplicate Scanner)
             </h3>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
-              يقوم بمسح قاعدة البيانات واكتشاف الأطباء المكررين لتفادي إدراج نفس العيادة مرتين.
-            </p>
             <div id="admin-duplicates-list">
               <!-- Injected via JS -->
             </div>
@@ -582,24 +648,21 @@
 
           <!-- TAB 4: User Suggestions -->
           <div id="admin-tab-suggestions" class="admin-subview" style="display: none;">
-            <h3 style="font-size: 1.15rem; font-family: var(--font-heading); margin-bottom: 0.5rem; color: var(--text-primary);">
+            <h3 style="font-size: 1.1rem; font-family: var(--font-heading); margin-bottom: 0.4rem; color: var(--text-primary);">
               <i class="fa-solid fa-inbox"></i> مقترحات وترشيحات الزملاء بالشركة
             </h3>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
-              الجهات الطبية والأطباء الذين اقترح الزملاء إضافتهم إلى المنظومة.
-            </p>
             <div id="admin-suggestions-container">
               <!-- Injected via JS -->
             </div>
           </div>
 
           <!-- Reset & Recovery Tools -->
-          <div style="background: var(--bg-subtle); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem;">
+          <div style="background: var(--bg-subtle); padding: 1.15rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.85rem; margin-top: 1.25rem;">
             <div>
-              <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.2rem;">استعادة بيانات ملف Excel المعتمدة</h4>
-              <p style="font-size: 0.8rem; color: var(--text-secondary);">إلغاء التعديلات المحلية والعودة إلى الـ 169 سجلاً الأصلية.</p>
+              <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.2rem;">استعادة بيانات ملف Excel المعتمدة</h4>
+              <p style="font-size: 0.78rem; color: var(--text-secondary);">إلغاء التعديلات المحلية والعودة إلى الـ 169 سجلاً الأصلية.</p>
             </div>
-            <button class="btn-accent-pink" style="padding: 0.55rem 1.1rem; border-radius: var(--radius-md); font-weight: 800;" onclick="window.MedicalApp.resetDataDefaults()">
+            <button class="btn-accent-pink" style="padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 800; font-size:0.8rem;" onclick="window.MedicalApp.resetDataDefaults()">
               <i class="fa-solid fa-rotate-left"></i> استعادة البيانات الأصلية
             </button>
           </div>
@@ -630,7 +693,7 @@
       <div class="modal-drag-pill"></div>
       <div class="modal-sheet-header">
         <h3 id="modal-sheet-title" class="modal-sheet-title">تفاصيل الطبيب</h3>
-        <button class="icon-btn" data-modal-close title="إغلاق">
+        <button class="icon-btn-compact" data-modal-close title="إغلاق">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
