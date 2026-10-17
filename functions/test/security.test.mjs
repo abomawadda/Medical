@@ -48,7 +48,7 @@ const seed = {
   ],
   hospitals: [{ id: "h1", name: "مستشفى اختبار" }],
 };
-function setup() {
+function setup(options = {}) {
   let time = 1700000000000;
   const employees = [
     {
@@ -91,6 +91,7 @@ function setup() {
     adminAccountIds: ["source-admin"],
     allowedStates: ["نشط"],
     now: () => time,
+    ...options,
   });
   return {
     service,
@@ -119,6 +120,31 @@ const member = async (f) =>
 const admin = async (f) =>
   (await f.service.adminLogin({ id_token: "valid-fixture-token" }, "admin-ip"))
     .token;
+
+test("all registered members can enter regardless of state but still require matching identity and a live source record", async () => {
+  for (const state of ["نشط", "متقاعد", "موقوف", "", undefined]) {
+    const f = setup({ memberAccessPolicy: "all_registered", allowedStates: [] });
+    f.employees[0].memberState = state;
+    await assert.rejects(
+      () => f.service.memberLogin({ ...credentials, last4: "0000" }, "bad"),
+      (e) => e.status === 401,
+    );
+    const token = await member(f);
+    assert.equal((await f.service.session(token)).role, "member");
+    f.employees[0].phone = "01112345678";
+    await assert.rejects(() => f.service.session(token), (e) => e.status === 401);
+    f.employees[0].phone = credentials.phone;
+    f.employees.length = 0;
+    await assert.rejects(() => f.service.session(token), (e) => e.status === 401);
+    await assert.rejects(() => member(f), (e) => e.status === 401);
+  }
+});
+
+test("unconfigured restricted membership and unknown policies cannot enable login", async () => {
+  const f = setup({ allowedStates: [] });
+  await assert.rejects(() => member(f), (e) => e.status === 503);
+  assert.throws(() => setup({ memberAccessPolicy: "all" }), /Unknown member access policy/);
+});
 
 test("Arabic/Persian digits and full international phone normalization preserve identity", () => {
   assert.equal(digits("٠٠۱۲۳"), "00123");

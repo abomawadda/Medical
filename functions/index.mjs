@@ -12,13 +12,15 @@ function getService() {
   if (service) return service;
   const sourceCredentials = JSON.parse(membershipCredentials.value());
   const allowedStates = JSON.parse(process.env.MEMBER_ALLOWED_STATES || "[]");
+  const memberAccessPolicy = process.env.MEMBER_ACCESS_POLICY || "allowed_states";
   const adminAccountIds = String(process.env.MYNEKABA_ADMIN_ACCOUNT_IDS || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
   if (
     !Array.isArray(allowedStates) ||
-    !allowedStates.length ||
+    !["allowed_states", "all_registered"].includes(memberAccessPolicy) ||
+    (memberAccessPolicy === "allowed_states" && !allowedStates.length) ||
     !adminAccountIds.length
   )
     throw new Error(
@@ -37,6 +39,7 @@ function getService() {
     ...adapters,
     secret: sessionSecret.value(),
     allowedStates,
+    memberAccessPolicy,
     adminAccountIds,
   });
   return service;

@@ -273,14 +273,19 @@ export function createService({
   secret,
   adminAccountIds = [],
   allowedStates = [],
+  memberAccessPolicy = "allowed_states",
   now = () => Date.now(),
 }) {
   if (!secret || secret.length < 32)
     throw new Error("SESSION_SECRET must contain at least 32 characters");
+  if (!["allowed_states", "all_registered"].includes(memberAccessPolicy))
+    throw new Error("Unknown member access policy");
   const digest = (value) =>
     createHmac("sha256", secret).update(String(value)).digest("hex");
   const eligible = (e) =>
-    e && allowedStates.includes(String(e.memberState || "").trim());
+    e &&
+    (memberAccessPolicy === "all_registered" ||
+      allowedStates.includes(String(e.memberState || "").trim()));
   const fingerprint = (e) =>
     digest(
       [code(e.jobId), phone(e.phone), digits(e.nationalId).slice(-4)].join("|"),
@@ -342,7 +347,7 @@ export function createService({
         n = digits(body.last4).trim();
       if (!/^[\p{L}\p{N}_-]{1,40}$/u.test(c) || !p || !/^\d{4}$/.test(n))
         mismatch();
-      if (!allowedStates.length)
+      if (memberAccessPolicy === "allowed_states" && !allowedStates.length)
         fail(503, "NOT_CONFIGURED", "خدمة التحقق غير مفعلة حاليًا.");
       await rate("all", "member-code", 6, c);
       const matches = await source.findEmployees(c);
