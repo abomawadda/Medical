@@ -1,0 +1,18 @@
+# Existing GitHub Pages deployment publishes main/root using Jekyll.
+# Keep only the web application in the published site. Source is on GitHub.
+exclude:
+  - functions
+  - firebase
+  - firebase.json
+  - scripts
+  - test
+  - docs
+  - node_modules
+  - package.json
+  - package-lock.json
+  - data.json
+  - build_dataset.py
+  - WE_Dakahlia_Medical_Directory_Eleraky_Hospitals.xlsx
+  - vercel.json
+  - README.md
+  - GEMINI.md

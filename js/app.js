@@ -1,3059 +1,1551 @@
-/* ====================================================================
- * WE Medical Directory - Main Application Controller (v3.0)
- * Prepared & Developed by: Mahmoud El-Eraky (أ / محمود العراقي)
- * Features:
- * - Contract Entity (مباشر من الشركة WE / مستشفى الحكمة / السلاب / الخير)
- * - Coverage Scope (شامل: العاملين + أسر العاملين جلوب ميد / العاملين فقط / جلوب ميد فقط)
- * - Dakahlia Markaz & City Filtering (16 مركز)
- * - Medical Procedures & Guidelines Guide (دليل التعليمات والإجراءات الطبية)
- * - Smart Employee Authentication (رقم الموبايل + آخر 4 أرقام من الرقم القومي)
- * - Digital Medical ID Card Modal
- * - Floating SOS Emergency Sheet (استغاثة وطوارئ عاجلة 24س)
- * - Smart Auto-Enrichment & GPS Linking for Admin additions
- * ==================================================================== */
-
-(function (window) {
-  'use strict';
-
-  // Global State
-  const state = {
-    currentTab: 'home',
-    searchQuery: '',
-    selectedHospital: 'all',
-    selectedSpecialty: 'all',
-    selectedClinicType: 'all',
-    selectedServiceTab: 'all',
-    selectedCoverageScope: 'all',   // 'all', 'employee_only', 'family_globemed'
-    selectedContractEntity: 'all',  // 'all', 'مباشر من الشركة WE', 'تابع لمستشفى الحكمة', etc.
-    selectedMarkaz: 'all',          // 'all', 'المنصورة', 'طلخا', 'ميت غمر', etc.
-    selectedGuidelineTab: 'all',
-    sortBy: 'default',
-    records: [],
-    doctors: [],
-    specialties: [],
-    hospitals: {},
-    categories: [],
-    labs: [],
-    radiology: [],
-    pharmacies: [],
-    specializedCenters: [],
-    emergencyServices: [],
-    guidelines: [],
-    dakahliaMarkaz: [],
-    contractEntities: [],
-    statsMatrix: {},
-    metadata: {},
-    currentUser: null,
-    deferredPrompt: null,
-    selectedDoctor: null
+/* Medical v4: public directory, server-verified member reviews, separate administration. */
+(() => {
+  "use strict";
+  const API = window.MedicalAPI,
+    prefs = window.MedicalStorage,
+    initial = window.INITIAL_MEDICAL_DATA || {};
+  const kinds = [
+    "records",
+    "hospitals",
+    "labs",
+    "radiology",
+    "pharmacies",
+    "specialized_centers",
+    "medical_guidelines",
+    "emergency_services",
+  ];
+  const labels = {
+    records: "الأطباء والعيادات",
+    hospitals: "المستشفيات",
+    labs: "معامل التحاليل",
+    radiology: "مراكز الأشعة",
+    pharmacies: "الصيدليات",
+    specialized_centers: "المراكز المتخصصة",
+    medical_guidelines: "التعليمات",
+    emergency_services: "الطوارئ",
   };
-
-  function normalizeArabic(text) {
-    if (!text) return '';
-    return String(text)
-      .replace(/[إأآا]/g, 'ا')
-      .replace(/ة/g, 'ه')
-      .replace(/ى/g, 'ي')
-      .replace(/[ؤئ]/g, 'ء')
-      .replace(/[\u064B-\u065F\u0670]/g, '')
-      .replace(/\s+/g, ' ')
+  const nav = [
+    ["home", "⌂", "الرئيسية"],
+    ["doctors", "♧", "الأطباء"],
+    ["services", "✚", "الخدمات"],
+    ["hospitals", "▥", "المستشفيات"],
+    ["favorites", "♡", "المفضلة"],
+    ["emergency", "✦", "الطوارئ"],
+  ];
+  const state = {
+    catalog: Object.fromEntries(
+      kinds.map((k) => [
+        k,
+        (Array.isArray(initial[k])
+          ? initial[k]
+          : Object.values(initial[k] || {})
+        ).map((e) => ({ ...e, _version: 0 })),
+      ]),
+    ),
+    stats: {},
+    tab: "home",
+    query: "",
+    markaz: "",
+    specialty: "",
+    hospital: "",
+    coverage: "",
+    serviceKind: "",
+    limit: 24,
+    adminKind: "records",
+    remote: false,
+  };
+  const $ = (s) => document.querySelector(s);
+  const normalize = (x) =>
+    String(x ?? "")
+      .replace(/[٠-٩]/g, (c) => "٠١٢٣٤٥٦٧٨٩".indexOf(c))
+      .replace(/[۰-۹]/g, (c) => "۰۱۲۳۴۵۶۷۸۹".indexOf(c))
+      .replace(/[إأآ]/g, "ا")
+      .replace(/ى/g, "ي")
+      .replace(/ة/g, "ه")
+      .replace(/[\u064B-\u065F]/g, "")
       .trim()
       .toLowerCase();
-  }
-
-  function showToast(message, type = 'info', duration = 3000) {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    
-    let iconClass = 'fa-info-circle';
-    if (type === 'success') iconClass = 'fa-check-circle';
-    if (type === 'danger') iconClass = 'fa-triangle-exclamation';
-
-    toast.innerHTML = `<i class="fa-solid ${iconClass}"></i> <span>${message}</span>`;
-    container.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(10px)';
-      toast.style.transition = 'all 0.3s ease';
-      setTimeout(() => toast.remove(), 300);
-    }, duration);
-  }
-
-  function initApp() {
-    const savedTheme = MedicalStorage.getTheme();
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    updateThemeIcon(savedTheme);
-
-    state.currentUser = MedicalStorage.getCurrentUser();
-
-    loadData();
-    setupEventListeners();
-    handleHashRouting();
-    registerServiceWorker();
-
-    setTimeout(() => {
-      const splash = document.getElementById('splash-screen');
-      if (splash) splash.classList.add('fade-out');
-    }, 600);
-  }
-
-  function loadData() {
-    const initial = window.INITIAL_MEDICAL_DATA || {};
-    state.metadata = initial.metadata || {};
-    state.hospitals = initial.hospitals || {};
-    state.specialties = initial.specialties || [];
-    state.categories = initial.categories || [];
-    state.labs = initial.labs || [];
-    state.radiology = initial.radiology || [];
-    state.pharmacies = initial.pharmacies || [];
-    state.specializedCenters = initial.specialized_centers || [];
-    state.dakahliaMarkaz = state.metadata.dakahlia_markaz || [];
-    state.contractEntities = state.metadata.contract_entities || [];
-
-    state.records = MedicalStorage.getLiveRecords();
-    state.doctors = MedicalStorage.getLiveDoctors();
-    state.guidelines = MedicalStorage.getGuidelines();
-    state.emergencyServices = MedicalStorage.getEmergencyServices();
-
-    updateAuthUI();
-    renderHeroStats();
-    renderUserCardBanner();
-    renderHomeCategories();
-    renderHomeHospitals();
-    renderSidebarHospitals();
-    renderSidebarSpecialties();
-    renderSidebarMarkaz();
-    renderSidebarContracts();
-    populateMarkazDropdowns();
-    renderSpecialtiesView();
-    renderHospitalsView();
-    renderServicesView();
-    renderGuidelinesView();
-    renderEmergencyView();
-    populateAdminSpecialtyDropdown();
-    renderAdminStats();
-  }
-
-  function setupEventListeners() {
-    // Search input (persistent & non-blurring)
-    const searchInput = document.getElementById('main-search-input');
-    const searchClear = document.getElementById('search-clear-btn');
-
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        state.searchQuery = e.target.value;
-        if (searchClear) searchClear.classList.toggle('visible', !!e.target.value);
-        if (state.searchQuery.trim().length > 0) {
-          if (state.currentTab !== 'doctors') {
-            switchTab('doctors', false);
-          } else {
-            renderDoctorsList();
-          }
-        } else {
-          renderDoctorsList();
-        }
-      });
-
-      searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          if (state.searchQuery.trim()) {
-            MedicalStorage.addRecentSearch(state.searchQuery.trim());
-          }
-          if (state.currentTab !== 'doctors') switchTab('doctors', false);
-          renderDoctorsList();
-        }
-      });
-    }
-
-    if (searchClear) {
-      searchClear.addEventListener('click', () => {
-        if (searchInput) {
-          searchInput.value = '';
-          searchInput.focus();
-        }
-        state.searchQuery = '';
-        searchClear.classList.remove('visible');
-        renderDoctorsList();
-      });
-    }
-
-    // Secondary filters
-    const clinicFilter = document.getElementById('filter-clinic-type');
-    if (clinicFilter) {
-      clinicFilter.addEventListener('change', (e) => {
-        state.selectedClinicType = e.target.value;
-        renderDoctorsList();
-      });
-    }
-
-    const sortFilter = document.getElementById('filter-sort-by');
-    if (sortFilter) {
-      sortFilter.addEventListener('change', (e) => {
-        state.sortBy = e.target.value;
-        renderDoctorsList();
-      });
-    }
-
-    // Navigation items
-    document.querySelectorAll('[data-nav-tab]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const tab = btn.getAttribute('data-nav-tab');
-        switchTab(tab);
-      });
-    });
-
-    // Guidelines Sub-tabs
-    document.querySelectorAll('[data-guide-tab]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('[data-guide-tab]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.selectedGuidelineTab = btn.getAttribute('data-guide-tab');
-        renderGuidelinesView();
-      });
-    });
-
-    // Services Sub-tabs
-    document.querySelectorAll('[data-serv-tab]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('[data-serv-tab]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.selectedServiceTab = btn.getAttribute('data-serv-tab');
-        renderServicesView();
-      });
-    });
-
-    // Admin Sub-tabs
-    document.querySelectorAll('[data-admin-view]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('[data-admin-view]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const viewId = btn.getAttribute('data-admin-view');
-        document.querySelectorAll('.admin-subview').forEach(v => v.style.display = 'none');
-        const target = document.getElementById(`admin-tab-${viewId}`);
-        if (target) target.style.display = 'block';
-
-        if (viewId === 'manage-distress') renderAdminDistressList();
-        if (viewId === 'manage-guidelines') renderAdminGuidelinesList();
-        if (viewId === 'manage-employees') renderAdminEmployeesList();
-      });
-    });
-
-    // Theme toggle
-    const themeBtn = document.getElementById('btn-theme-toggle');
-    if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
-
-    // PWA Install Prompt
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      state.deferredPrompt = e;
-    });
-
-    // Modal Close
-    document.querySelectorAll('[data-modal-close]').forEach((btn) => {
-      btn.addEventListener('click', closeModal);
-    });
-
-    const backdrop = document.getElementById('modal-backdrop');
-    if (backdrop) {
-      backdrop.addEventListener('click', (e) => {
-        if (e.target === backdrop) closeModal();
-      });
-    }
-
-    window.addEventListener('popstate', handleHashRouting);
-  }
-
-  function switchTab(tabId, shouldScroll = true) {
-    state.currentTab = tabId;
-
-    if (window.history && window.history.replaceState) {
-      window.history.replaceState(null, '', `#${tabId}`);
-    } else {
-      window.location.hash = tabId;
-    }
-
-    document.querySelectorAll('[data-nav-tab]').forEach((btn) => {
-      const match = btn.getAttribute('data-nav-tab') === tabId;
-      btn.classList.toggle('active', match);
-    });
-
-    document.querySelectorAll('.view-section').forEach((sec) => {
-      sec.style.display = 'none';
-    });
-
-    const target = document.getElementById(`view-${tabId}`);
-    if (target) {
-      target.style.display = 'block';
-      if (shouldScroll) {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }
-
-    // Toggle search section: hide on admin view, keep visible everywhere else
-    const searchSec = document.querySelector('.search-section');
-    if (searchSec) {
-      searchSec.style.display = (tabId === 'admin') ? 'none' : 'block';
-    }
-
-    if (tabId === 'doctors') {
-      renderDoctorsList();
-    } else if (tabId === 'guidelines') {
-      renderGuidelinesView();
-    } else if (tabId === 'favorites') {
-      renderFavoritesList();
-    } else if (tabId === 'admin') {
-      renderAdminView();
-    } else if (tabId === 'services') {
-      renderServicesView();
-    }
-  }
-
-  function handleHashRouting() {
-    const hash = window.location.hash.replace('#', '') || 'home';
-    const validTabs = ['home', 'doctors', 'guidelines', 'specialties', 'services', 'hospitals', 'favorites', 'emergency', 'admin'];
-    if (validTabs.includes(hash)) {
-      switchTab(hash);
-    }
-  }
-
-  function toggleTheme() {
-    const current = document.documentElement.getAttribute('data-theme') || 'light';
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    MedicalStorage.setTheme(next);
-    updateThemeIcon(next);
-    showToast(next === 'dark' ? 'تم تفعيل الوضع الليلي' : 'تم تفعيل الوضع النهاري', 'info', 1500);
-  }
-
-  function updateThemeIcon(theme) {
-    const btn = document.getElementById('btn-theme-toggle');
-    if (!btn) return;
-    const icon = btn.querySelector('i');
-    if (!icon) return;
-    if (theme === 'dark') {
-      icon.className = 'fa-solid fa-sun';
-      icon.style.color = '#F59E0B';
-    } else {
-      icon.className = 'fa-solid fa-moon';
-      icon.style.color = '';
-    }
-  }
-
-  // --- Authentication & User Profile UI ---
-  function updateAuthUI() {
-    const authBtn = document.getElementById('header-auth-btn');
-    const authText = document.getElementById('header-auth-text');
-    if (!authBtn || !authText) return;
-
-    if (state.currentUser) {
-      authBtn.classList.add('logged-in');
-      const firstName = state.currentUser.name.split(' ')[0] || state.currentUser.name;
-      authText.textContent = firstName;
-      authBtn.title = `الموظف: ${state.currentUser.name} (${state.currentUser.sector || 'WE'}) - اضغط لعرض بطاقتك الطبية`;
-    } else {
-      authBtn.classList.remove('logged-in');
-      authText.textContent = 'دخول العاملين';
-      authBtn.title = 'تسجيل الدخول برقم الموبايل وآخر 4 أرقام قومي';
-    }
-  }
-
-  function renderUserCardBanner() {
-    const container = document.getElementById('home-user-card-banner');
-    if (!container) return;
-
-    if (!state.currentUser) {
-      container.style.display = 'none';
-      container.innerHTML = '';
-      return;
-    }
-
-    const u = state.currentUser;
-    container.style.display = 'block';
-    container.innerHTML = `
-      <div style="background: linear-gradient(135deg, var(--we-purple-dark), var(--we-purple-primary)); color:#fff; border-radius: var(--radius-lg); padding: 0.9rem 1.15rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.65rem; box-shadow: var(--shadow-sm); border:1px solid rgba(255,255,255,0.15);">
-        <div style="display:flex; align-items:center; gap:0.75rem;">
-          <div style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:1.15rem; color:#fff;">
-            <i class="fa-solid fa-user-check"></i>
-          </div>
-          <div>
-            <div style="font-size:0.75rem; opacity:0.85;">مرحباً بك زميلنا العزيز:</div>
-            <strong style="font-size:0.95rem; font-family:var(--font-heading);">${u.name}</strong>
-            <span style="font-size:0.72rem; opacity:0.85; margin-right:0.4rem;">(${u.sector || 'WE الدقهلية'})</span>
-          </div>
-        </div>
-        <div style="display:flex; gap:0.4rem;">
-          <button class="btn-accent-pink" style="padding:0.35rem 0.75rem; border-radius:var(--radius-full); font-size:0.75rem; font-weight:800;" onclick="window.MedicalApp.openEmployeeCardModal()">
-            <i class="fa-solid fa-id-card"></i> بطاقتي الطبية
-          </button>
-          <button class="btn-outline" style="padding:0.35rem 0.6rem; border-radius:var(--radius-full); font-size:0.75rem; background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.3);" onclick="window.MedicalApp.logoutEmployee()">
-            <i class="fa-solid fa-right-from-bracket"></i>
-          </button>
-        </div>
-      </div>
-    `;
-  }
-
-  // --- Network Scope, Markaz & Contract Filters ---
-  function setCoverageScope(scope) {
-    state.selectedCoverageScope = scope;
-    document.querySelectorAll('[data-scope]').forEach((btn) => {
-      btn.classList.toggle('active', btn.getAttribute('data-scope') === scope);
-    });
-
-    renderDoctorsList();
-    renderServicesView();
-
-    let label = 'كافة السجلات (شامل)';
-    if (scope === 'employee_only') label = 'العاملين بالشركة فقط';
-    if (scope === 'family_globemed') label = 'أسر العاملين (شبكة جلوب ميد)';
-    showToast(`تم التصفية: ${label}`, 'info', 2000);
-  }
-
-  function onMarkazSelectChange(markaz) {
-    state.selectedMarkaz = markaz;
-    renderDoctorsList();
-  }
-
-  function onContractSelectChange(contract) {
-    state.selectedContractEntity = contract;
-    renderDoctorsList();
-  }
-
-  function populateMarkazDropdowns() {
-    const filterSelect = document.getElementById('filter-markaz-select');
-    const formSelect = document.getElementById('new-doc-markaz');
-
-    const optionsHtml = state.dakahliaMarkaz.map(m => `<option value="${m}">${m}</option>`).join('');
-
-    if (filterSelect) {
-      filterSelect.innerHTML = `<option value="all">📍 كافة مراكز الدقهلية (${state.dakahliaMarkaz.length})</option>` + optionsHtml;
-    }
-    if (formSelect) {
-      formSelect.innerHTML = optionsHtml;
-    }
-  }
-
-  // Sidebar Renderers
-  function openSidebar() {
-    const sidebar = document.getElementById('mobile-filter-sidebar');
-    const backdrop = document.getElementById('sidebar-backdrop');
-    if (sidebar) sidebar.classList.add('active');
-    if (backdrop) backdrop.classList.add('active');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeSidebar() {
-    const sidebar = document.getElementById('mobile-filter-sidebar');
-    const backdrop = document.getElementById('sidebar-backdrop');
-    if (sidebar) sidebar.classList.remove('active');
-    if (backdrop) backdrop.classList.remove('active');
-    document.body.style.overflow = '';
-  }
-
-  function renderSidebarHospitals() {
-    const container = document.getElementById('sidebar-hospitals-list');
-    if (!container) return;
-
-    const hosps = Object.values(state.hospitals);
-    container.innerHTML = hosps.map((h) => {
-      const short = h.short_name.replace('مستشفى ', '');
-      const count = state.records.filter(r => r.hospital.includes(short)).length;
-      const isActive = state.selectedHospital.includes(short);
-      return `
-        <button class="sidebar-item-btn ${isActive ? 'active' : ''}" onclick="window.MedicalApp.filterByHospital('${h.short_name}'); window.MedicalApp.closeSidebar();">
-          <div class="sidebar-item-left">
-            <i class="fa-solid fa-hospital" style="color:${h.color}"></i>
-            <span>${h.short_name}</span>
-          </div>
-          <span class="sidebar-item-badge">${count} طبيب</span>
-        </button>
-      `;
-    }).join('');
-  }
-
-  function renderSidebarSpecialties() {
-    const container = document.getElementById('sidebar-specialties-list');
-    if (!container) return;
-
-    container.innerHTML = state.specialties.map((s) => {
-      const isActive = state.selectedSpecialty === s.name;
-      return `
-        <button class="sidebar-item-btn ${isActive ? 'active' : ''}" onclick="window.MedicalApp.filterBySpecialty('${s.name}'); window.MedicalApp.closeSidebar();">
-          <div class="sidebar-item-left">
-            <i class="fa-solid ${s.icon || 'fa-stethoscope'}" style="color:${s.color || '#5B2C82'}"></i>
-            <span>${s.name}</span>
-          </div>
-          <span class="sidebar-item-badge">${s.total_records}</span>
-        </button>
-      `;
-    }).join('');
-  }
-
-  function renderSidebarMarkaz() {
-    const container = document.getElementById('sidebar-markaz-list');
-    if (!container) return;
-
-    container.innerHTML = state.dakahliaMarkaz.map((m) => {
-      const count = state.records.filter(r => (r.markaz === m || r.city === m || (r.address && r.address.includes(m)))).length;
-      const isActive = state.selectedMarkaz === m;
-      return `
-        <button class="sidebar-item-btn ${isActive ? 'active' : ''}" onclick="window.MedicalApp.filterByMarkaz('${m}'); window.MedicalApp.closeSidebar();">
-          <div class="sidebar-item-left">
-            <i class="fa-solid fa-location-dot" style="color:#0288d1"></i>
-            <span>${m}</span>
-          </div>
-          <span class="sidebar-item-badge">${count || 'متاح'}</span>
-        </button>
-      `;
-    }).join('');
-  }
-
-  function renderSidebarContracts() {
-    const container = document.getElementById('sidebar-contracts-list');
-    if (!container) return;
-
-    const contracts = [
-      { id: 'all', name: 'كافة جهات التعاقد', icon: 'fa-globe', color: '#5B2C82' },
-      { id: 'مباشر من الشركة WE', name: 'مباشر من الشركة WE', icon: 'fa-building-shield', color: '#00838F' },
-      { id: 'تابع لمستشفى الحكمة', name: 'مستشفى الحكمة', icon: 'fa-hospital', color: '#7B1FA2' },
-      { id: 'تابع لمستشفى الجزيرة (السلاب)', name: 'مستشفى الجزيرة (السلاب)', icon: 'fa-hospital', color: '#5B2C82' },
-      { id: 'تابع لمستشفى الخير', name: 'مستشفى الخير', icon: 'fa-hospital', color: '#4A148C' }
-    ];
-
-    container.innerHTML = contracts.map((c) => {
-      const isActive = state.selectedContractEntity === c.id;
-      return `
-        <button class="sidebar-item-btn ${isActive ? 'active' : ''}" onclick="window.MedicalApp.filterByContract('${c.id}'); window.MedicalApp.closeSidebar();">
-          <div class="sidebar-item-left">
-            <i class="fa-solid ${c.icon}" style="color:${c.color}"></i>
-            <span>${c.name}</span>
-          </div>
-        </button>
-      `;
-    }).join('');
-  }
-
-  // --- Home Screen Stats & Categories ---
-  function renderHeroStats() {
-    const totalRecsEl = document.getElementById('hero-stat-records');
-    const totalDocsEl = document.getElementById('hero-stat-doctors');
-    const totalSpecsEl = document.getElementById('hero-stat-specs');
-    const totalHospsEl = document.getElementById('hero-stat-hosps');
-
-    if (totalRecsEl) totalRecsEl.textContent = state.records.length || 169;
-    if (totalDocsEl) totalDocsEl.textContent = state.doctors.length || 156;
-    if (totalSpecsEl) totalSpecsEl.textContent = state.specialties.length || 14;
-    if (totalHospsEl) totalHospsEl.textContent = Object.keys(state.hospitals).length || 3;
-  }
-
-  function renderHomeCategories() {
-    const container = document.getElementById('home-categories-grid');
-    if (!container) return;
-
-    container.innerHTML = state.categories.map((cat) => `
-      <div class="category-app-card" onclick="window.MedicalApp.handleCategoryClick('${cat.id}')">
-        <div class="cat-icon-bubble" style="background: ${cat.color};">
-          <i class="fa-solid ${cat.icon}"></i>
-        </div>
-        <div class="cat-app-name">${cat.name}</div>
-        <div class="cat-app-desc">${cat.desc || ''}</div>
-      </div>
-    `).join('');
-  }
-
-  function handleCategoryClick(catId) {
-    if (catId === 'all_doctors') {
-      state.selectedSpecialty = 'all';
-      state.selectedHospital = 'all';
-      switchTab('doctors');
-      renderDoctorsList();
-    } else if (catId === 'hospitals') {
-      switchTab('hospitals');
-    } else if (catId === 'emergency_services') {
-      switchTab('emergency');
-    } else if (catId === 'dental') {
-      filterBySpecialty('طب الفم والأسنان');
-    } else if (catId === 'optics') {
-      filterBySpecialty('طب وجراحة العيون');
-    } else if (catId === 'physical_therapy') {
-      filterBySpecialty('التأهيل والعلاج الطبيعي');
-    } else if (catId === 'cardiology_center') {
-      filterBySpecialty('الباطنة والقلب والجهاز الهضمي');
-    } else if (catId === 'dialysis') {
-      filterBySpecialty('المسالك البولية والكلى');
-    } else if (catId === 'labs' || catId === 'radiology' || catId === 'pharmacies' || catId === 'home_care') {
-      switchTab('services');
-      const tabBtn = document.querySelector(`[data-serv-tab="${catId}"]`) || document.querySelector('[data-serv-tab="all"]');
-      if (tabBtn) tabBtn.click();
-    } else {
-      switchTab('doctors');
-      renderDoctorsList();
-    }
-  }
-
-  function renderHomeHospitals() {
-    const container = document.getElementById('home-hospitals-grid');
-    if (!container) return;
-
-    const hosps = Object.values(state.hospitals);
-    container.innerHTML = hosps.map((h) => {
-      const docCount = state.records.filter(r => r.hospital.includes(h.short_name.replace('مستشفى ', ''))).length;
-      return `
-        <div class="hosp-mini-card">
-          <div class="hosp-mini-header">
-            <div class="hosp-mini-icon" style="color:${h.color}">
-              <i class="fa-solid fa-hospital"></i>
-            </div>
-            <div class="hosp-mini-info">
-              <h4>${h.short_name}</h4>
-              <span>${docCount} عيادة وطبيب معتمد</span>
-            </div>
-          </div>
-          <div class="hosp-mini-body">
-            <p><i class="fa-solid fa-location-dot" style="color:var(--we-purple-light)"></i> ${h.address}</p>
-            <p style="margin-top:0.25rem;"><i class="fa-solid fa-clock" style="color:var(--we-purple-light)"></i> ${h.working_hours}</p>
-          </div>
-          <div class="hosp-mini-actions">
-            <button class="btn-primary-purple" style="flex:1; padding:0.4rem; font-size:0.78rem; border-radius:var(--radius-sm);" onclick="window.MedicalApp.filterByHospital('${h.short_name}')">
-              <i class="fa-solid fa-users-viewfinder"></i> أطباء المستشفى
-            </button>
-            ${h.phone_digits ? `
-              <a href="tel:${h.phone_digits}" class="btn-action-call" style="padding:0.4rem 0.7rem; border-radius:var(--radius-sm); font-size:0.78rem;">
-                <i class="fa-solid fa-phone"></i>
-              </a>
-            ` : ''}
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  // --- Doctor Filtering & Rendering ---
-  function filterDoctors() {
-    const q = normalizeArabic(state.searchQuery);
-    const selHosp = state.selectedHospital;
-    const selSpec = state.selectedSpecialty;
-    const selType = state.selectedClinicType;
-    const selScope = state.selectedCoverageScope;
-    const selContract = state.selectedContractEntity;
-    const selMarkaz = state.selectedMarkaz;
-
-    return state.doctors.filter((doc) => {
-      if (selHosp !== 'all') {
-        const matchesHosp = doc.hospitals.some((h) => h.includes(selHosp) || (selHosp.includes('السلاب') && h.includes('الجزيرة')));
-        if (!matchesHosp) return false;
-      }
-
-      if (selSpec !== 'all' && doc.specialty !== selSpec) {
-        return false;
-      }
-
-      if (selType !== 'all') {
-        const matchesType = doc.workplaces.some((w) => w.clinic_type === selType);
-        if (!matchesType) return false;
-      }
-
-      // Coverage Scope Filter (العاملين / أسر جلوب ميد)
-      if (selScope !== 'all') {
-        const matchesScope = doc.workplaces.some((w) => {
-          if (selScope === 'employee_only') return w.coverage_scope === 'both' || w.coverage_scope === 'employee_only';
-          if (selScope === 'family_globemed') return w.coverage_scope === 'both' || w.coverage_scope === 'family_globemed';
-          return true;
-        });
-        if (!matchesScope) return false;
-      }
-
-      // Contract Entity Filter
-      if (selContract !== 'all') {
-        const matchesContract = doc.workplaces.some((w) => {
-          const ce = w.contract_entity || '';
-          return ce.includes(selContract) || (selContract === 'direct_we' && ce.includes('مباشر'));
-        });
-        if (!matchesContract) return false;
-      }
-
-      // Markaz Filter
-      if (selMarkaz !== 'all') {
-        const matchesMarkaz = doc.workplaces.some((w) => (w.markaz === selMarkaz || w.city === selMarkaz || (w.address && w.address.includes(selMarkaz))));
-        if (!matchesMarkaz) return false;
-      }
-
-      if (q) {
-        const docText = normalizeArabic(`
-          ${doc.name} ${doc.display_name} ${doc.specialty} ${doc.subspecialties.join(' ')}
-          ${doc.hospitals.join(' ')} ${doc.cities.join(' ')} ${doc.contract_entities ? doc.contract_entities.join(' ') : ''}
-          ${doc.workplaces.map(w => `${w.address} ${w.area} ${w.clinic_type} ${w.raw_phone} ${w.schedule} ${w.markaz || ''} ${w.contract_entity || ''}`).join(' ')}
-        `);
-        if (!docText.includes(q)) return false;
-      }
-
-      return true;
-    });
-  }
-
-  function sortDoctors(list) {
-    if (state.sortBy === 'name') {
-      return [...list].sort((a, b) => a.name.localeCompare(b.name, 'ar'));
-    } else if (state.sortBy === 'workplaces') {
-      return [...list].sort((a, b) => b.workplaces.length - a.workplaces.length);
-    } else if (state.sortBy === 'rating') {
-      return [...list].sort((a, b) => b.rating - a.rating);
-    }
-    return list;
-  }
-
-  function renderDoctorsList() {
-    const container = document.getElementById('doctors-grid-container');
-    const countEl = document.getElementById('results-count-value');
-    const badgeEl = document.getElementById('active-filter-badge');
-    if (!container) return;
-
-    let filtered = filterDoctors();
-    filtered = sortDoctors(filtered);
-
-    if (countEl) countEl.textContent = filtered.length;
-
-    if (badgeEl) {
-      if (state.selectedSpecialty !== 'all') {
-        badgeEl.textContent = `${state.selectedSpecialty} (${filtered.length} طبيب) — اضغط للتغيير`;
-      } else if (state.selectedHospital !== 'all') {
-        badgeEl.textContent = `${state.selectedHospital} (${filtered.length} طبيب) — اضغط للتغيير`;
-      } else if (state.selectedMarkaz !== 'all') {
-        badgeEl.textContent = `مركز ${state.selectedMarkaz} (${filtered.length} طبيب) — اضغط للتغيير`;
-      } else if (state.searchQuery) {
-        badgeEl.textContent = `بحث: "${state.searchQuery}" (${filtered.length} نتيجة)`;
-      } else {
-        badgeEl.textContent = `كافة الأطباء والعيادات (${filtered.length}) — اضغط للتصفية`;
-      }
-    }
-
-    if (filtered.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state" style="grid-column: 1 / -1;">
-          <div class="empty-state-icon"><i class="fa-solid fa-user-doctor"></i></div>
-          <h3>لا توجد نتائج مطابقة لاختيارك</h3>
-          <p>جرّب اختيار مركز آخر أو إلغاء بعض الفلاتر من الشريط الجانبي.</p>
-          <button class="btn-primary-purple" style="padding:0.6rem 1.2rem; border-radius:var(--radius-md);" onclick="window.MedicalApp.resetFilters()">
-            عرض كافة الأطباء
-          </button>
-        </div>
-      `;
-      return;
-    }
-
-    container.innerHTML = filtered.map((doc) => createDoctorCardHTML(doc)).join('');
-    attachDoctorCardEvents(container);
-  }
-
-  function createDoctorCardHTML(doc) {
-    const isFav = MedicalStorage.isFavorite(doc.doctor_id);
-    const specInfo = state.specialties.find((s) => s.name === doc.specialty) || {};
-    const iconClass = specInfo.icon || 'fa-stethoscope';
-    const primaryWp = doc.workplaces[0] || {};
-    const hasMultipleWp = doc.workplaces.length > 1;
-
-    let clinicTagClass = 'tag-internal';
-    if (primaryWp.clinic_type && primaryWp.clinic_type.includes('خارجية')) clinicTagClass = 'tag-external';
-    if (primaryWp.clinic_type && primaryWp.clinic_type.includes('تحويل')) clinicTagClass = 'tag-referral';
-    if (primaryWp.clinic_type && primaryWp.clinic_type.includes('دائم')) clinicTagClass = 'tag-permanent';
-
-    const callPhone = primaryWp.phones && primaryWp.phones[0] ? primaryWp.phones[0].tel : '';
-    const waPhone = primaryWp.phones && primaryWp.phones.find(p => p.whatsapp) ? primaryWp.phones.find(p => p.whatsapp).whatsapp : null;
-
-    // Vector SVG Illustration with caption
-    const avatarSvg = window.MedicalIllustrations ? window.MedicalIllustrations.getForEntity(doc, 48) : `<i class="fa-solid ${iconClass}"></i>`;
-
-    // Dynamic Live Rating & Reviews
-    const ratingStats = doc.ratingStats || MedicalStorage.getReviewStats(doc.doctor_id, doc.rating || 4.8, doc.reviews_count || 18);
-    
-    // Accredited Clinical Services
-    const servicesList = doc.services || ['كشف واستشارة طبية متخصصة', 'فحص إكلينيكي وتشخيص دقيق'];
-    const visibleServices = servicesList.slice(0, 3);
-    const remainingServices = servicesList.slice(3);
-
-    return `
-      <div class="doctor-card" data-doc-id="${doc.doctor_id}">
-        <div class="card-top">
-          <div class="doctor-avatar-wrapper">
-            <div class="doctor-avatar">
-              ${avatarSvg}
-            </div>
-            <span class="avatar-illustration-note" title="رسم إيضاحي تعبيري">إيضاحي</span>
-          </div>
-          <div class="doctor-info">
-            <span class="doctor-academic-badge">${doc.academic_rank}</span>
-            <h3 class="doctor-name" title="${doc.display_name}">${doc.display_name}</h3>
-            <div class="doctor-specialty-sub">${doc.specialty} ${doc.subspecialties[0] ? '• ' + doc.subspecialties[0] : ''}</div>
-          </div>
-          <button class="btn-card-fav ${isFav ? 'active' : ''}" data-fav-id="${doc.doctor_id}" title="إضافة للمفضلة">
-            <i class="fa-${isFav ? 'solid' : 'regular'} fa-heart"></i>
-          </button>
-        </div>
-
-        <!-- Badges Row: Contract Entity, Coverage Scope & Markaz -->
-        <div class="card-badges-row">
-          <span class="badge-contract-entity wp-contract-badge"><i class="fa-solid fa-handshake"></i> ${primaryWp.contract_entity || 'مباشر من الشركة WE'}</span>
-          <span class="badge-coverage-scope ${primaryWp.coverage_scope === 'family_globemed' ? 'family-only' : ''} wp-scope-badge">
-            <i class="fa-solid ${primaryWp.coverage_scope === 'family_globemed' ? 'fa-people-roof' : (primaryWp.coverage_scope === 'employee_only' ? 'fa-user-tie' : 'fa-circle-check')}"></i>
-            ${primaryWp.coverage_label || 'شامل: العاملين + أسر جلوب ميد'}
-          </span>
-          <span class="badge-markaz wp-markaz-badge"><i class="fa-solid fa-map-pin"></i> ${primaryWp.markaz || primaryWp.city || 'المنصورة'}</span>
-        </div>
-
-        <!-- Live Composite Rating Row & Visit Evaluation Trigger -->
-        <div class="card-rating-row">
-          <div class="rating-stars-badge">
-            <i class="fa-solid fa-star"></i>
-            <span>${ratingStats.overallRating}</span>
-            <span class="rating-reviews-counter">(${ratingStats.totalReviews} تقييم${ratingStats.hasUserReviews ? ' • إقرار زيارة' : ''})</span>
-          </div>
-          <button class="btn-open-rate-sheet" onclick="window.MedicalApp.openVisitEvaluationModal('${doc.doctor_id}', 'doctor', '${doc.display_name.replace(/'/g, "\\'")}')" title="تقييم زيارتك لهذا الطبيب">
-            <i class="fa-regular fa-star"></i> تقييم الزيارة
-          </button>
-        </div>
-
-        <!-- Accredited Services Chips -->
-        <div class="card-services-section">
-          <div class="card-services-header">
-            <span><i class="fa-solid fa-notes-medical"></i> الخدمات المعتمدة (${servicesList.length})</span>
-            <span style="font-size:0.65rem; color:var(--text-muted);">تغطية WE</span>
-          </div>
-          <div class="card-services-chips" id="services-chips-${doc.doctor_id}">
-            ${visibleServices.map(s => {
-              const servStat = ratingStats.services && ratingStats.services[s];
-              return `
-                <span class="service-chip-badge">
-                  <i class="fa-solid fa-circle-check" style="color:var(--we-purple-primary); font-size:0.6rem;"></i>
-                  <span>${s}</span>
-                  ${servStat ? `<span class="service-rating-mini">⭐ ${servStat.avg}</span>` : ''}
-                </span>
-              `;
-            }).join('')}
-            ${remainingServices.length > 0 ? `
-              <span class="service-chip-badge service-chip-more" onclick="window.MedicalApp.expandCardServices('${doc.doctor_id}')" id="more-btn-${doc.doctor_id}">
-                + ${remainingServices.length} خدمات أخرى
-              </span>
-              <div class="card-services-hidden" id="hidden-services-${doc.doctor_id}" style="display:none; width:100%; flex-wrap:wrap; gap:0.25rem; margin-top:0.25rem;">
-                ${remainingServices.map(s => {
-                  const servStat = ratingStats.services && ratingStats.services[s];
-                  return `
-                    <span class="service-chip-badge">
-                      <i class="fa-solid fa-circle-check" style="color:var(--we-purple-primary); font-size:0.6rem;"></i>
-                      <span>${s}</span>
-                      ${servStat ? `<span class="service-rating-mini">⭐ ${servStat.avg}</span>` : ''}
-                    </span>
-                  `;
-                }).join('')}
-              </div>
-            ` : ''}
-          </div>
-        </div>
-
-        ${hasMultipleWp ? `
-          <div class="multi-workplace-alert">
-            <i class="fa-solid fa-hospital-user"></i>
-            <span>متاح في ${doc.workplaces.length} أماكن عمل (${doc.hospitals.join(' • ')})</span>
-          </div>
-          <div class="workplace-tabs-nav">
-            ${doc.workplaces.map((wp, idx) => `
-              <button class="wp-tab-btn ${idx === 0 ? 'active' : ''}" data-wp-idx="${idx}">
-                ${wp.hospital.replace('مستشفى ', '')} (${wp.clinic_type.includes('داخل') ? 'داخلي' : 'خارجي'})
-              </button>
-            `).join('')}
-          </div>
-        ` : ''}
-
-        <div class="card-details-list">
-          <div class="detail-row">
-            <i class="fa-solid fa-hospital"></i>
-            <div>
-              <strong class="wp-hosp-text">${primaryWp.hospital}</strong>
-              <span class="clinic-type-tag ${clinicTagClass} wp-type-text">${primaryWp.clinic_type}</span>
-            </div>
-          </div>
-          <div class="detail-row">
-            <i class="fa-solid fa-location-dot"></i>
-            <span class="wp-address-text">${primaryWp.address || 'بمقر المستشفى'}</span>
-          </div>
-          <div class="detail-row">
-            <i class="fa-solid fa-calendar-check"></i>
-            <span class="wp-schedule-text">${primaryWp.schedule || 'حسب جدول مواعيد المستشفى'}</span>
-          </div>
-          <div class="detail-row">
-            <i class="fa-solid fa-phone"></i>
-            <span class="wp-phone-text">${primaryWp.raw_phone || 'عيادات المستشفى'}</span>
-          </div>
-        </div>
-
-        <div class="card-actions-row">
-          ${callPhone ? `
-            <a href="tel:${callPhone}" class="btn-action btn-action-call" title="اتصال فوري">
-              <i class="fa-solid fa-phone"></i>
-              <span>اتصال</span>
-            </a>
-          ` : `
-            <button class="btn-action btn-action-call" onclick="window.MedicalApp.copyText('${primaryWp.raw_phone}', 'تم نسخ رقم الهاتف')" title="نسخ الرقم">
-              <i class="fa-solid fa-phone"></i>
-              <span>الهاتف</span>
-            </button>
-          `}
-
-          ${waPhone ? `
-            <a href="https://wa.me/${waPhone}" target="_blank" class="btn-action btn-action-wa" title="واتساب">
-              <i class="fa-brands fa-whatsapp"></i>
-              <span>واتساب</span>
-            </a>
-          ` : `
-            <button class="btn-action btn-action-wa" onclick="window.MedicalApp.shareDoctor('${doc.doctor_id}')" title="مشاركة البطاقة">
-              <i class="fa-solid fa-share-nodes"></i>
-              <span>مشاركة</span>
-            </button>
-          `}
-
-          <a href="${primaryWp.maps_url}" target="_blank" class="btn-action btn-action-map wp-map-link" title="الموقع على Google Maps">
-            <i class="fa-solid fa-map-location-dot"></i>
-            <span>الخريطة</span>
-          </a>
-
-          <button class="btn-action btn-action-details" onclick="window.MedicalApp.showDocDetails('${doc.doctor_id}')" title="تفاصيل كاملة">
-            <i class="fa-solid fa-circle-info"></i>
-            <span>التفاصيل</span>
-          </button>
-        </div>
-      </div>
-    `;
-  }
-
-  function attachDoctorCardEvents(container) {
-    // Workplace tab switcher
-    container.querySelectorAll('.workplace-tabs-nav').forEach((nav) => {
-      const card = nav.closest('.doctor-card');
-      const docId = card.getAttribute('data-doc-id');
-      const doc = state.doctors.find((d) => d.doctor_id === docId);
-      if (!doc) return;
-
-      nav.querySelectorAll('.wp-tab-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          nav.querySelectorAll('.wp-tab-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-
-          const idx = Number(btn.getAttribute('data-wp-idx'));
-          const wp = doc.workplaces[idx];
-          if (!wp) return;
-
-          card.querySelector('.wp-hosp-text').textContent = wp.hospital;
-          card.querySelector('.wp-type-text').textContent = wp.clinic_type;
-          card.querySelector('.wp-address-text').textContent = wp.address || 'بمقر المستشفى';
-          card.querySelector('.wp-schedule-text').textContent = wp.schedule || 'حسب جدول المواعيد';
-          card.querySelector('.wp-phone-text').textContent = wp.raw_phone || 'عيادات المستشفى';
-          
-          const contractBadge = card.querySelector('.wp-contract-badge');
-          if (contractBadge) contractBadge.innerHTML = `<i class="fa-solid fa-handshake"></i> ${wp.contract_entity || 'مباشر من الشركة WE'}`;
-          
-          const scopeBadge = card.querySelector('.wp-scope-badge');
-          if (scopeBadge) scopeBadge.innerHTML = `<i class="fa-solid ${wp.coverage_scope === 'family_globemed' ? 'fa-people-roof' : (wp.coverage_scope === 'employee_only' ? 'fa-user-tie' : 'fa-circle-check')}"></i> ${wp.coverage_label || 'شامل: العاملين + أسر جلوب ميد'}`;
-          
-          const markazBadge = card.querySelector('.wp-markaz-badge');
-          if (markazBadge) markazBadge.innerHTML = `<i class="fa-solid fa-map-pin"></i> ${wp.markaz || wp.city || 'المنصورة'}`;
-
-          const mapLink = card.querySelector('.wp-map-link');
-          if (mapLink) mapLink.href = wp.maps_url;
-        });
-      });
-    });
-
-    // Favorite toggle button
-    container.querySelectorAll('.btn-card-fav').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const docId = btn.getAttribute('data-fav-id');
-        const isFav = MedicalStorage.toggleFavorite(docId);
-        btn.classList.toggle('active', isFav);
-        const icon = btn.querySelector('i');
-        if (icon) icon.className = `fa-${isFav ? 'solid' : 'regular'} fa-heart`;
-        showToast(isFav ? 'تمت إضافة الطبيب إلى المفضلة' : 'تمت الإزالة من المفضلة', isFav ? 'success' : 'info', 2000);
-      });
-    });
-  }
-
-  // --- Guidelines & Procedures View ---
-  function renderGuidelinesView() {
-    const container = document.getElementById('guidelines-view-container');
-    if (!container) return;
-
-    const tab = state.selectedGuidelineTab;
-    let list = state.guidelines;
-    if (tab !== 'all') {
-      list = list.filter(g => g.category === tab);
-    }
-
-    if (list.length === 0) {
-      container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>لا توجد نشرات مسجلة في هذا القسم</h3></div>`;
-      return;
-    }
-
-    container.innerHTML = list.map((g) => `
-      <div class="guideline-card">
-        <div class="guideline-header">
-          <div class="guideline-icon">
-            <i class="fa-solid ${g.icon || 'fa-book-medical'}"></i>
-          </div>
-          <div class="guideline-title-group">
-            <span class="guideline-badge">${g.badge || 'إجراء معتمد'}</span>
-            <h3>${g.title}</h3>
-          </div>
-        </div>
-        <p class="guideline-summary">${g.summary}</p>
-        <div class="guideline-steps-list">
-          ${(g.steps || []).map((step, idx) => `
-            <div class="guideline-step-item">
-              <span class="guideline-step-num">${idx + 1}</span>
-              <div>${step}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `).join('');
-  }
-
-  // --- Services View ---
-  function renderServicesView() {
-    const container = document.getElementById('services-grid-container');
-    if (!container) return;
-
-    const tab = state.selectedServiceTab;
-    const scope = state.selectedCoverageScope;
-    let items = MedicalStorage.getLiveFacilities(tab);
-
-    // Apply Scope Filter
-    if (scope !== 'all') {
-      items = items.filter(item => {
-        if (scope === 'employee_only') return item.coverage_scope === 'both' || item.coverage_scope === 'employee_only';
-        if (scope === 'family_globemed') return item.coverage_scope === 'both' || item.coverage_scope === 'family_globemed';
-        return true;
-      });
-    }
-
-    // Apply Markaz Filter
-    if (state.selectedMarkaz !== 'all') {
-      items = items.filter(item => item.markaz === state.selectedMarkaz || item.city === state.selectedMarkaz || (item.address && item.address.includes(state.selectedMarkaz)));
-    }
-
-    if (items.length === 0) {
-      container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>لا توجد خدمات مطابقة للاختيار</h3></div>`;
-      return;
-    }
-
-    container.innerHTML = items.map((item) => {
-      let catLabel = 'خدمة طبية';
-      if (item.category === 'labs') catLabel = 'معمل تحاليل';
-      else if (item.category === 'radiology') catLabel = 'مركز أشعة';
-      else if (item.category === 'pharmacies') catLabel = 'صيدلية';
-      else if (item.category === 'dental') catLabel = 'مركز أسنان';
-      else if (item.category === 'optics') catLabel = 'مركز عيون';
-      else if (item.category === 'dialysis') catLabel = 'غسيل كلوي';
-      else if (item.category === 'cardiology_center') catLabel = 'قسطرة قلب 24س';
-      else if (item.category === 'home_care') catLabel = 'تمريض منزلي';
-
-      const callPhone = item.phone ? item.phone.split(/[-,\/]/)[0].trim().replace(/[^\d]/g, '') : '';
-      const avatarSvg = window.MedicalIllustrations ? window.MedicalIllustrations.getForEntity(item, 48) : `<i class="fa-solid fa-hospital-user"></i>`;
-      const ratingStats = item.ratingStats || MedicalStorage.getReviewStats(item.id, item.rating || 4.8, item.reviews_count || 15);
-
-      const servList = Array.isArray(item.services) ? item.services : (item.services ? item.services.split(/[,،•]/).map(s => s.trim()).filter(Boolean) : ['كشف وفحص طبي', 'خدمة معتمدة للشركة WE']);
-      const visibleServ = servList.slice(0, 3);
-      const remServ = servList.slice(3);
-
-      return `
-        <div class="doctor-card">
-          <div class="card-top">
-            <div class="doctor-avatar-wrapper">
-              <div class="doctor-avatar">
-                ${avatarSvg}
-              </div>
-              <span class="avatar-illustration-note" title="رسم إيضاحي تعبيري">إيضاحي</span>
-            </div>
-            <div class="doctor-info">
-              <span class="doctor-academic-badge">${catLabel}</span>
-              <h3 class="doctor-name">${item.name}</h3>
-              <div class="doctor-specialty-sub">${item.markaz || item.city}</div>
-            </div>
-          </div>
-
-          <div class="card-badges-row">
-            <span class="badge-contract-entity"><i class="fa-solid fa-handshake"></i> ${item.contract_entity || 'مباشر من الشركة WE'}</span>
-            <span class="badge-coverage-scope"><i class="fa-solid fa-circle-check"></i> ${item.coverage_label || 'شامل: العاملين + أسر جلوب ميد'}</span>
-            <span class="badge-markaz"><i class="fa-solid fa-map-pin"></i> ${item.markaz || item.city || 'المنصورة'}</span>
-          </div>
-
-          <!-- Live Composite Rating Row & Visit Evaluation Trigger -->
-          <div class="card-rating-row">
-            <div class="rating-stars-badge">
-              <i class="fa-solid fa-star"></i>
-              <span>${ratingStats.overallRating}</span>
-              <span class="rating-reviews-counter">(${ratingStats.totalReviews} تقييم${ratingStats.hasUserReviews ? ' • إقرار زيارة' : ''})</span>
-            </div>
-            <button class="btn-open-rate-sheet" onclick="window.MedicalApp.openVisitEvaluationModal('${item.id}', 'facility', '${item.name.replace(/'/g, "\\'")}')" title="تقييم زيارتك لهذه المنشأة">
-              <i class="fa-regular fa-star"></i> تقييم الزيارة
-            </button>
-          </div>
-
-          <!-- Services Chips -->
-          <div class="card-services-section">
-            <div class="card-services-header">
-              <span><i class="fa-solid fa-notes-medical"></i> الخدمات المعتمدة (${servList.length})</span>
-              <span style="font-size:0.65rem; color:var(--text-muted);">تغطية WE</span>
-            </div>
-            <div class="card-services-chips" id="services-chips-${item.id}">
-              ${visibleServ.map(s => {
-                const servStat = ratingStats.services && ratingStats.services[s];
-                return `
-                  <span class="service-chip-badge">
-                    <i class="fa-solid fa-circle-check" style="color:var(--we-purple-primary); font-size:0.6rem;"></i>
-                    <span>${s}</span>
-                    ${servStat ? `<span class="service-rating-mini">⭐ ${servStat.avg}</span>` : ''}
-                  </span>
-                `;
-              }).join('')}
-              ${remServ.length > 0 ? `
-                <span class="service-chip-badge service-chip-more" onclick="window.MedicalApp.expandCardServices('${item.id}')" id="more-btn-${item.id}">
-                  + ${remServ.length} خدمات أخرى
-                </span>
-                <div class="card-services-hidden" id="hidden-services-${item.id}" style="display:none; width:100%; flex-wrap:wrap; gap:0.25rem; margin-top:0.25rem;">
-                  ${remServ.map(s => {
-                    const servStat = ratingStats.services && ratingStats.services[s];
-                    return `
-                      <span class="service-chip-badge">
-                        <i class="fa-solid fa-circle-check" style="color:var(--we-purple-primary); font-size:0.6rem;"></i>
-                        <span>${s}</span>
-                        ${servStat ? `<span class="service-rating-mini">⭐ ${servStat.avg}</span>` : ''}
-                      </span>
-                    `;
-                  }).join('')}
-                </div>
-              ` : ''}
-            </div>
-          </div>
-
-          <div class="card-details-list">
-            <div class="detail-row">
-              <i class="fa-solid fa-location-dot"></i>
-              <span>${item.address}</span>
-            </div>
-            <div class="detail-row">
-              <i class="fa-solid fa-clock"></i>
-              <span>${item.working_hours}</span>
-            </div>
-            <div class="detail-row">
-              <i class="fa-solid fa-phone"></i>
-              <span>${item.phone || item.hotline}</span>
-            </div>
-          </div>
-
-          <div class="card-actions-row">
-            ${callPhone ? `
-              <a href="tel:${callPhone}" class="btn-action btn-action-call">
-                <i class="fa-solid fa-phone"></i>
-                <span>اتصال</span>
-              </a>
-            ` : `
-              <button class="btn-action btn-action-call" onclick="window.MedicalApp.copyText('${item.phone}', 'تم نسخ رقم الهاتف')">
-                <i class="fa-solid fa-phone"></i>
-                <span>الهاتف</span>
-              </button>
-            `}
-
-            <button class="btn-action btn-action-wa" onclick="window.MedicalApp.shareService('${item.name}', '${item.phone}', '${item.address}')">
-              <i class="fa-solid fa-share-nodes"></i>
-              <span>مشاركة</span>
-            </button>
-
-            <a href="${item.maps_url}" target="_blank" class="btn-action btn-action-map">
-              <i class="fa-solid fa-map-location-dot"></i>
-              <span>الخريطة</span>
-            </a>
-
-            <button class="btn-action btn-action-details" onclick="window.MedicalApp.copyText('${item.address}', 'تم نسخ العنوان')">
-              <i class="fa-solid fa-copy"></i>
-              <span>العنوان</span>
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  // --- Emergency View & Dakahlia Comprehensive Emergency Directory ---
-  function renderEmergencyView() {
-    const container = document.getElementById('emergency-grid-container');
-    const markazSelect = document.getElementById('emergency-markaz-select');
-    if (!container) return;
-
-    // Populate emergency Markaz dropdown with all 16 centers if empty
-    if (markazSelect && markazSelect.options.length <= 1) {
-      const allCenters = [
-        'المنصورة', 'طلخا', 'ميت غمر', 'السنبلاوين', 'بلقاس',
-        'دكرنس', 'شربين', 'أجا', 'المنزلة', 'منية النصر',
-        'ميت سلسيل', 'بني عبيد', 'نبروه', 'الجمالية', 'تمي الأمديد', 'محلة دمنة'
-      ];
-      allCenters.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m;
-        opt.textContent = `مركز ${m}`;
-        markazSelect.appendChild(opt);
-      });
-    }
-
-    filterEmergencyDirectory();
-  }
-
-  function filterEmergencyDirectory() {
-    const container = document.getElementById('emergency-grid-container');
-    const searchInput = document.getElementById('emergency-search-input');
-    const markazSelect = document.getElementById('emergency-markaz-select');
-    const affSelect = document.getElementById('emergency-affiliation-select');
-    const countBadge = document.getElementById('emergency-count-badge');
-    if (!container) return;
-
-    const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
-    const selMarkaz = markazSelect ? markazSelect.value : 'all';
-    const selAff = affSelect ? affSelect.value : 'all';
-
-    let list = MedicalStorage.getEmergencyServices();
-
-    if (selMarkaz !== 'all') {
-      list = list.filter(e => e.markaz === selMarkaz || (e.city && e.city.includes(selMarkaz)) || (e.address && e.address.includes(selMarkaz)));
-    }
-
-    if (selAff !== 'all') {
-      list = list.filter(e => e.affiliation && e.affiliation.includes(selAff));
-    }
-
-    if (query) {
-      list = list.filter(e => {
-        const str = `${e.name} ${e.description || ''} ${e.service_type || ''} ${e.address || ''} ${e.markaz || ''}`.toLowerCase();
-        return str.includes(query);
-      });
-    }
-
-    if (countBadge) {
-      countBadge.innerHTML = `<i class="fa-solid fa-hospital-user"></i> متاح (${list.length}) منشأة وخدمة طوارئ واستغاثة بالدقهلية`;
-    }
-
-    if (list.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state" style="grid-column: 1 / -1;">
-          <i class="fa-solid fa-truck-medical" style="font-size: 2.5rem; color: #dc2626; margin-bottom: 0.75rem;"></i>
-          <h3>لا توجد منشآت طوارئ مطابقة لبحثك</h3>
-          <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.35rem;">جرب تصفية بمركز آخر أو التوجه للخط الساخن المركزي للإسعاف (123).</p>
-        </div>
-      `;
-      return;
-    }
-
-    container.innerHTML = list.map((em) => {
-      const is24h = em.is_24h !== false;
-      const verified = em.verified !== false;
-      const callTel = em.tel || em.number;
-
-      return `
-        <div class="emergency-facility-card">
-          <div>
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.6rem;">
-              <div style="display:flex; align-items:center; gap:0.6rem;">
-                <div class="emergency-icon" style="background:${em.color || '#DC2626'}; width:42px; height:42px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.15rem; flex-shrink:0;">
-                  <i class="fa-solid ${em.icon || 'fa-truck-medical'}"></i>
-                </div>
-                <div>
-                  <h3 style="font-size:0.95rem; font-weight:800; color:var(--text-primary); line-height:1.25; margin-bottom:0.2rem;">${em.name}</h3>
-                  <div style="font-size:0.75rem; color:var(--we-purple-primary); font-weight:700;">
-                    <i class="fa-solid fa-location-crosshairs"></i> ${em.service_type || 'طوارئ واستقبال'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Badges: 24/7 Hours + Affiliation + Markaz + Verified -->
-            <div style="display:flex; flex-wrap:wrap; gap:0.3rem; margin-bottom:0.75rem;">
-              <span class="badge-24h-active">
-                <i class="fa-solid fa-clock"></i> ${em.hours || (is24h ? '24 ساعة / طوال الأسبوع' : 'شيفتات مسائية')}
-              </span>
-              <span class="badge-affiliation-tag">
-                <i class="fa-solid fa-shield-halved"></i> ${em.affiliation || 'وزارة الصحة'}
-              </span>
-              <span class="badge-markaz">
-                <i class="fa-solid fa-map-pin"></i> ${em.markaz || em.city || 'المنصورة'}
-              </span>
-              <span class="badge-audit-verified" title="بيانات مدققة ومحدثة لعام 2026">
-                <i class="fa-solid fa-circle-check"></i> ${verified ? 'بيانات مدققة ومحدثة' : 'قيد المراجعة'}
-              </span>
-            </div>
-
-            <!-- Details -->
-            <div style="font-size:0.8rem; color:var(--text-secondary); line-height:1.45; margin-bottom:0.75rem;">
-              <div style="margin-bottom:0.25rem;"><i class="fa-solid fa-location-dot" style="width:16px;"></i> ${em.address || 'الدقهلية'}</div>
-              <div><i class="fa-solid fa-circle-info" style="width:16px;"></i> ${em.description || ''}</div>
-              ${em.verification_source ? `
-                <div style="font-size:0.68rem; color:var(--text-muted); margin-top:0.35rem;">
-                  <i class="fa-solid fa-file-shield"></i> المصدر: ${em.verification_source}
-                </div>
-              ` : ''}
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.5rem; border-top:1px solid var(--border-color); padding-top:0.65rem;">
-            ${callTel ? `
-              <a href="tel:${callTel}" class="emergency-call-btn" style="flex:1; padding:0.45rem 0.65rem; font-size:0.8rem; text-decoration:none;">
-                <i class="fa-solid fa-phone"></i>
-                <span>اتصال فوري (${em.number})</span>
-              </a>
-            ` : ''}
-
-            ${em.email ? `
-              <button class="emergency-call-btn" style="background:#00796B; flex:1; padding:0.45rem 0.65rem; font-size:0.8rem;" onclick="window.MedicalApp.openApprovalEmailModal('${em.name}', '${em.email}')">
-                <i class="fa-solid fa-envelope"></i>
-                <span>طلب موافقة</span>
-              </button>
-            ` : ''}
-
-            ${em.maps_url ? `
-              <a href="${em.maps_url}" target="_blank" class="btn-action btn-action-map" style="padding:0.45rem 0.65rem; font-size:0.8rem;" title="توجيه عبر GPS">
-                <i class="fa-solid fa-diamond-turn-right"></i>
-                <span>الخريطة</span>
-              </a>
-            ` : ''}
-
-            <button class="btn-action" style="padding:0.45rem 0.65rem; font-size:0.8rem; background:var(--bg-subtle);" onclick="window.MedicalApp.copyText('${em.number || em.phone || ''}', 'تم نسخ رقم الطوارئ')">
-              <i class="fa-solid fa-copy"></i>
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  // --- Favorites & Hospitals Views ---
-  function renderFavoritesList() {
-    const container = document.getElementById('favorites-grid-container');
-    const emptyNotice = document.getElementById('favorites-empty-notice');
-    if (!container) return;
-
-    const favIds = MedicalStorage.getFavorites();
-    const favDoctors = state.doctors.filter((d) => favIds.includes(d.doctor_id));
-
-    if (favDoctors.length === 0) {
-      container.innerHTML = '';
-      if (emptyNotice) emptyNotice.style.display = 'block';
-    } else {
-      if (emptyNotice) emptyNotice.style.display = 'none';
-      container.innerHTML = favDoctors.map((doc) => createDoctorCardHTML(doc)).join('');
-      attachDoctorCardEvents(container);
-    }
-  }
-
-  function renderSpecialtiesView() {
-    const container = document.getElementById('specialties-view-grid');
-    if (!container) return;
-
-    container.innerHTML = state.specialties.map((s) => `
-      <div class="specialty-full-card" onclick="window.MedicalApp.filterBySpecialty('${s.name}')">
-        <div class="spec-card-icon" style="background:${s.bg || '#F3E8FF'}; color:${s.color || '#5B2C82'}">
-          <i class="fa-solid ${s.icon || 'fa-stethoscope'}"></i>
-        </div>
-        <h3 class="spec-card-title">${s.name}</h3>
-        <div class="spec-hospital-breakdown">
-          <div class="spec-hosp-row"><span>مستشفى الحكمة:</span> <strong>${s.hekma_count}</strong></div>
-          <div class="spec-hosp-row"><span>مستشفى السلاب:</span> <strong>${s.sellab_count}</strong></div>
-          <div class="spec-hosp-row"><span>مستشفى الخير:</span> <strong>${s.kheir_count}</strong></div>
-        </div>
-        <div class="spec-total-badge">إجمالي الأطباء: ${s.total_records} (اضغط للعرض)</div>
-      </div>
-    `).join('');
-  }
-
-  function renderHospitalsView() {
-    const container = document.getElementById('hospitals-view-container');
-    if (!container) return;
-
-    const hosps = Object.values(state.hospitals);
-    container.innerHTML = hosps.map((h) => {
-      const docCount = state.records.filter(r => r.hospital.includes(h.short_name.replace('مستشفى ', ''))).length;
-      return `
-        <div class="hospital-master-card">
-          <div class="hospital-header" style="background: linear-gradient(135deg, ${h.color || '#5B2C82'}, #370a68);">
-            <div class="hosp-title-group">
-              <h2>${h.name}</h2>
-              <p><i class="fa-solid fa-location-dot"></i> ${h.address}</p>
-            </div>
-            <span class="hosp-badge">${h.badge || 'مستشفى معتمد'}</span>
-          </div>
-          <div class="hospital-body">
-            <p class="hosp-desc-p">${h.description}</p>
-
-            <div class="hosp-meta-grid">
-              <div class="hosp-meta-item">
-                <i class="fa-solid fa-clock"></i>
-                <div>
-                  <strong>مواعيد وساعات العمل</strong>
-                  <span>${h.working_hours}</span>
-                </div>
-              </div>
-              <div class="hosp-meta-item">
-                <i class="fa-solid fa-user-doctor"></i>
-                <div>
-                  <strong>العيادات والأطباء بالدليل</strong>
-                  <span>${docCount} عيادة وطبيب استشاري</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="hosp-buttons-row">
-              <button class="btn-hosp-action btn-primary-purple" onclick="window.MedicalApp.filterByHospital('${h.short_name}')">
-                <i class="fa-solid fa-users-viewfinder"></i>
-                <span>استعراض كافة أطباء المستشفى (${docCount})</span>
-              </button>
-
-              ${h.phone_digits ? `
-                <a href="tel:${h.phone_digits}" class="btn-hosp-action btn-accent-pink">
-                  <i class="fa-solid fa-phone"></i>
-                  <span>اتصال بالحجز</span>
-                </a>
-              ` : ''}
-
-              ${h.email_approvals ? `
-                <button class="btn-hosp-action btn-accent-pink" onclick="window.MedicalApp.openApprovalEmailModal('${h.name}', '${h.email_approvals}')">
-                  <i class="fa-solid fa-file-medical"></i>
-                  <span>طلب موافقة فوري</span>
-                </button>
-              ` : ''}
-
-              <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.google_maps_query || h.name)}" target="_blank" class="btn-hosp-action btn-outline">
-                <i class="fa-solid fa-diamond-turn-right"></i>
-                <span>الخريطة</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  // --- Modals: Doctor Details, SOS, Login, Employee Card ---
-  // --- Modals: Doctor Details, SOS, Login, Employee Card ---
-  function showDocDetails(docId) {
-    const doc = state.doctors.find((d) => d.doctor_id === docId);
-    if (!doc) return;
-    state.selectedDoctor = doc;
-
-    const titleEl = document.getElementById('modal-sheet-title');
-    const bodyEl = document.getElementById('modal-sheet-body');
-    const footerEl = document.getElementById('modal-sheet-footer');
-
-    if (titleEl) titleEl.textContent = doc.display_name;
-
-    const avatarSvg = window.MedicalIllustrations ? window.MedicalIllustrations.getForEntity(doc, 68) : `<i class="fa-solid fa-user-doctor"></i>`;
-    const ratingStats = doc.ratingStats || MedicalStorage.getReviewStats(doc.doctor_id, doc.rating || 4.8, doc.reviews_count || 18);
-    const servicesList = doc.services || ['كشف واستشارة طبية متخصصة', 'فحص إكلينيكي وتشخيص دقيق'];
-
-    const workplacesHtml = doc.workplaces.map((wp, i) => `
-      <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0.85rem; margin-bottom:0.75rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
-          <strong style="color:var(--we-purple-primary); font-size:0.95rem;">${wp.hospital}</strong>
-          <span class="clinic-type-tag" style="font-size:0.72rem;">${wp.clinic_type}</span>
-        </div>
-        <div class="card-badges-row" style="margin-bottom:0.4rem;">
-          <span class="badge-contract-entity">${wp.contract_entity}</span>
-          <span class="badge-coverage-scope">${wp.coverage_label}</span>
-          <span class="badge-markaz">${wp.markaz || wp.city}</span>
-        </div>
-        <div style="font-size:0.82rem; color:var(--text-secondary); line-height:1.45;">
-          <div><i class="fa-solid fa-location-dot"></i> ${wp.address || 'بمقر المستشفى'}</div>
-          <div><i class="fa-solid fa-calendar-days"></i> ${wp.schedule}</div>
-          <div><i class="fa-solid fa-phone"></i> ${wp.raw_phone}</div>
-          ${wp.notes ? `<div style="color:var(--we-pink-accent); font-weight:700;"><i class="fa-solid fa-circle-exclamation"></i> ${wp.notes}</div>` : ''}
-        </div>
-      </div>
-    `).join('');
-
-    const recentReviews = ratingStats.reviews || [];
-
-    if (bodyEl) {
-      bodyEl.innerHTML = `
-        <div style="text-align:center; margin-bottom:1rem;">
-          <div class="doctor-avatar-wrapper" style="margin:0 auto 0.5rem;">
-            <div class="doctor-avatar" style="margin:0 auto;">
-              ${avatarSvg}
-            </div>
-            <span class="avatar-illustration-note">رسم إيضاحي</span>
-          </div>
-          <div class="doctor-academic-badge" style="display:inline-block; margin-bottom:0.35rem;">${doc.academic_rank}</div>
-          <h2 style="font-family:var(--font-heading); font-size:1.35rem; color:var(--we-purple-dark);">${doc.display_name}</h2>
-          <div style="color:var(--we-pink-accent); font-weight:700; font-size:0.9rem;">${doc.specialty}</div>
-        </div>
-
-        <!-- Rating & Gated Survey Trigger Banner -->
-        <div style="background:var(--bg-subtle); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0.85rem; margin-bottom:1rem;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.65rem; flex-wrap:wrap; gap:0.4rem;">
-            <div class="rating-stars-badge" style="font-size:1.05rem;">
-              <i class="fa-solid fa-star"></i>
-              <span>${ratingStats.overallRating} / 5</span>
-              <span class="rating-reviews-counter">(${ratingStats.totalReviews} تقييم مسجل)</span>
-            </div>
-            <button class="btn-open-rate-sheet" style="font-size:0.78rem; padding:0.35rem 0.75rem;" onclick="window.MedicalApp.openVisitEvaluationModal('${doc.doctor_id}', 'doctor', '${doc.display_name.replace(/'/g, "\\'")}')">
-              <i class="fa-solid fa-star"></i> تقييم زيارتك
-            </button>
-          </div>
-
-          <!-- 5 Quality Dimensions Breakdown -->
-          <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:0.4rem; font-size:0.75rem;">
-            <div style="background:var(--bg-card); padding:0.35rem 0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
-              <span style="color:var(--text-secondary);">جودة الرعاية:</span> <strong>⭐ ${ratingStats.dimensions.medical_quality}</strong>
-            </div>
-            <div style="background:var(--bg-card); padding:0.35rem 0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
-              <span style="color:var(--text-secondary);">تعامل الطاقم:</span> <strong>⭐ ${ratingStats.dimensions.staff_courtesy}</strong>
-            </div>
-            <div style="background:var(--bg-card); padding:0.35rem 0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
-              <span style="color:var(--text-secondary);">النظافة والبيئة:</span> <strong>⭐ ${ratingStats.dimensions.cleanliness}</strong>
-            </div>
-            <div style="background:var(--bg-card); padding:0.35rem 0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
-              <span style="color:var(--text-secondary);">التنظيم والانتظار:</span> <strong>⭐ ${ratingStats.dimensions.wait_time}</strong>
-            </div>
-          </div>
-        </div>
-
-        <!-- Accredited Services Chips -->
-        <h4 style="font-family:var(--font-heading); margin-bottom:0.45rem; color:var(--we-purple-primary); font-size:0.95rem;">
-          <i class="fa-solid fa-notes-medical"></i> الخدمات الطبية المعتمدة بنسب تحمل WE (${servicesList.length})
-        </h4>
-        <div style="display:flex; flex-wrap:wrap; gap:0.3rem; margin-bottom:1rem;">
-          ${servicesList.map(s => {
-            const servStat = ratingStats.services && ratingStats.services[s];
-            return `
-              <span class="service-chip-badge" style="padding:0.25rem 0.55rem; font-size:0.75rem;">
-                <i class="fa-solid fa-circle-check" style="color:var(--we-purple-primary);"></i>
-                <span>${s}</span>
-                ${servStat ? `<span class="service-rating-mini">⭐ ${servStat.avg}</span>` : ''}
-              </span>
-            `;
-          }).join('')}
-        </div>
-
-        <h4 style="font-family:var(--font-heading); margin-bottom:0.65rem; color:var(--we-purple-primary); font-size:1rem;">
-          <i class="fa-solid fa-location-crosshairs"></i> مقار العمل والعيادات المعتمدة (${doc.workplaces.length})
-        </h4>
-        ${workplacesHtml}
-
-        ${recentReviews.length > 0 ? `
-          <h4 style="font-family:var(--font-heading); margin:1rem 0 0.5rem; color:var(--we-purple-primary); font-size:0.95rem;">
-            <i class="fa-solid fa-comments"></i> تقييمات الزملاء (بناءً على إقرار زيارة موثق)
-          </h4>
-          <div style="display:flex; flex-direction:column; gap:0.5rem;">
-            ${recentReviews.slice(0, 3).map(rev => `
-              <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0.65rem;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
-                  <strong style="font-size:0.82rem;">${rev.employee_name || 'زميل بالشركة'}</strong>
-                  <span class="badge-visitor-declaration" style="font-size:0.62rem;"><i class="fa-solid fa-user-check"></i> إقرار زيارة</span>
-                </div>
-                <div style="font-size:0.72rem; color:#f59e0b; margin-bottom:0.25rem;">
-                  ${'★'.repeat(rev.overall_rating || 5)}${'☆'.repeat(5 - (rev.overall_rating || 5))}
-                  <span style="color:var(--text-muted); margin-right:0.3rem;">(${rev.created_at})</span>
-                </div>
-                ${rev.comment ? `<p style="font-size:0.78rem; color:var(--text-secondary); margin:0;">${rev.comment}</p>` : ''}
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
-      `;
-    }
-
-    if (footerEl) {
-      footerEl.innerHTML = `
-        <button class="btn-action-wa" style="padding:0.5rem 0.95rem; border-radius:var(--radius-md); font-size:0.82rem;" onclick="window.MedicalApp.shareDoctor('${doc.doctor_id}')">
-          <i class="fa-solid fa-share-nodes"></i> مشاركة البطاقة
-        </button>
-        <button class="btn-primary-purple" style="padding:0.5rem 1.15rem; border-radius:var(--radius-md); font-size:0.82rem;" onclick="window.MedicalApp.closeModal()">
-          إغلاق
-        </button>
-      `;
-    }
-
-    openModal();
-  }
-
-  // --- Visit Evaluation & Gated Multi-Dimensional Rating Workflow ---
-  function expandCardServices(targetId) {
-    const hiddenEl = document.getElementById(`hidden-services-${targetId}`);
-    const moreBtn = document.getElementById(`more-btn-${targetId}`);
-    if (hiddenEl) {
-      const isHidden = hiddenEl.style.display === 'none';
-      hiddenEl.style.display = isHidden ? 'flex' : 'none';
-      if (moreBtn) moreBtn.style.display = isHidden ? 'none' : 'inline-flex';
-    }
-  }
-
-  function openVisitEvaluationModal(targetId, targetType, targetName) {
-    state.evaluatingEntity = {
-      targetId,
-      targetType: targetType || 'doctor',
-      targetName: targetName || 'مقدم الخدمة',
-      hasVisited: null
-    };
-
-    const titleEl = document.getElementById('modal-sheet-title');
-    const bodyEl = document.getElementById('modal-sheet-body');
-    const footerEl = document.getElementById('modal-sheet-footer');
-
-    if (titleEl) {
-      titleEl.innerHTML = `<i class="fa-solid fa-star-half-stroke" style="color:#f59e0b;"></i> استبيان تقييم زيارة: ${targetName}`;
-    }
-
-    if (bodyEl) {
-      bodyEl.innerHTML = `
-        <div class="eval-gate-container" id="eval-gate-box">
-          <div style="width:48px; height:48px; border-radius:50%; background:var(--we-purple-soft); color:var(--we-purple-primary); display:flex; align-items:center; justify-content:center; font-size:1.35rem; margin:0 auto 0.65rem;">
-            <i class="fa-solid fa-clipboard-question"></i>
-          </div>
-          <h3 class="eval-gate-question">هل قمت بزيارة هذا الطبيب أو هذه المنشأة من قبل؟</h3>
-          <p class="eval-gate-hint">
-            لضمان مصداقية وأمانة الدليل الطبي لكافة الزملاء بالشركة، يشترط نظام التقييم أن تكون قد تلقيت الرعاية الطبية بالفعل خلال زيارة سابقة لك أو لأحد أفراد أسرتك.
-          </p>
-          <div class="eval-gate-actions">
-            <button class="btn-gate-option btn-gate-yes" onclick="window.MedicalApp.proceedVisitEvaluation(true)">
-              <i class="fa-solid fa-circle-check"></i> نعم، قمت بالزيارة
-            </button>
-            <button class="btn-gate-option btn-gate-no" onclick="window.MedicalApp.proceedVisitEvaluation(false)">
-              <i class="fa-solid fa-circle-xmark"></i> لا، لم أقم بالزيارة
-            </button>
-          </div>
-        </div>
-
-        <div id="eval-survey-form-container" style="display:none;"></div>
-      `;
-    }
-
-    if (footerEl) {
-      footerEl.innerHTML = `
-        <button class="btn-primary-purple" style="padding:0.5rem 1.25rem; font-size:0.82rem; border-radius:var(--radius-md);" onclick="window.MedicalApp.closeModal()">
-          إغلاق
-        </button>
-      `;
-    }
-
-    openModal();
-  }
-
-  function proceedVisitEvaluation(hasVisited) {
-    const gateBox = document.getElementById('eval-gate-box');
-    const formContainer = document.getElementById('eval-survey-form-container');
-    const footerEl = document.getElementById('modal-sheet-footer');
-    if (!formContainer) return;
-
-    if (!hasVisited) {
-      if (gateBox) {
-        gateBox.innerHTML = `
-          <div style="width:46px; height:46px; border-radius:50%; background:#fef2f2; color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 0.6rem;">
-            <i class="fa-solid fa-shield-halved"></i>
-          </div>
-          <h3 style="font-size:0.98rem; font-weight:800; color:#991b1b; margin-bottom:0.35rem;">تنبيه نظام التقييم الموثق</h3>
-          <p style="font-size:0.8rem; color:var(--text-secondary); line-height:1.5;">
-            عزيزنا الزميل، نقدر رغبتك واهتمامك. ولكن حفاظاً على موثوقية وأمانة الدليل لزملائك بالشركة، لا يُسمح بإرسال تقييم إلا لمن تلقى الخدمة الطبية فعلياً.
-            <br><br>
-            يمكنك تصفح آراء وتقييمات زملائك الموثقة، ومشاركتنا تقييمك بعد زيارتك القادمة بإذن الله.
-          </p>
-        `;
-      }
-      formContainer.style.display = 'none';
-      if (footerEl) {
-        footerEl.innerHTML = `
-          <button class="btn-primary-purple" style="padding:0.5rem 1.25rem; font-size:0.82rem; border-radius:var(--radius-md);" onclick="window.MedicalApp.closeModal()">
-            حسناً، تم الفهم
-          </button>
-        `;
-      }
-      return;
-    }
-
-    // Unlocked: Render Survey Form
-    if (gateBox) gateBox.style.display = 'none';
-    formContainer.style.display = 'block';
-
-    const entityId = state.evaluatingEntity.targetId;
-    const entityType = state.evaluatingEntity.targetType;
-    let services = [];
-
-    if (entityType === 'doctor') {
-      const doc = state.doctors.find(d => d.doctor_id === entityId);
-      if (doc && doc.services) services = doc.services;
-    } else {
-      const fac = MedicalStorage.getLiveFacilities('all').find(f => f.id === entityId);
-      if (fac && fac.services) services = fac.services;
-    }
-
-    if (!services || services.length === 0) {
-      services = ['كشف واستشارة طبية', 'فحص سريري وتشخيص', 'متابعة دورية وتعديل جرعات'];
-    }
-
-    formContainer.innerHTML = `
-      <div class="badge-visitor-declaration" style="margin-bottom:0.85rem; width:100%; justify-content:center; padding:0.35rem;">
-        <i class="fa-solid fa-user-check"></i> إقرار زيارة من الموظف: أقر بأنني تلقيت الخدمة الطبية بنفسي أو لأحد أفراد أسرتي
-      </div>
-
-      <!-- Overall Rating Star Selector -->
-      <div style="background:var(--bg-subtle); padding:0.75rem; border-radius:var(--radius-md); text-align:center; margin-bottom:0.85rem; border:1px solid var(--border-color);">
-        <label style="font-size:0.85rem; font-weight:800; color:var(--text-primary); display:block; margin-bottom:0.35rem;">
-          التقييم العام لتجربة الزيارة
-        </label>
-        <div class="star-rating-selector" id="survey-overall-stars">
-          <input type="radio" id="ov-star5" name="survey_overall" value="5" checked><label for="ov-star5" title="ممتاز جداً 5/5">★</label>
-          <input type="radio" id="ov-star4" name="survey_overall" value="4"><label for="ov-star4" title="جيد جداً 4/5">★</label>
-          <input type="radio" id="ov-star3" name="survey_overall" value="3"><label for="ov-star3" title="متوسط 3/5">★</label>
-          <input type="radio" id="ov-star2" name="survey_overall" value="2"><label for="ov-star2" title="مقبول 2/5">★</label>
-          <input type="radio" id="ov-star1" name="survey_overall" value="1"><label for="ov-star1" title="ضعيف 1/5">★</label>
-        </div>
-      </div>
-
-      <!-- 5 Dimensions Survey -->
-      <h4 style="font-size:0.85rem; font-weight:800; color:var(--we-purple-primary); margin-bottom:0.5rem;">
-        <i class="fa-solid fa-chart-simple"></i> تقييم معايير الجودة الخمسة:
-      </h4>
-      <div class="survey-dimensions-grid">
-        <div class="survey-dim-card">
-          <div class="survey-dim-label"><i class="fa-solid fa-stethoscope"></i> جودة الخدمة الطبية والتشخيص</div>
-          <select id="survey-dim-quality" class="sort-select" style="padding:0.25rem 0.5rem; font-size:0.78rem;">
-            <option value="5">ممتاز (5 نجوم)</option>
-            <option value="4" selected>جيد جداً (4 نجوم)</option>
-            <option value="3">متوسط (3 نجوم)</option>
-            <option value="2">مقبول (نجمتان)</option>
-            <option value="1">ضعيف (نجمة واحدة)</option>
-          </select>
-        </div>
-
-        <div class="survey-dim-card">
-          <div class="survey-dim-label"><i class="fa-solid fa-user-nurse"></i> تعامل الطبيب والطاقم التمريضي والإداري</div>
-          <select id="survey-dim-staff" class="sort-select" style="padding:0.25rem 0.5rem; font-size:0.78rem;">
-            <option value="5" selected>ممتاز ومحترم (5)</option>
-            <option value="4">جيد جداً (4)</option>
-            <option value="3">متوسط (3)</option>
-            <option value="2">مقبول (2)</option>
-            <option value="1">غير لائق (1)</option>
-          </select>
-        </div>
-
-        <div class="survey-dim-card">
-          <div class="survey-dim-label"><i class="fa-solid fa-pump-medical"></i> النظافة والتعقيم وبيئة المكان</div>
-          <select id="survey-dim-clean" class="sort-select" style="padding:0.25rem 0.5rem; font-size:0.78rem;">
-            <option value="5" selected>نظيف ومعقم تماماً (5)</option>
-            <option value="4">جيد جداً (4)</option>
-            <option value="3">متوسط (3)</option>
-            <option value="2">يحتاج تحسين (2)</option>
-            <option value="1">سيء (1)</option>
-          </select>
-        </div>
-
-        <div class="survey-dim-card">
-          <div class="survey-dim-label"><i class="fa-solid fa-hourglass-half"></i> سرعة الدخول والتنظيم ووقت الانتظار</div>
-          <select id="survey-dim-wait" class="sort-select" style="padding:0.25rem 0.5rem; font-size:0.78rem;">
-            <option value="5">دخول فوري بدون انتظار (5)</option>
-            <option value="4" selected>انتظار معقول أقل من 20 دقيقة (4)</option>
-            <option value="3">انتظار متوسط 30-45 دقيقة (3)</option>
-            <option value="2">انتظار طويل أكثر من ساعة (2)</option>
-            <option value="1">تأخير شديد وغير منظم (1)</option>
-          </select>
-        </div>
-
-        <div class="survey-dim-card">
-          <div class="survey-dim-label"><i class="fa-solid fa-receipt"></i> وضوح التكلفة والالتزام بأسعار تعاقد WE</div>
-          <select id="survey-dim-cost" class="sort-select" style="padding:0.25rem 0.5rem; font-size:0.78rem;">
-            <option value="5" selected>ملتزم تماماً بنسبة التحمل المقررة (5)</option>
-            <option value="4">التزام جيد جداً (4)</option>
-            <option value="3">مقبول (3)</option>
-            <option value="2">فروق أسعار طفيفة (2)</option>
-            <option value="1">غير ملتزم بأسعار الشركة (1)</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Services Evaluated Section -->
-      <h4 style="font-size:0.85rem; font-weight:800; color:var(--we-purple-primary); margin:0.85rem 0 0.4rem;">
-        <i class="fa-solid fa-list-check"></i> ما هي الخدمات التي استفدت منها فعلياً؟ (حدد وقيم):
-      </h4>
-      <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0.65rem; margin-bottom:0.85rem;">
-        ${services.map((s, idx) => `
-          <div style="display:flex; align-items:center; justify-content:space-between; padding:0.35rem 0; border-bottom:1px dashed var(--border-color);">
-            <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.78rem; font-weight:700; cursor:pointer;">
-              <input type="checkbox" class="survey-service-chk" value="${s}" onchange="document.getElementById('serv-rate-box-${idx}').style.display = this.checked ? 'block' : 'none'">
-              <span>${s}</span>
-            </label>
-            <div id="serv-rate-box-${idx}" style="display:none;">
-              <select class="sort-select survey-service-val" data-serv-name="${s}" style="padding:0.15rem 0.4rem; font-size:0.72rem;">
-                <option value="5">⭐ 5</option>
-                <option value="4" selected>⭐ 4</option>
-                <option value="3">⭐ 3</option>
-                <option value="2">⭐ 2</option>
-                <option value="1">⭐ 1</option>
-              </select>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-
-      <!-- Optional Comment -->
-      <div style="margin-bottom:0.85rem;">
-        <label style="font-size:0.82rem; font-weight:800; color:var(--text-primary); display:block; margin-bottom:0.35rem;">
-          ملاحظاتك أو نصيحتك للزملاء (اختياري)
-        </label>
-        <textarea id="survey-comment-text" class="search-input" style="height:70px; padding:0.5rem; font-size:0.8rem; width:100%; border-radius:var(--radius-md);" placeholder="اكتب ملاحظاتك المفيدة حول التعامل ومستوى الخدمة..."></textarea>
-      </div>
-    `;
-
-    if (footerEl) {
-      footerEl.innerHTML = `
-        <button class="btn-primary-purple" style="padding:0.55rem 1.4rem; font-size:0.85rem; border-radius:var(--radius-md); font-weight:800; display:flex; align-items:center; gap:0.4rem;" onclick="window.MedicalApp.submitVisitEvaluation()">
-          <i class="fa-solid fa-paper-plane"></i> إرسال واعتماد التقييم
-        </button>
-        <button class="btn-outline" style="padding:0.55rem 1rem; font-size:0.82rem; border-radius:var(--radius-md);" onclick="window.MedicalApp.closeModal()">
-          إلغاء
-        </button>
-      `;
-    }
-  }
-
-  function submitVisitEvaluation() {
-    if (!state.evaluatingEntity || !state.evaluatingEntity.targetId) return;
-
-    // Get overall rating
-    const overallEl = document.querySelector('input[name="survey_overall"]:checked');
-    const overallRating = overallEl ? Number(overallEl.value) : 5;
-
-    const quality = Number(document.getElementById('survey-dim-quality')?.value || 5);
-    const staff = Number(document.getElementById('survey-dim-staff')?.value || 5);
-    const cleanliness = Number(document.getElementById('survey-dim-clean')?.value || 5);
-    const waitTime = Number(document.getElementById('survey-dim-wait')?.value || 4);
-    const cost = Number(document.getElementById('survey-dim-cost')?.value || 5);
-    const comment = (document.getElementById('survey-comment-text')?.value || '').trim();
-
-    // Collect evaluated services
-    const servicesEvaluated = [];
-    document.querySelectorAll('.survey-service-chk:checked').forEach(chk => {
-      const sName = chk.value;
-      const valSelect = document.querySelector(`.survey-service-val[data-serv-name="${sName}"]`);
-      const sVal = valSelect ? Number(valSelect.value) : 5;
-      servicesEvaluated.push({
-        service_name: sName,
-        rating: sVal
-      });
-    });
-
-    const res = MedicalStorage.addVisitReview({
-      target_id: state.evaluatingEntity.targetId,
-      target_type: state.evaluatingEntity.targetType,
-      target_name: state.evaluatingEntity.targetName,
-      visited_declared: true,
-      overall_rating: overallRating,
-      medical_quality: quality,
-      staff_courtesy: staff,
-      cleanliness: cleanliness,
-      wait_time: waitTime,
-      cost_transparency: cost,
-      services_evaluated: servicesEvaluated,
-      comment: comment
-    });
-
-    if (res && res.success) {
-      showToast('تم تسجيل تقييم زيارتك بنجاح. شكراً لمساهمتك في خدمة زملائك بالدقهلية!', 'success', 3500);
-      closeModal();
-      
-      // Refresh state and cards
-      state.doctors = MedicalStorage.getLiveDoctors();
-      state.labs = MedicalStorage.getLiveFacilities('labs');
-      state.radiology = MedicalStorage.getLiveFacilities('radiology');
-      state.pharmacies = MedicalStorage.getLiveFacilities('pharmacies');
-      state.specializedCenters = MedicalStorage.getLiveFacilities('specialized');
-
-      renderDoctorsList();
-      renderServicesView();
-      renderFavoritesList();
-    } else {
-      showToast(res ? res.error : 'تعذر حفظ التقييم', 'danger', 3000);
-    }
-  }
-
-  // --- SOS Emergency Modal ---
-  function openSOSModal() {
-    const titleEl = document.getElementById('modal-sheet-title');
-    const bodyEl = document.getElementById('modal-sheet-body');
-    const footerEl = document.getElementById('modal-sheet-footer');
-
-    if (titleEl) titleEl.innerHTML = '<span style="color:#dc2626;"><i class="fa-solid fa-triangle-exclamation"></i> خطوط الاستغاثة والطوارئ العاجلة 24س</span>';
-
-    if (bodyEl) {
-      bodyEl.innerHTML = `
-        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:0.75rem;">
-          خدمة طارئة مخصصة لإنقاذ الزملاء وأسرهم في الحالات الحرجة. اضغط على أي جهة للاتصال المباشر فوراً:
-        </p>
-
-        <div class="sos-actions-grid">
-          <a href="tel:123" class="sos-action-card hot">
-            <div class="sos-card-icon" style="background:#dc2626;"><i class="fa-solid fa-truck-medical"></i></div>
-            <div class="sos-card-info">
-              <h4>إسعاف مصر المركزي (123)</h4>
-              <p>طلب سيارة إسعاف مجهزة فوري للحالات الحرجة</p>
-            </div>
-          </a>
-
-          <a href="tel:01000000001" class="sos-action-card hot">
-            <div class="sos-card-icon" style="background:#5B2C82;"><i class="fa-solid fa-user-shield"></i></div>
-            <div class="sos-card-info">
-              <h4>مسؤول الرعاية بالنقابة (أ / محمود العراقي)</h4>
-              <p>تسهيل الدخول وحل معوقات التأمين والمستشفيات</p>
-            </div>
-          </a>
-
-          <a href="tel:0502301555" class="sos-action-card">
-            <div class="sos-card-icon" style="background:#C2185B;"><i class="fa-solid fa-heart-pulse"></i></div>
-            <div class="sos-card-info">
-              <h4>طوارئ قسطرة القلب 24س (مستشفى الخير)</h4>
-              <p>الدور التاسع - فريق استشاري متأهب 24 ساعة</p>
-            </div>
-          </a>
-
-          <a href="tel:0502209112" class="sos-action-card">
-            <div class="sos-card-icon" style="background:#5B2C82;"><i class="fa-solid fa-hospital"></i></div>
-            <div class="sos-card-info">
-              <h4>طوارئ مستشفى السلاب (050/2209112)</h4>
-              <p>استقبال طوارئ وعناية مركزة واستعلام موحد</p>
-            </div>
-          </a>
-
-          <a href="tel:0502260709" class="sos-action-card">
-            <div class="sos-card-icon" style="background:#7B1FA2;"><i class="fa-solid fa-hospital-user"></i></div>
-            <div class="sos-card-info">
-              <h4>طوارئ واستقبال مستشفى الحكمة</h4>
-              <p>طوارئ واستعلام عيادات مستشفى الحكمة بالمنصورة</p>
-            </div>
-          </a>
-
-          <a href="tel:0502250100" class="sos-action-card">
-            <div class="sos-card-icon" style="background:#10B981;"><i class="fa-solid fa-prescription-bottle-medical"></i></div>
-            <div class="sos-card-info">
-              <h4>صيدلية الإسعاف طوارئ 24س بالمنصورة</h4>
-              <p>أدوية طوارئ وأمصال نادرة على مدار الساعة</p>
-            </div>
-          </a>
-
-          <a href="tel:16120" class="sos-action-card">
-            <div class="sos-card-icon" style="background:#0288D1;"><i class="fa-solid fa-id-card"></i></div>
-            <div class="sos-card-info">
-              <h4>خط ساخن جلوب ميد للأسرة (16120)</h4>
-              <p>استعلام وموافقات شبكة أسر العاملين المعتمدة</p>
-            </div>
-          </a>
-
-          <a href="tel:0502301980" class="sos-action-card">
-            <div class="sos-card-icon" style="background:#B71C1C;"><i class="fa-solid fa-droplet"></i></div>
-            <div class="sos-card-info">
-              <h4>بنك الدم الإقليمي بالمنصورة</h4>
-              <p>توفير فصائل الدم ومشتقات البلازما للحالات العاجلة</p>
-            </div>
-          </a>
-        </div>
-      `;
-    }
-
-    if (footerEl) {
-      footerEl.innerHTML = `
-        <button class="btn-outline" style="padding:0.55rem 1.25rem; border-radius:var(--radius-md);" onclick="window.MedicalApp.closeModal()">
-          إغلاق
-        </button>
-      `;
-    }
-
-    openModal();
-  }
-
-  // --- Authentication Modal (Mobile + Last 4 Digits of National ID) ---
-  function openAuthModal() {
-    if (state.currentUser) {
-      openEmployeeCardModal();
-      return;
-    }
-
-    const titleEl = document.getElementById('modal-sheet-title');
-    const bodyEl = document.getElementById('modal-sheet-body');
-    const footerEl = document.getElementById('modal-sheet-footer');
-
-    if (titleEl) titleEl.textContent = 'تسجيل دخول العاملين بالشركة المصرية للاتصالات بالدقهلية';
-
-    if (bodyEl) {
-      bodyEl.innerHTML = `
-        <div style="background:var(--we-purple-soft); padding:0.85rem; border-radius:var(--radius-md); margin-bottom:1rem; font-size:0.82rem; color:var(--we-purple-primary); line-height:1.45;">
-          <strong><i class="fa-solid fa-shield-halved"></i> تسجيل فوري بدون إنشاء حساب:</strong><br>
-          الدخول مخصص للزملاء العاملين وأعضاء النقابة بالدقهلية برقم الموبايل المسجل وآخر 4 أرقام من الرقم القومي للاطلاع على بطاقة التغطية الطبية والخدمات المخصصة.
-        </div>
-
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label class="form-label">رقم الموبايل المسجل بالمنظومة *</label>
-            <input type="tel" id="auth-phone-input" class="form-input" placeholder="مثال: 01012345678" style="font-size:1rem; letter-spacing:1px; text-align:center;">
-          </div>
-          <div class="form-group full-width">
-            <label class="form-label">آخر 4 أرقام من الرقم القومي للموظف *</label>
-            <input type="password" maxlength="4" id="auth-national-input" class="form-input" placeholder="••••" style="font-size:1.25rem; letter-spacing:4px; text-align:center;">
-          </div>
-        </div>
-
-        <div style="margin-top:1.15rem; background:var(--bg-subtle); padding:0.85rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-          <div style="font-size:0.75rem; font-weight:800; color:var(--text-secondary); margin-bottom:0.45rem;">
-            ⚡ تجربة سريعة بنقرة واحدة (حسابات تجريبية معتمدة):
-          </div>
-          <div style="display:flex; flex-direction:column; gap:0.4rem;">
-            <button class="btn-outline" style="text-align:right; padding:0.4rem 0.65rem; font-size:0.75rem; border-radius:var(--radius-sm);" onclick="window.MedicalApp.fillDemoLogin('01000000001', '2026')">
-              👑 <strong>أ / محمود العراقي</strong> (مسؤول النقابة والرعاية الطبية - صلاحيات كاملة)
-            </button>
-            <button class="btn-outline" style="text-align:right; padding:0.4rem 0.65rem; font-size:0.75rem; border-radius:var(--radius-sm);" onclick="window.MedicalApp.fillDemoLogin('01012345678', '1234')">
-              👔 <strong>م / أحمد إبراهيم السيد</strong> (سنترال المنصورة غرب - تغطية شاملة وأسرة جلوب ميد)
-            </button>
-            <button class="btn-outline" style="text-align:right; padding:0.4rem 0.65rem; font-size:0.75rem; border-radius:var(--radius-sm);" onclick="window.MedicalApp.fillDemoLogin('01098765432', '5678')">
-              👔 <strong>أ / محمد حسن الشربيني</strong> (سنترال ميت غمر - خدمة عملاء)
-            </button>
-          </div>
-        </div>
-      `;
-    }
-
-    if (footerEl) {
-      footerEl.innerHTML = `
-        <button class="btn-primary-purple" style="padding:0.6rem 1.35rem; border-radius:var(--radius-md); font-weight:800;" onclick="window.MedicalApp.loginEmployeeFromModal()">
-          <i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول والتحقق
-        </button>
-        <button class="btn-outline" style="padding:0.6rem 1rem; border-radius:var(--radius-md);" onclick="window.MedicalApp.closeModal()">
-          إلغاء
-        </button>
-      `;
-    }
-
-    openModal();
-  }
-
-  function fillDemoLogin(phone, last4) {
-    const p = document.getElementById('auth-phone-input');
-    const n = document.getElementById('auth-national-input');
-    if (p) p.value = phone;
-    if (n) n.value = last4;
-  }
-
-  function loginEmployeeFromModal() {
-    const phone = (document.getElementById('auth-phone-input') || {}).value || '';
-    const last4 = (document.getElementById('auth-national-input') || {}).value || '';
-
-    const res = MedicalStorage.loginEmployee(phone, last4);
-    if (res.success) {
-      state.currentUser = res.user;
-      updateAuthUI();
-      renderUserCardBanner();
-      closeModal();
-      showToast(`مرحباً بك زميلنا العزيز: ${res.user.name}`, 'success', 3000);
-
-      if (res.user.role === 'admin') {
-        AdminPanel.login('we2026');
-        switchTab('admin');
-      }
-    } else {
-      showToast(res.message, 'danger', 3500);
-    }
-  }
-
-  function logoutEmployee() {
-    MedicalStorage.logoutEmployee();
-    state.currentUser = null;
-    updateAuthUI();
-    renderUserCardBanner();
-    showToast('تم تسجيل الخروج بنجاح', 'info', 2000);
-  }
-
-  // --- Employee Digital Card Modal ---
-  function openEmployeeCardModal() {
-    if (!state.currentUser) {
-      openAuthModal();
-      return;
-    }
-
-    const u = state.currentUser;
-    const titleEl = document.getElementById('modal-sheet-title');
-    const bodyEl = document.getElementById('modal-sheet-body');
-    const footerEl = document.getElementById('modal-sheet-footer');
-
-    if (titleEl) titleEl.textContent = 'بطاقة الرعاية الطبية الرقمية الموحدة';
-
-    const familyHtml = (u.family_members && u.family_members.length > 0) ? `
-      <div style="margin-top:1rem; border-top:1px dashed var(--border-color); padding-top:0.75rem;">
-        <h4 style="font-size:0.85rem; color:var(--we-purple-primary); margin-bottom:0.4rem;">
-          <i class="fa-solid fa-users"></i> أفراد الأسرة المستفيدون من شبكة جلوب ميد (${u.family_members.length}):
-        </h4>
-        <div style="display:flex; flex-direction:column; gap:0.35rem;">
-          ${u.family_members.map(f => `
-            <div style="background:var(--bg-subtle); padding:0.4rem 0.75rem; border-radius:var(--radius-sm); font-size:0.78rem; display:flex; justify-content:space-between;">
-              <strong>${f.name} (${f.relation})</strong>
-              <span style="color:var(--text-secondary); font-family:monospace;">${f.globemed_id || ''}</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    ` : '';
-
-    if (bodyEl) {
-      bodyEl.innerHTML = `
-        <div class="medical-id-card">
-          <div class="card-header-row">
-            <div>
-              <span style="font-size:0.75rem; background:rgba(255,255,255,0.2); padding:0.2rem 0.6rem; border-radius:var(--radius-full);">
-                المصرية للاتصالات WE — فرع الدقهلية
-              </span>
-              <div class="card-emp-name" style="margin-top:0.4rem;">${u.name}</div>
-              <div class="card-emp-meta">${u.title || 'موظف بالشركة'}</div>
-            </div>
-            <img src="img/nekaba_logo.png" alt="النقابة" style="width:50px; height:50px; background:#fff; border-radius:50%; padding:4px;">
-          </div>
-
-          <div class="card-details-grid">
-            <div><strong>الكود الوظيفي:</strong><br>${u.employee_code || 'WE-DK-100'}</div>
-            <div><strong>قطاع العمل:</strong><br>${u.sector || 'المنصورة'}</div>
-            <div><strong>نطاق التغطية:</strong><br>${u.coverage_type || 'شامل'}</div>
-            <div><strong>كارنيه جلوب ميد:</strong><br>${u.globemed_card_no || 'غير متوفر'}</div>
-          </div>
-        </div>
-
-        ${familyHtml}
-
-        <div style="background:var(--bg-subtle); padding:0.75rem; border-radius:var(--radius-md); font-size:0.78rem; color:var(--text-secondary); line-height:1.45; margin-top:0.85rem;">
-          <i class="fa-solid fa-circle-info" style="color:var(--we-purple-primary)"></i>
-          <strong>إرشاد:</strong> يمكنك إبراز هذه الشاشة لمكاتب استقبال مستشفيات الحكمة والسلاب والخير أو معامل التحاليل لإثبات تبعيتك للشركة والاستفادة من خدمات التعاقد.
-        </div>
-      `;
-    }
-
-    if (footerEl) {
-      footerEl.innerHTML = `
-        <button class="btn-action-call" style="padding:0.5rem 1rem; border-radius:var(--radius-md); font-size:0.82rem;" onclick="window.print()">
-          <i class="fa-solid fa-print"></i> طباعة البطاقة
-        </button>
-        <button class="btn-outline" style="padding:0.5rem 1rem; border-radius:var(--radius-md); color:#dc2626;" onclick="window.MedicalApp.logoutEmployee(); window.MedicalApp.closeModal();">
-          تسجيل الخروج
-        </button>
-      `;
-    }
-
-    openModal();
-  }
-
-  // --- Smart Auto-Enrichment for Admin additions ---
-  function autoEnrichNewProvider() {
-    const nameInput = document.getElementById('new-doc-name');
-    const addrInput = document.getElementById('new-doc-address');
-    if (!nameInput) return;
-
-    const rawName = nameInput.value.trim();
-    const rawAddr = addrInput ? addrInput.value.trim() : '';
-
-    if (!rawName) {
-      showToast('يرجى كتابة اسم الطبيب أو الجهة أولاً لتنفيذ الكشف الذكي', 'danger', 2500);
-      return;
-    }
-
-    const res = AdminPanel.smartDetectProvider(rawName, rawAddr);
-    nameInput.value = res.correctedName;
-
-    const catSelect = document.getElementById('new-doc-category');
-    if (catSelect && res.category) {
-      if (res.category === 'معمل تحاليل') catSelect.value = 'labs';
-      else if (res.category === 'مركز أشعة') catSelect.value = 'radiology';
-      else if (res.category === 'صيدلية') catSelect.value = 'pharmacies';
-      else if (res.category === 'مركز أسنان') catSelect.value = 'dental';
-      else if (res.category === 'مركز عيون') catSelect.value = 'optics';
-      else if (res.category === 'علاج طبيعي وتأهيل') catSelect.value = 'physical_therapy';
-      else if (res.category === 'مستشفى / مجمع طبي') catSelect.value = 'hospitals';
-      else catSelect.value = 'doctors';
-    }
-
-    const specSelect = document.getElementById('new-doc-specialty');
-    if (specSelect && res.specialtySuggestion) {
-      specSelect.value = res.specialtySuggestion;
-    }
-
-    const markazSelect = document.getElementById('new-doc-markaz');
-    if (markazSelect && res.markaz) {
-      markazSelect.value = res.markaz;
-    }
-
-    const notesInput = document.getElementById('new-doc-notes');
-    if (notesInput && !notesInput.value) {
-      notesInput.value = `خرائط GPS: ${res.mapsUrl}`;
-    }
-
-    showToast(`تم التصحيح الإملائي وضبط التخصص والمركز (${res.markaz}) ورابط GPS بنجاح!`, 'success', 3000);
-  }
-
-  // --- Admin Form & CRUD Operations ---
-  function populateAdminSpecialtyDropdown() {
-    const select = document.getElementById('new-doc-specialty');
-    if (!select) return;
-    select.innerHTML = state.specialties.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
-  }
-
-  function renderAdminStats() {
-    const incomplete = AdminPanel.findIncompleteRecords(state.records);
-    const suggestions = MedicalStorage.getSuggestions();
-
-    const auditBadge = document.getElementById('admin-audit-badge');
-    const sugBadge = document.getElementById('admin-sug-badge');
-    if (auditBadge) auditBadge.textContent = incomplete.length;
-    if (sugBadge) sugBadge.textContent = suggestions.length;
-  }
-
-  function renderAdminView() {
-    const isAuthed = AdminPanel.isAuthenticated();
-    const loginSection = document.getElementById('admin-login-box');
-    const dashboardSection = document.getElementById('admin-dashboard-content');
-
-    if (!isAuthed) {
-      if (loginSection) loginSection.style.display = 'block';
-      if (dashboardSection) dashboardSection.style.display = 'none';
-      return;
-    }
-
-    if (loginSection) loginSection.style.display = 'none';
-    if (dashboardSection) dashboardSection.style.display = 'block';
-
-    renderAdminStats();
-    renderAdminAuditorTable();
-    renderAdminDuplicates();
-    renderAdminSuggestions();
-    renderAdminDistressList();
-    renderAdminGuidelinesList();
-    renderAdminEmployeesList();
-  }
-
-  function renderAdminAuditorTable() {
-    const container = document.getElementById('admin-auditor-table-body');
-    if (!container) return;
-
-    const incomplete = AdminPanel.findIncompleteRecords(state.records);
-    if (incomplete.length === 0) {
-      container.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:1.5rem; color:var(--color-success); font-weight:700;">جميع السجلات مكتملة بنسبة 100%!</td></tr>`;
-      return;
-    }
-
-    container.innerHTML = incomplete.slice(0, 30).map((item) => `
-      <tr>
-        <td>#${item.record.id}</td>
-        <td><strong>${item.record.name || item.record.raw_name}</strong></td>
-        <td>${item.record.hospital}</td>
-        <td style="color:#dc2626; font-size:0.8rem;">${item.issues.join(' • ')}</td>
-        <td>
-          <button class="btn-action btn-action-details" style="padding:0.3rem 0.6rem; font-size:0.75rem;" onclick="window.MedicalApp.editRecordFromAdmin(${item.record.id})">
-            تعديل
-          </button>
-        </td>
-      </tr>
-    `).join('');
-  }
-
-  function renderAdminDuplicates() {
-    const container = document.getElementById('admin-duplicates-list');
-    if (!container) return;
-
-    const dupes = AdminPanel.findDuplicates(state.records);
-    if (dupes.byName.length === 0) {
-      container.innerHTML = `<p style="padding:1rem; color:var(--color-success); font-weight:700;">لا توجد أي تكرارات غير مبررة بالبيانات.</p>`;
-      return;
-    }
-
-    container.innerHTML = dupes.byName.map((d) => `
-      <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0.75rem; margin-bottom:0.5rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <strong>${d.name}</strong>
-          <span class="pill-badge" style="background:var(--we-purple-soft); color:var(--we-purple-primary);">${d.count} سجلات</span>
-        </div>
-        <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:0.3rem;">
-          المستشفيات: ${d.records.map(r => r.hospital).join(' ، ')}
-        </div>
-      </div>
-    `).join('');
-  }
-
-  function renderAdminSuggestions() {
-    const container = document.getElementById('admin-suggestions-container');
-    if (!container) return;
-
-    const list = MedicalStorage.getSuggestions();
-    if (list.length === 0) {
-      container.innerHTML = `<p style="padding:1rem; color:var(--text-secondary);">لا توجد مقترحات جديدة مرسلة من الزملاء حالياً.</p>`;
-      return;
-    }
-
-    container.innerHTML = list.map((s) => `
-      <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0.85rem; margin-bottom:0.75rem;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.4rem;">
-          <div>
-            <h4 style="font-size:0.95rem; font-weight:800; color:var(--we-purple-primary);">${s.name}</h4>
-            <span style="font-size:0.75rem; color:var(--text-secondary);">التخصص: ${s.specialty || 'عام'} • بواسطة: ${s.suggestedBy}</span>
-          </div>
-          <span class="pill-badge" style="font-size:0.7rem; background:#fef3c7; color:#92400e;">معلق للمراجعة</span>
-        </div>
-        <div style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:0.6rem;">
-          <div><i class="fa-solid fa-phone"></i> ${s.phone || 'غير مسجل'}</div>
-          <div><i class="fa-solid fa-location-dot"></i> ${s.address || 'غير مسجل'}</div>
-        </div>
-        <div style="display:flex; gap:0.4rem;">
-          <button class="btn-primary-purple" style="padding:0.35rem 0.75rem; font-size:0.78rem; border-radius:var(--radius-sm);" onclick="window.MedicalApp.approveSuggestion('${s.id}')">
-            <i class="fa-solid fa-check"></i> اعتماد وإدراج
-          </button>
-          <button class="btn-outline" style="padding:0.35rem 0.65rem; font-size:0.78rem; border-radius:var(--radius-sm); color:#dc2626;" onclick="window.MedicalApp.rejectSuggestion('${s.id}')">
-            حذف
-          </button>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  function renderAdminDistressList() {
-    const container = document.getElementById('admin-distress-list-container');
-    if (!container) return;
-
-    container.innerHTML = state.emergencyServices.map(em => `
-      <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0.75rem; margin-bottom:0.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
-        <div>
-          <strong style="color:var(--text-primary);">${em.name}</strong>
-          <span style="font-size:0.8rem; color:var(--we-pink-accent); margin-right:0.5rem;">${em.number}</span>
-          <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.2rem;">${em.description}</p>
-        </div>
-        <button class="btn-outline" style="padding:0.3rem 0.6rem; font-size:0.75rem; color:#dc2626;" onclick="window.MedicalApp.deleteDistressService('${em.id}')">
-          حذف
-        </button>
-      </div>
-    `).join('');
-  }
-
-  function renderAdminGuidelinesList() {
-    const container = document.getElementById('admin-guidelines-list-container');
-    if (!container) return;
-
-    container.innerHTML = state.guidelines.map(g => `
-      <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0.75rem; margin-bottom:0.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
-        <div>
-          <strong style="color:var(--we-purple-primary);">${g.title}</strong>
-          <span class="pill-badge" style="font-size:0.7rem; background:var(--we-pink-soft); color:var(--we-pink-accent); margin-right:0.4rem;">${g.badge || 'نشرة'}</span>
-          <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.2rem;">${g.summary}</p>
-        </div>
-        <button class="btn-outline" style="padding:0.3rem 0.6rem; font-size:0.75rem; color:#dc2626;" onclick="window.MedicalApp.deleteAdminGuideline('${g.id}')">
-          حذف
-        </button>
-      </div>
-    `).join('');
-  }
-
-  function renderAdminEmployeesList() {
-    const container = document.getElementById('admin-employees-list-container');
-    if (!container) return;
-
-    const list = MedicalStorage.getEmployees();
-    container.innerHTML = `
-      <div style="font-size:0.85rem; font-weight:800; margin-bottom:0.5rem;">إجمالي المسجلين بكشف العاملين: ${list.length} زميل</div>
-      <div style="display:flex; flex-direction:column; gap:0.4rem;">
-        ${list.map(emp => `
-          <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0.6rem 0.85rem; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-            <div>
-              <strong>${emp.name}</strong> • ${emp.sector || 'WE'} • كود: ${emp.employee_code || '-'}
-            </div>
-            <div style="color:var(--text-secondary); font-family:monospace;">
-              موبايل: ${emp.phone} | قومي: ••••${emp.national_id_last4}
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  }
-
-  function submitNewDoctor(e) {
-    e.preventDefault();
-    const name = (document.getElementById('new-doc-name') || {}).value || '';
-    const hosp = (document.getElementById('new-doc-hospital') || {}).value || 'مستشفى الحكمة';
-    const spec = (document.getElementById('new-doc-specialty') || {}).value || 'الجراحة العامة';
-    const subspec = (document.getElementById('new-doc-subspecialty') || {}).value || '';
-    const contract = (document.getElementById('new-doc-contract-entity') || {}).value || 'مباشر من الشركة WE';
-    const scope = (document.getElementById('new-doc-coverage-scope') || {}).value || 'both';
-    const markaz = (document.getElementById('new-doc-markaz') || {}).value || 'المنصورة';
-    const clinicType = (document.getElementById('new-doc-type') || {}).value || 'عيادات داخلية';
-    const phone = (document.getElementById('new-doc-phone') || {}).value || '';
-    const address = (document.getElementById('new-doc-address') || {}).value || '';
-    const schedule = (document.getElementById('new-doc-schedule') || {}).value || '';
-    const category = (document.getElementById('new-doc-category') || {}).value || 'doctors';
-    const notes = (document.getElementById('new-doc-notes') || {}).value || '';
-
-    let coverageLabel = 'شامل: العاملين + أسر العاملين (جلوب ميد)';
-    if (scope === 'employee_only') coverageLabel = 'العاملين بالشركة فقط';
-    if (scope === 'family_globemed') coverageLabel = 'أسر العاملين (شبكة جلوب ميد)';
-
-    const cleanName = AdminPanel.correctArabicNameSpelling(name);
-    const isDoctor = category === 'doctors';
-
-    const newRecord = {
-      id: 2000 + (Date.now() % 100000),
-      hospital: hosp,
-      contract_entity: contract,
-      contract_entity_id: contract.includes('الحكمة') ? 'hosp_hekma' : (contract.includes('السلاب') ? 'hosp_sellab' : (contract.includes('الخير') ? 'hosp_kheir' : 'direct_we')),
-      coverage_scope: scope,
-      coverage_label: coverageLabel,
-      specialty: spec,
-      subspecialty: subspec,
-      raw_name: name,
-      name: cleanName,
-      display_name: isDoctor ? (cleanName.startsWith('د/') ? cleanName : `د/ ${cleanName}`) : cleanName,
-      academic_rank: isDoctor ? 'طبيب استشاري' : 'منشأة طبية معتمدة',
-      clinic_type: clinicType,
-      raw_phone: phone,
-      phones: [{ display: phone, digits: phone.replace(/[^\d]/g, ''), tel: phone.replace(/[^\d]/g, ''), is_mobile: phone.startsWith('01') }],
-      address: address,
-      city: markaz,
-      markaz: markaz,
-      area: markaz,
-      schedule: schedule || 'يومياً حسب جدول المواعيد',
-      notes: notes,
-      is_department: !isDoctor,
-      maps_url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + address + ' ' + markaz)}`
-    };
-
-    MedicalStorage.saveRecord(newRecord);
-
-    if (!isDoctor) {
-      const facility = {
-        id: 'fac_' + Date.now(),
-        name: cleanName,
-        category: category,
-        city: markaz,
-        markaz: markaz,
-        address: address,
-        phone: phone,
-        working_hours: schedule || '24 ساعة طوال الأسبوع',
-        rating: 4.8,
-        reviews_count: 12,
-        services: [spec, 'خدمة طبية معتمدة لشركة WE', 'فحص واستقبال'],
-        maps_url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + address + ' ' + markaz)}`
-      };
-      MedicalStorage.saveCustomFacility(facility);
-    }
-
-    loadData();
-    showToast(`تمت إضافة ${name} إلى المنظومة بنجاح`, 'success', 3000);
-    document.getElementById('form-add-doctor').reset();
-    if (!isDoctor) {
-      switchTab('services');
-      renderServicesView();
-    } else {
-      switchTab('doctors');
-    }
-  }
-
-  function editRecordFromAdmin(recordId) {
-    const rec = state.records.find(r => r.id === recordId);
-    if (!rec) return;
-
-    document.querySelector('[data-admin-view="add-new"]').click();
-    if (document.getElementById('new-doc-name')) document.getElementById('new-doc-name').value = rec.name || rec.raw_name;
-    if (document.getElementById('new-doc-specialty')) document.getElementById('new-doc-specialty').value = rec.specialty;
-    if (document.getElementById('new-doc-hospital')) document.getElementById('new-doc-hospital').value = rec.hospital;
-    if (document.getElementById('new-doc-phone')) document.getElementById('new-doc-phone').value = rec.raw_phone;
-    if (document.getElementById('new-doc-address')) document.getElementById('new-doc-address').value = rec.address;
-    if (document.getElementById('new-doc-schedule')) document.getElementById('new-doc-schedule').value = rec.schedule;
-    if (document.getElementById('new-doc-notes')) document.getElementById('new-doc-notes').value = rec.notes;
-    showToast(`تم تحميل بيانات #${recordId} في نموذج الإدخال للتعديل`, 'info', 2500);
-  }
-
-  function openAddDistressModal() {
-    const titleEl = document.getElementById('modal-sheet-title');
-    const bodyEl = document.getElementById('modal-sheet-body');
-    const footerEl = document.getElementById('modal-sheet-footer');
-
-    if (titleEl) titleEl.textContent = 'إضافة خط استغاثة أو طوارئ عاجل';
-
-    if (bodyEl) {
-      bodyEl.innerHTML = `
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label class="form-label">اسم جهة الاستغاثة / الخط الساخن *</label>
-            <input type="text" id="new-em-name" class="form-input" placeholder="مثال: طوارئ مستشفى الطوارئ الجامعي">
-          </div>
-          <div class="form-group full-width">
-            <label class="form-label">رقم الهاتف / الخط المختصر *</label>
-            <input type="tel" id="new-em-num" class="form-input" placeholder="مثال: 050/2200000 أو 19000">
-          </div>
-          <div class="form-group full-width">
-            <label class="form-label">الوصف والخدمة المقدمة</label>
-            <textarea id="new-em-desc" class="form-textarea" placeholder="مثال: استقبال حوادث وطوارئ على مدار 24 ساعة"></textarea>
-          </div>
-        </div>
-      `;
-    }
-
-    if (footerEl) {
-      footerEl.innerHTML = `
-        <button class="btn-primary-purple" style="padding:0.55rem 1.2rem; border-radius:var(--radius-md); font-weight:800;" onclick="window.MedicalApp.saveDistressService()">
-          <i class="fa-solid fa-save"></i> حفظ في المنظومة
-        </button>
-        <button class="btn-outline" style="padding:0.55rem 0.95rem; border-radius:var(--radius-md);" onclick="window.MedicalApp.closeModal()">
-          إلغاء
-        </button>
-      `;
-    }
-
-    openModal();
-  }
-
-  function saveDistressService() {
-    const name = (document.getElementById('new-em-name') || {}).value || '';
-    const num = (document.getElementById('new-em-num') || {}).value || '';
-    const desc = (document.getElementById('new-em-desc') || {}).value || '';
-
-    if (!name || !num) {
-      showToast('يرجى ملء الاسم ورقم الهاتف', 'danger');
-      return;
-    }
-
-    const item = {
-      id: 'em_' + Date.now(),
-      name: name.trim(),
-      number: num.trim(),
-      tel: num.trim().replace(/[^\d]/g, ''),
-      description: desc.trim(),
-      category: 'طوارئ معتمدة',
-      icon: 'fa-phone-flip',
-      color: '#dc2626'
-    };
-
-    MedicalStorage.saveEmergencyService(item);
-    state.emergencyServices = MedicalStorage.getEmergencyServices();
-    renderEmergencyView();
-    renderAdminDistressList();
-    closeModal();
-    showToast('تمت إضافة خط الاستغاثة بنجاح', 'success', 2500);
-  }
-
-  function deleteDistressService(id) {
-    if (confirm('هل أنت متأكد من حذف هذا الرقم؟')) {
-      MedicalStorage.deleteEmergencyService(id);
-      state.emergencyServices = MedicalStorage.getEmergencyServices();
-      renderEmergencyView();
-      renderAdminDistressList();
-      showToast('تم الحذف', 'info', 1500);
-    }
-  }
-
-  function openAddGuidelineModal() {
-    const titleEl = document.getElementById('modal-sheet-title');
-    const bodyEl = document.getElementById('modal-sheet-body');
-    const footerEl = document.getElementById('modal-sheet-footer');
-
-    if (titleEl) titleEl.textContent = 'إضافة نشرة أو تعليمات طبية جديدة';
-
-    if (bodyEl) {
-      bodyEl.innerHTML = `
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label class="form-label">عنوان النشرة أو الإجراء *</label>
-            <input type="text" id="new-guide-title" class="form-input" placeholder="مثال: ضوابط صرف الأدوية في شهر رمضان المبارك">
-          </div>
-          <div class="form-group">
-            <label class="form-label">القسم *</label>
-            <select id="new-guide-cat" class="form-select">
-              <option value="emergency">دخول الطوارئ</option>
-              <option value="approvals">الموافقات الطبية</option>
-              <option value="globemed">أسر العاملين (جلوب ميد)</option>
-              <option value="medications">أدوية الأمراض المزمنة</option>
-              <option value="benefits">أسنان ونظارات</option>
-              <option value="referrals">عيادات خارجية</option>
-              <option value="union">دعم النقابة</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">شارة التمييز</label>
-            <input type="text" id="new-guide-badge" class="form-input" placeholder="مثال: هام وعاجل">
-          </div>
-          <div class="form-group full-width">
-            <label class="form-label">الموجز *</label>
-            <textarea id="new-guide-summary" class="form-textarea" placeholder="ملخص سريع للموظف..."></textarea>
-          </div>
-          <div class="form-group full-width">
-            <label class="form-label">الخطوات والإجراءات (اكتب كل خطوة في سطر منفصل)</label>
-            <textarea id="new-guide-steps" class="form-textarea" rows="4" placeholder="الخطوة الأولى...\nالخطوة الثانية...\nالخطوة الثالثة..."></textarea>
-          </div>
-        </div>
-      `;
-    }
-
-    if (footerEl) {
-      footerEl.innerHTML = `
-        <button class="btn-primary-purple" style="padding:0.55rem 1.2rem; border-radius:var(--radius-md); font-weight:800;" onclick="window.MedicalApp.saveAdminGuideline()">
-          <i class="fa-solid fa-save"></i> حفظ ونشر الدليل
-        </button>
-        <button class="btn-outline" style="padding:0.55rem 0.95rem; border-radius:var(--radius-md);" onclick="window.MedicalApp.closeModal()">
-          إلغاء
-        </button>
-      `;
-    }
-
-    openModal();
-  }
-
-  function saveAdminGuideline() {
-    const title = (document.getElementById('new-guide-title') || {}).value || '';
-    const cat = (document.getElementById('new-guide-cat') || {}).value || 'union';
-    const badge = (document.getElementById('new-guide-badge') || {}).value || 'نشرة معتمدة';
-    const summary = (document.getElementById('new-guide-summary') || {}).value || '';
-    const stepsRaw = (document.getElementById('new-guide-steps') || {}).value || '';
-
-    if (!title || !summary) {
-      showToast('يرجى ملء العنوان والموجز', 'danger');
-      return;
-    }
-
-    const steps = stepsRaw.split('\n').map(s => s.trim()).filter(Boolean);
-
-    const item = {
-      id: 'guide_' + Date.now(),
-      title: title.trim(),
-      category: cat,
-      badge: badge.trim(),
-      icon: 'fa-book-medical',
-      summary: summary.trim(),
-      steps: steps.length > 0 ? steps : [summary.trim()]
-    };
-
-    MedicalStorage.saveGuideline(item);
-    state.guidelines = MedicalStorage.getGuidelines();
-    renderGuidelinesView();
-    renderAdminGuidelinesList();
-    closeModal();
-    showToast('تم حفظ ونشر الدليل بنجاح', 'success', 2500);
-  }
-
-  function deleteAdminGuideline(id) {
-    if (confirm('هل أنت متأكد من حذف هذه النشرة؟')) {
-      MedicalStorage.deleteGuideline(id);
-      state.guidelines = MedicalStorage.getGuidelines();
-      renderGuidelinesView();
-      renderAdminGuidelinesList();
-      showToast('تم الحذف', 'info', 1500);
-    }
-  }
-
-  function importEmployeesFromAdmin() {
-    const input = document.getElementById('admin-employees-json-input');
-    if (!input || !input.value.trim()) {
-      showToast('يرجى لصق بيانات العاملين بصيغة JSON', 'danger');
-      return;
-    }
-
+  // Every data value becomes a text node or a checked URL. No data is inserted as HTML.
+  function el(tag, attrs = {}, ...children) {
+    const n = document.createElement(tag);
+    for (const c of children.flat(Infinity)) {
+      if (c !== null && c !== undefined && c !== false)
+        n.append(c instanceof Node ? c : document.createTextNode(String(c)));
+    }
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v === undefined || v === null) continue;
+      if (k.startsWith("on")) n.addEventListener(k.slice(2).toLowerCase(), v);
+      else if (k === "class") n.className = v;
+      else if (k === "value") n.value = v;
+      else if (k === "checked" || k === "disabled" || k === "required")
+        n[k] = !!v;
+      else n.setAttribute(k, String(v));
+    }
+    return n;
+  }
+  const button = (text, action, classes = "button") =>
+    el("button", { type: "button", class: classes, onClick: action }, text);
+  const empty = (text) => el("div", { class: "empty" }, text);
+  const detail = (symbol, text) =>
+    text
+      ? el(
+          "p",
+          { class: "detail" },
+          el("span", { "aria-hidden": "true" }, symbol),
+          el("span", {}, text),
+        )
+      : null;
+  function toast(text) {
+    $("#toast").textContent = text;
+    $("#toast").hidden = false;
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => ($("#toast").hidden = true), 4500);
+  }
+  function safeUrl(value) {
     try {
-      const data = JSON.parse(input.value.trim());
-      if (!Array.isArray(data)) {
-        showToast('يجب أن تكون البيانات عبارة عن مصفوفة JSON [ ... ]', 'danger');
+      const u = new URL(value);
+      return u.protocol === "https:" ? u.href : null;
+    } catch {
+      return null;
+    }
+  }
+  function link(text, url, classes = "button outline") {
+    const href = safeUrl(url);
+    return href
+      ? el(
+          "a",
+          {
+            href,
+            class: classes,
+            target: "_blank",
+            rel: "noopener noreferrer",
+          },
+          text,
+        )
+      : null;
+  }
+  function telephone(value) {
+    const p = String(value || "").replace(/[^\d+]/g, "");
+    return /^\+?\d{3,15}$/.test(p) ? p : "";
+  }
+  function dialog(title, content) {
+    $("#dialog-title").textContent = title;
+    $("#dialog-content").replaceChildren(content);
+    if (!$("#app-dialog").open) $("#app-dialog").showModal();
+  }
+  function closeDialog() {
+    $("#app-dialog").close();
+  }
+  function field(label, name, type = "text", value = "", options = {}) {
+    const input = el(type === "textarea" ? "textarea" : "input", {
+      id: name,
+      name,
+      ...(type === "textarea" ? { rows: 4 } : { type }),
+      value,
+      ...options,
+    });
+    return el("label", { class: "form-field", for: name }, label, input);
+  }
+  function selectField(label, name, options, value) {
+    return el(
+      "div",
+      { class: "form-field" },
+      el("label", { for: name }, label),
+      el(
+        "select",
+        { id: name, name, value },
+        options.map(([v, t]) => el("option", { value: v }, t)),
+      ),
+    );
+  }
+  function formAction(form, submit) {
+    const error = el("p", { class: "form-error", role: "alert" });
+    const submitButton = el(
+      "button",
+      { type: "submit", class: "button primary" },
+      submit,
+    );
+    form.append(error, submitButton);
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      submitButton.disabled = true;
+      error.textContent = "";
+      try {
+        await form.save(Object.fromEntries(new FormData(form)));
+      } catch (e) {
+        error.textContent = e.message;
+        updateHeader();
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+    return form;
+  }
+  function session() {
+    return API.session();
+  }
+  function updateHeader() {
+    const u = session();
+    $("#member-button").textContent = u ? u.name : "دخول الأعضاء";
+  }
+  function connection() {
+    const n = $("#connection-status");
+    n.classList.toggle("offline", !navigator.onLine);
+    n.textContent = !navigator.onLine
+      ? "أنت دون اتصال · يمكنك الاطلاع على النسخة المحفوظة، والتقييم يحتاج الإنترنت."
+      : !API.configured
+        ? "الدليل متاح للتصفح · الدخول والتقييمات المركزية قيد التجهيز."
+        : state.remote
+          ? "متصل · بيانات الدليل والتقييمات من الخدمة المركزية."
+          : "تعرض النسخة المنشورة · تعذر تحديث البيانات المركزية حاليًا.";
+  }
+  async function refresh() {
+    if (!API.configured) {
+      connection();
+      return;
+    }
+    const result = await API.catalog();
+    if (
+      !result.catalog ||
+      !kinds.every((k) => Array.isArray(result.catalog[k]))
+    )
+      throw new Error("تعذر قراءة بيانات الدليل.");
+    state.catalog = result.catalog;
+    state.stats = result.stats || {};
+    state.remote = true;
+    connection();
+    renderFilters();
+    if (location.hash.startsWith("#entity=")) route();
+    else renderMain();
+  }
+  function providers() {
+    const map = new Map();
+    for (const r of state.catalog.records) {
+      if (!r.provider_id) continue;
+      if (!map.has(r.provider_id))
+        map.set(r.provider_id, {
+          id: r.provider_id,
+          name: r.display_name || r.name,
+          specialty: r.specialty,
+          is_department: r.is_department,
+          branches: [],
+        });
+      map.get(r.provider_id).branches.push(r);
+    }
+    return [...map.values()];
+  }
+  function matchesBranch(b) {
+    return (
+      (!state.markaz || (b.markaz || b.city) === state.markaz) &&
+      (!state.hospital || b.hospital === state.hospital) &&
+      (!state.coverage ||
+        (b.coverage_verified === true &&
+          (b.coverage_scope === "both" || b.coverage_scope === state.coverage)))
+    );
+  }
+  function matchesText(values) {
+    return (
+      !state.query ||
+      normalize(values.join(" ")).includes(normalize(state.query))
+    );
+  }
+  function doctorResults() {
+    return providers()
+      .map((p) => ({
+        ...p,
+        matched: p.branches.filter(
+          (b) =>
+            matchesBranch(b) &&
+            matchesText([
+              p.name,
+              p.specialty,
+              b.hospital,
+              b.address,
+              b.markaz,
+              b.raw_phone,
+            ]),
+        ),
+      }))
+      .filter(
+        (p) =>
+          p.matched.length &&
+          (!state.specialty || p.specialty === state.specialty),
+      );
+  }
+  function rating(target) {
+    const s = state.stats[target];
+    return s?.count
+      ? el(
+          "div",
+          { class: "rating" },
+          el("strong", {}, "★ " + Number(s.average).toFixed(1)),
+          el("span", { class: "muted" }, `${s.count} تقييم منشور`),
+        )
+      : el(
+          "p",
+          { class: "muted" },
+          API.configured && !state.remote
+            ? "التقييمات تحتاج اتصالًا بالخدمة المركزية"
+            : "لا توجد تقييمات منشورة بعد",
+        );
+  }
+  function favorite(target) {
+    const b = button(
+      prefs.getFavorites().includes(target) ? "♥" : "♡",
+      () => {
+        try {
+          const active = prefs.toggleFavorite(target);
+          b.textContent = active ? "♥" : "♡";
+          b.classList.toggle("active", active);
+          b.setAttribute("aria-pressed", String(active));
+          if (state.tab === "favorites") renderMain();
+        } catch (e) {
+          toast(e.message);
+        }
+      },
+      "favorite",
+    );
+    b.classList.toggle("active", prefs.getFavorites().includes(target));
+    b.setAttribute("aria-label", "حفظ في المفضلة على هذا الجهاز");
+    b.setAttribute(
+      "aria-pressed",
+      String(prefs.getFavorites().includes(target)),
+    );
+    return b;
+  }
+  function coverage(entity) {
+    const confirmed = entity.coverage_verified === true;
+    return el(
+      "div",
+      { class: "coverage" + (confirmed ? "" : " unknown") },
+      confirmed
+        ? entity.coverage_label ||
+            {
+              both: "العاملون وأسرهم",
+              employee_only: "العاملون فقط",
+              family_globemed: "أسر جلوب ميد",
+            }[entity.coverage_scope] ||
+            "راجع شروط الجهة"
+        : "التغطية تحتاج تأكيدًا من الجهة",
+    );
+  }
+  function actionLinks(branch) {
+    let tel = telephone(
+      branch.phones?.find((p) => telephone(p.tel))?.tel ||
+        branch.phone_digits ||
+        branch.hotline ||
+        branch.tel,
+    );
+    let label = "اتصال";
+    if (!tel && branch.hospital) {
+      const h = state.catalog.hospitals.find(
+        (h) => h.short_name === branch.hospital || h.name === branch.hospital,
+      );
+      tel = telephone(h?.phone_digits);
+      label = "استقبال المستشفى";
+    }
+    if (!tel)
+      tel = String(branch.phone || "")
+        .split(/\s*[-،,]\s*/)
+        .map(telephone)
+        .find(Boolean);
+    return [
+      tel
+        ? el("a", { class: "button primary", href: "tel:" + tel }, label)
+        : el("span", { class: "muted" }, "رقم الاتصال غير متاح"),
+      link(
+        "الخريطة",
+        branch.maps_url ||
+          `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([branch.name, branch.address, branch.markaz || branch.city].filter(Boolean).join(" "))}`,
+      ),
+    ];
+  }
+  function share(target, name) {
+    const url = new URL(location.href);
+    url.hash = "entity=" + encodeURIComponent(target);
+    if (navigator.share)
+      navigator.share({ title: name, url: url.href }).catch(() => {});
+    else if (navigator.clipboard)
+      navigator.clipboard
+        .writeText(url.href)
+        .then(() => toast("تم نسخ رابط الجهة."))
+        .catch(() => toast("تعذر نسخ الرابط."));
+    else dialog("رابط الجهة", el("p", {}, url.href));
+  }
+  function doctorCard(p) {
+    const target = "doctor:" + p.id;
+    let branch = p.matched[0];
+    const details = el("div", { class: "branch-details" });
+    const actions = el("div", { class: "card-actions" });
+    const renderBranch = () => {
+      details.replaceChildren(
+        detail("▥", branch.hospital),
+        detail("⌖", branch.address),
+        detail("◷", branch.schedule || "المواعيد تحتاج تأكيدًا"),
+        coverage(branch),
+      );
+      actions.replaceChildren(
+        ...actionLinks(branch),
+        button(
+          "قيّم الزيارة",
+          () => reviewDialog(target, p.name, String(branch.id)),
+          "button outline",
+        ),
+      );
+    };
+    const card = el(
+      "article",
+      { class: "card", "data-target": target },
+      el(
+        "div",
+        { class: "card-top" },
+        el(
+          "div",
+          { class: "avatar", "aria-hidden": "true" },
+          p.is_department ? "✚" : "♧",
+        ),
+        el(
+          "div",
+          { class: "card-info" },
+          el("h3", {}, p.name),
+          el("p", {}, p.specialty),
+        ),
+        favorite(target),
+      ),
+    );
+    if (p.matched.length > 1) {
+      const label = el("label", { class: "sr-only" }, "اختر مقر العمل");
+      const select = el(
+        "select",
+        {
+          class: "branch-select",
+          "aria-label": "اختر مقر عمل " + p.name,
+          onChange: (e) => {
+            branch = p.matched.find((b) => String(b.id) === e.target.value);
+            renderBranch();
+          },
+        },
+        p.matched.map((b) =>
+          el(
+            "option",
+            { value: b.id },
+            `${b.hospital} · ${b.markaz || b.city}`,
+          ),
+        ),
+      );
+      card.append(label, select);
+    }
+    card.append(
+      details,
+      rating(target),
+      actions,
+      button("مشاركة الجهة", () => share(target, p.name), "text-button"),
+    );
+    renderBranch();
+    return card;
+  }
+  function facilityCard(kind, r) {
+    const target = kind + ":" + r.id;
+    return el(
+      "article",
+      { class: "card", "data-target": target },
+      el(
+        "div",
+        { class: "card-top" },
+        el(
+          "div",
+          { class: "avatar", "aria-hidden": "true" },
+          kind === "hospitals" ? "▥" : "✚",
+        ),
+        el(
+          "div",
+          { class: "card-info" },
+          el("h3", {}, r.name),
+          el("p", {}, labels[kind] + " · " + (r.markaz || r.city || "")),
+        ),
+        favorite(target),
+      ),
+      detail("⌖", r.address),
+      detail("◷", r.working_hours || "المواعيد تحتاج تأكيدًا"),
+      coverage(r),
+      rating(target),
+      el(
+        "div",
+        { class: "card-actions" },
+        actionLinks(r),
+        button(
+          "قيّم الزيارة",
+          () => reviewDialog(target, r.name, String(r.id)),
+          "button outline",
+        ),
+      ),
+      button("مشاركة الجهة", () => share(target, r.name), "text-button"),
+    );
+  }
+  function heading(title, subtitle) {
+    return el(
+      "div",
+      { class: "section-heading" },
+      el(
+        "div",
+        {},
+        el("h1", {}, title),
+        subtitle ? el("p", {}, subtitle) : null,
+      ),
+    );
+  }
+  function gridCards(cards) {
+    return cards.length
+      ? el("div", { class: "grid" }, cards)
+      : empty("لا توجد نتائج مطابقة. جرّب تغيير البحث أو الفلاتر.");
+  }
+  function renderFilters() {
+    const container = $("#filters");
+    container.replaceChildren();
+    if (["home", "admin", "account", "guidelines"].includes(state.tab)) return;
+    const areas = [
+      ...new Set(
+        kinds
+          .flatMap((k) => state.catalog[k])
+          .map((r) => r.markaz || r.city)
+          .filter(Boolean),
+      ),
+    ].sort((a, b) => a.localeCompare(b, "ar"));
+    const make = (title, key, values) => {
+      const select = el(
+        "select",
+        {
+          "aria-label": title,
+          value: state[key],
+          onChange: (e) => {
+            state[key] = e.target.value;
+            state.limit = 24;
+            renderMain();
+          },
+        },
+        el("option", { value: "" }, "الكل"),
+        values.map((v) => el("option", { value: v }, v)),
+      );
+      container.append(el("label", {}, title, select));
+    };
+    make("المركز / المدينة", "markaz", areas);
+    if (["doctors", "favorites"].includes(state.tab)) {
+      make(
+        "التخصص",
+        "specialty",
+        [...new Set(state.catalog.records.map((r) => r.specialty))].filter(
+          Boolean,
+        ),
+      );
+      make(
+        "المستشفى",
+        "hospital",
+        [...new Set(state.catalog.records.map((r) => r.hospital))].filter(
+          Boolean,
+        ),
+      );
+    }
+    if (["doctors", "services", "hospitals"].includes(state.tab)) {
+      const select = el(
+        "select",
+        {
+          "aria-label": "التغطية المؤكدة",
+          value: state.coverage,
+          onChange: (e) => {
+            state.coverage = e.target.value;
+            renderMain();
+          },
+        },
+        el("option", { value: "" }, "كل الجهات"),
+        el("option", { value: "employee_only" }, "تغطية العاملين المؤكدة"),
+        el("option", { value: "family_globemed" }, "تغطية الأسر المؤكدة"),
+      );
+      container.append(el("label", {}, "التغطية المؤكدة", select));
+    }
+    container.append(
+      button(
+        "مسح الفلاتر",
+        () => {
+          state.markaz = "";
+          state.specialty = "";
+          state.hospital = "";
+          state.coverage = "";
+          state.query = "";
+          $("#search-input").value = "";
+          renderFilters();
+          renderMain();
+        },
+        "text-button",
+      ),
+    );
+  }
+  function renderHome(main) {
+    main.append(
+      el(
+        "section",
+        { class: "hero" },
+        el(
+          "div",
+          {},
+          el("div", { class: "eyebrow" }, "رعايتك تبدأ بمعلومة واضحة"),
+          el("h1", {}, "دليلك إلى الرعاية الطبية", el("br"), "في الدقهلية"),
+          el(
+            "p",
+            {},
+            "ابحث عن الطبيب أو الجهة، اختر مقر العمل المناسب، وتواصل مباشرة. شارك زملاءك تقييم تجربتك بعد الزيارة.",
+          ),
+          el(
+            "div",
+            { class: "actions-row" },
+            button("ابحث عن طبيب", () => go("doctors"), "button"),
+            el("a", { href: "tel:123", class: "button" }, "الإسعاف 123"),
+          ),
+        ),
+        el(
+          "div",
+          { class: "hero-stat" },
+          [
+            ["طبيب وقسم", providers().length],
+            [
+              "تخصصًا",
+              new Set(state.catalog.records.map((r) => r.specialty)).size,
+            ],
+            ["مستشفيات", state.catalog.hospitals.length],
+          ].map(([t, n]) =>
+            el("div", {}, el("strong", {}, n), el("small", {}, t)),
+          ),
+        ),
+      ),
+    );
+    main.append(
+      el(
+        "div",
+        { class: "section-heading" },
+        el("h2", {}, "ما الخدمة التي تبحث عنها؟"),
+      ),
+    );
+    const cats = [
+      ["الأطباء والعيادات", "♧", () => go("doctors")],
+      ["المستشفيات", "▥", () => go("hospitals")],
+      [
+        "معامل التحاليل",
+        "⚗",
+        () => {
+          state.serviceKind = "labs";
+          go("services");
+        },
+      ],
+      [
+        "الأشعة",
+        "◉",
+        () => {
+          state.serviceKind = "radiology";
+          go("services");
+        },
+      ],
+      [
+        "الصيدليات",
+        "✚",
+        () => {
+          state.serviceKind = "pharmacies";
+          go("services");
+        },
+      ],
+      [
+        "المراكز المتخصصة",
+        "◇",
+        () => {
+          state.serviceKind = "specialized_centers";
+          go("services");
+        },
+      ],
+      ["التعليمات", "≡", () => go("guidelines")],
+      ["الطوارئ", "✦", () => go("emergency")],
+    ];
+    main.append(
+      el(
+        "div",
+        { class: "category-grid" },
+        cats.map(([name, symbol, action]) =>
+          el(
+            "button",
+            { class: "category", onClick: action },
+            el("span", { class: "symbol", "aria-hidden": "true" }, symbol),
+            el("strong", {}, name),
+          ),
+        ),
+      ),
+    );
+    main.append(
+      el("div", { class: "section-heading" }, el("h2", {}, "التخصصات الطبية")),
+    );
+    main.append(
+      el(
+        "div",
+        { class: "category-grid" },
+        [...new Set(state.catalog.records.map((r) => r.specialty))].map((s) =>
+          el(
+            "button",
+            {
+              class: "category",
+              onClick: () => {
+                state.specialty = s;
+                go("doctors");
+              },
+            },
+            el("strong", {}, s),
+            el(
+              "small",
+              {},
+              providers().filter((p) => p.specialty === s).length +
+                " طبيب وقسم",
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  function renderMain() {
+    updateHeader();
+    const main = $("#main");
+    main.replaceChildren();
+    if (state.tab === "home") return renderHome(main);
+    if (state.tab === "admin") return renderAdmin(main);
+    if (state.tab === "account") return renderAccount(main);
+    if (state.tab === "guidelines") {
+      main.append(
+        heading(
+          "التعليمات والإجراءات",
+          "راجع الشروط الحالية مع مسؤول الرعاية قبل الاعتماد عليها.",
+        ),
+      );
+      for (const r of state.catalog.medical_guidelines.filter((r) =>
+        matchesText([r.title, r.summary]),
+      ))
+        main.append(
+          el(
+            "details",
+            { class: "card" },
+            el("summary", {}, el("strong", {}, r.title)),
+            el("p", {}, r.summary),
+            el(
+              "ol",
+              {},
+              (r.steps || []).map((s) => el("li", {}, s)),
+            ),
+          ),
+        );
+      return;
+    }
+    if (state.tab === "emergency") {
+      main.append(
+        heading(
+          "الطوارئ والاتصال العاجل",
+          "للإسعاف اتصل مباشرة بـ123. أرقام الجهات المحلية تحتاج تأكيدًا دوريًا.",
+        ),
+        el(
+          "div",
+          { class: "actions-row" },
+          el(
+            "a",
+            { class: "button danger", href: "tel:123" },
+            "اتصال بالإسعاف 123",
+          ),
+        ),
+      );
+      main.append(
+        gridCards(
+          state.catalog.emergency_services
+            .filter(
+              (r) =>
+                (!state.markaz || r.markaz === state.markaz) &&
+                matchesText([r.name, r.markaz, r.description]),
+            )
+            .map((r) =>
+              el(
+                "article",
+                { class: "card" },
+                el("h3", {}, r.name),
+                detail("⌖", r.markaz),
+                el("p", { class: "muted" }, r.description),
+                el(
+                  "p",
+                  { class: "coverage unknown" },
+                  r.verified && r.source_url
+                    ? "آخر تحقق: " + r.verification_date
+                    : "رقم منشور بالدليل · راجع حداثة البيانات",
+                ),
+                telephone(r.tel || r.number)
+                  ? el(
+                      "a",
+                      {
+                        class: "button danger",
+                        href: "tel:" + telephone(r.tel || r.number),
+                      },
+                      "اتصال " + (r.number || r.tel),
+                    )
+                  : null,
+              ),
+            ),
+        ),
+      );
+      return;
+    }
+    if (state.tab === "services")
+      main.append(
+        el(
+          "div",
+          { class: "actions-row" },
+          [
+            ["", "كل الخدمات"],
+            ...["labs", "radiology", "pharmacies", "specialized_centers"].map(
+              (k) => [k, labels[k]],
+            ),
+          ].map(([k, t]) =>
+            button(
+              t,
+              () => {
+                state.serviceKind = k;
+                renderMain();
+              },
+              "button " + (state.serviceKind === k ? "primary" : "outline"),
+            ),
+          ),
+        ),
+      );
+    const favs = prefs.getFavorites();
+    let cards = [];
+    if (["doctors", "favorites"].includes(state.tab))
+      cards.push(
+        ...doctorResults()
+          .filter(
+            (p) => state.tab !== "favorites" || favs.includes("doctor:" + p.id),
+          )
+          .map(doctorCard),
+      );
+    const facilityKinds =
+      state.tab === "hospitals"
+        ? ["hospitals"]
+        : state.tab === "services"
+          ? ["labs", "radiology", "pharmacies", "specialized_centers"].filter(
+              (k) => !state.serviceKind || state.serviceKind === k,
+            )
+          : state.tab === "favorites"
+            ? [
+                "hospitals",
+                "labs",
+                "radiology",
+                "pharmacies",
+                "specialized_centers",
+              ]
+            : [];
+    for (const kind of facilityKinds)
+      cards.push(
+        ...state.catalog[kind]
+          .filter(
+            (r) =>
+              matchesBranch(r) &&
+              matchesText([r.name, r.address, r.markaz, r.phone]) &&
+              (state.tab !== "favorites" || favs.includes(kind + ":" + r.id)),
+          )
+          .map((r) => facilityCard(kind, r)),
+      );
+    main.append(
+      heading(
+        {
+          doctors: "الأطباء والعيادات",
+          services: "الخدمات الطبية",
+          hospitals: "المستشفيات",
+          favorites: "المفضلة على هذا الجهاز",
+        }[state.tab] || "الدليل",
+        `${cards.length} نتيجة`,
+      ),
+      gridCards(cards.slice(0, state.limit)),
+    );
+    if (cards.length > state.limit)
+      main.append(
+        button(
+          "عرض المزيد",
+          () => {
+            state.limit += 24;
+            renderMain();
+          },
+          "button outline load-more",
+        ),
+      );
+  }
+  function go(tab) {
+    location.hash = tab;
+  }
+  function route() {
+    const hash = location.hash.slice(1);
+    if (hash.startsWith("entity=")) {
+      try {
+        openDeepLink(decodeURIComponent(hash.slice(7)));
+        return;
+      } catch {
+        go("home");
         return;
       }
-      MedicalStorage.saveEmployees(data);
-      renderAdminEmployeesList();
-      input.value = '';
-      showToast(`تم حفظ وتحديث ${data.length} موظف بنجاح!`, 'success', 3000);
-    } catch (err) {
-      showToast('خطأ في صيغة JSON. تأكد من صحة التنسيق.', 'danger', 3000);
+    }
+    state.tab = [
+      ...nav.map((n) => n[0]),
+      "admin",
+      "guidelines",
+      "account",
+    ].includes(hash)
+      ? hash
+      : "home";
+    if (!["doctors", "favorites"].includes(state.tab)) {
+      state.specialty = "";
+      state.hospital = "";
+    }
+    if (!["doctors", "services", "hospitals"].includes(state.tab))
+      state.coverage = "";
+    state.limit = 24;
+    $("#main-nav")
+      .querySelectorAll("a")
+      .forEach((a) => {
+        const active = a.getAttribute("href") === "#" + state.tab;
+        a.classList.toggle("active", active);
+        if (active) a.setAttribute("aria-current", "page");
+        else a.removeAttribute("aria-current");
+      });
+    renderFilters();
+    renderMain();
+  }
+  function openDeepLink(target) {
+    const main = $("#main");
+    state.tab = "doctors";
+    renderFilters();
+    main.replaceChildren(heading("الجهة الطبية"));
+    if (target.startsWith("doctor:")) {
+      const p = providers().find((p) => "doctor:" + p.id === target);
+      main.append(
+        p
+          ? doctorCard({ ...p, matched: p.branches })
+          : empty("الجهة لم تعد متاحة."),
+      );
+    } else {
+      const at = target.indexOf(":"),
+        kind = target.slice(0, at),
+        id = target.slice(at + 1),
+        r = state.catalog[kind]?.find((r) => String(r.id) === id);
+      main.append(r ? facilityCard(kind, r) : empty("الجهة لم تعد متاحة."));
     }
   }
-
-  // --- User Suggestion Modal ---
-  function openSuggestModal() {
-    const titleEl = document.getElementById('modal-sheet-title');
-    const bodyEl = document.getElementById('modal-sheet-body');
-    const footerEl = document.getElementById('modal-sheet-footer');
-
-    if (titleEl) titleEl.textContent = 'ترشيح طبيب أو جهة جديدة للدليل';
-
-    if (bodyEl) {
-      bodyEl.innerHTML = `
-        <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:0.85rem;">
-          حرصاً على شمولية المنظومة، يمكنك ترشيح أي طبيب أو عيادة أو معمل متميز بالدقهلية لمراجعتها وإضافتها للدليل.
-        </p>
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label class="form-label">اسم الطبيب أو المركز الطبي المقترح *</label>
-            <input type="text" id="sug-name" class="form-input" placeholder="مثال: د/ أحمد ممدوح أو مركز الشروق للعيون">
-          </div>
-          <div class="form-group">
-            <label class="form-label">التخصص الطبي</label>
-            <input type="text" id="sug-spec" class="form-input" placeholder="مثال: جراحة العظام">
-          </div>
-          <div class="form-group">
-            <label class="form-label">المركز / المدينة</label>
-            <select id="sug-markaz" class="form-select">
-              ${state.dakahliaMarkaz.map(m => `<option value="${m}">${m}</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">رقم الهاتف أو الحجز إن وجد</label>
-            <input type="text" id="sug-phone" class="form-input" placeholder="010...">
-          </div>
-          <div class="form-group full-width">
-            <label class="form-label">العنوان أو مكان التواجد بالدقهلية</label>
-            <input type="text" id="sug-address" class="form-input" placeholder="مثال: طلخا - شارع البحر أو المنصورة حي الجامعة">
-          </div>
-          <div class="form-group full-width">
-            <label class="form-label">اسم الزميل المقترح وجهة العمل</label>
-            <input type="text" id="sug-author" class="form-input" value="${state.currentUser ? state.currentUser.name : ''}" placeholder="اسمك والسنترال التابع له">
-          </div>
-        </div>
-      `;
-    }
-
-    if (footerEl) {
-      footerEl.innerHTML = `
-        <button class="btn-primary-purple" style="padding:0.55rem 1.15rem; border-radius:var(--radius-md); font-weight:800;" onclick="window.MedicalApp.submitSuggestion()">
-          <i class="fa-solid fa-paper-plane"></i> إرسال المقترح للإدارة
-        </button>
-        <button class="btn-outline" style="padding:0.55rem 0.95rem; border-radius:var(--radius-md);" onclick="window.MedicalApp.closeModal()">
-          إلغاء
-        </button>
-      `;
-    }
-
-    openModal();
-  }
-
-  function submitSuggestion() {
-    const name = (document.getElementById('sug-name') || {}).value || '';
-    if (!name.trim()) {
-      showToast('يرجى كتابة اسم الطبيب أو الجهة المقترحة', 'danger');
+  function memberDialog() {
+    const u = session();
+    if (u) {
+      go(u.role === "admin" ? "admin" : "account");
       return;
     }
-    const spec = (document.getElementById('sug-spec') || {}).value || '';
-    const markaz = (document.getElementById('sug-markaz') || {}).value || 'المنصورة';
-    const phone = (document.getElementById('sug-phone') || {}).value || '';
-    const addr = (document.getElementById('sug-address') || {}).value || '';
-    const author = (document.getElementById('sug-author') || {}).value || '';
-
-    MedicalStorage.addSuggestion({
-      name: name.trim(),
-      specialty: spec.trim(),
-      markaz: markaz,
-      phone: phone.trim(),
-      address: addr.trim(),
-      suggestedBy: author.trim()
-    });
-
-    closeModal();
-    showToast('شكراً لك! تم إرسال ترشيحك بنجاح وسيقوم مسؤولو النقابة بمراجعته', 'success', 4000);
-    renderAdminStats();
-  }
-
-  function openApprovalEmailModal(hospitalName, email) {
-    const titleEl = document.getElementById('modal-sheet-title');
-    const bodyEl = document.getElementById('modal-sheet-body');
-    const footerEl = document.getElementById('modal-sheet-footer');
-
-    if (titleEl) titleEl.textContent = 'إرسال طلب موافقة طبية لموظف WE';
-
-    if (bodyEl) {
-      bodyEl.innerHTML = `
-        <div style="background:var(--we-purple-soft); padding:0.85rem; border-radius:var(--radius-md); margin-bottom:0.85rem; font-size:0.82rem; color:var(--we-purple-primary); line-height:1.4;">
-          <strong><i class="fa-solid fa-circle-info"></i> بريد الموافقات المعتمد:</strong> ${email}<br>
-          سيتم تجهيز رسالة بريد إلكتروني رسمية موجهة لإدارة المستشفى بالبيانات المطلوبة لسرعة إصدار الموافقة الطبية.
-        </div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">اسم الموظف / المستفيد بالكامل</label>
-            <input type="text" id="appr-emp-name" class="form-input" value="${state.currentUser ? state.currentUser.name : ''}" placeholder="مثال: أحمد محمد علي">
-          </div>
-          <div class="form-group">
-            <label class="form-label">الرقم الوظيفي أو القومي</label>
-            <input type="text" id="appr-emp-id" class="form-input" value="${state.currentUser ? state.currentUser.employee_code : ''}" placeholder="الرقم الوظيفي بشركة WE">
-          </div>
-          <div class="form-group full-width">
-            <label class="form-label">الخدمة أو العملية الطبية المطلوبة</label>
-            <input type="text" id="appr-service" class="form-input" placeholder="مثال: قسطرة قلب / أشعة مقطعية / عملية جراحية...">
-          </div>
-          <div class="form-group full-width">
-            <label class="form-label">ملاحظات إضافية أو اسم الطبيب المعالج</label>
-            <textarea id="appr-notes" class="form-textarea" placeholder="أي تفاصيل تود إرفاقها..."></textarea>
-          </div>
-        </div>
-      `;
-    }
-
-    if (footerEl) {
-      footerEl.innerHTML = `
-        <button class="btn-accent-pink" style="padding:0.55rem 1.15rem; border-radius:var(--radius-md); font-weight:800;" onclick="window.MedicalApp.sendApprovalEmail('${email}', '${hospitalName}')">
-          <i class="fa-solid fa-paper-plane"></i> فتح تطبيق البريد والإرسال
-        </button>
-        <button class="btn-outline" style="padding:0.55rem 0.95rem; border-radius:var(--radius-md);" onclick="window.MedicalApp.closeModal()">
-          إلغاء
-        </button>
-      `;
-    }
-
-    openModal();
-  }
-
-  function sendApprovalEmail(toEmail, hospitalName) {
-    const name = (document.getElementById('appr-emp-name') || {}).value || 'أحد الزملاء بالشركة';
-    const empId = (document.getElementById('appr-emp-id') || {}).value || '';
-    const service = (document.getElementById('appr-service') || {}).value || 'فحوصات طبية / استشارة';
-    const notes = (document.getElementById('appr-notes') || {}).value || '';
-
-    const subject = `طلب موافقة طبية - الشركة المصرية للاتصالات WE (${name})`;
-    const body = `السادة إدارة الموافقات الطبية بـ ${hospitalName}،\n\nتحية طيبة وبعد،،\n\nيرجى التكرم بالموافقة على تقديم الخدمة الطبية التالية للعامل بالشركة المصرية للاتصالات:\n\n• اسم الموظف / المستفيد: ${name}\n• الرقم الوظيفي: ${empId}\n• الخدمة المطلوبة: ${service}\n• الجهة الطبية: ${hospitalName}\n• ملاحظات: ${notes}\n\nشاكرين لسيادتكم حسن تعاونكم،،\nاللجنة النقابية للعاملين بالمصرية للاتصالات بالدقهلية\nإعداد وتنفيذ المنظومة: أ / محمود العراقي`;
-
-    window.location.href = `mailto:${toEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    closeModal();
-    showToast('جاري فتح تطبيق البريد لإرسال طلب الموافقة', 'success', 3000);
-  }
-
-  function openModal() {
-    const backdrop = document.getElementById('modal-backdrop');
-    if (backdrop) backdrop.classList.add('active');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeModal() {
-    const backdrop = document.getElementById('modal-backdrop');
-    if (backdrop) backdrop.classList.remove('active');
-    document.body.style.overflow = '';
-  }
-
-  function shareDoctor(docId) {
-    const doc = state.doctors.find((d) => d.doctor_id === docId);
-    if (!doc) return;
-
-    const shareData = {
-      title: `${doc.display_name} - دليل WE الطبي بالدقهلية`,
-      text: `${doc.display_name} (${doc.specialty}) - متاح في: ${doc.hospitals.join(' و ')}. إعداد: أ / محمود العراقي.`,
-      url: window.location.href.split('#')[0] + `#doctors`
+    const form = el(
+      "form",
+      { class: "form-stack" },
+      el(
+        "p",
+        { class: "muted" },
+        "أدخل بياناتك المسجلة لدى النقابة لتقييم زيارتك. لا تحتاج إنشاء حساب.",
+      ),
+      !API.configured
+        ? el(
+            "p",
+            { class: "notice warning" },
+            "خدمة التحقق قيد التجهيز. لا تُرسل بياناتك حتى يتم تفعيل الاتصال المركزي.",
+          )
+        : null,
+      field("كود الموظف", "employee_code", "text", "", {
+        required: true,
+        maxlength: 40,
+        autocomplete: "off",
+      }),
+      field("رقم الموبايل المسجل", "phone", "tel", "", {
+        required: true,
+        inputmode: "tel",
+        maxlength: 20,
+        autocomplete: "tel",
+        dir: "ltr",
+      }),
+      field("آخر ٤ أرقام من الرقم القومي", "last4", "password", "", {
+        required: true,
+        inputmode: "numeric",
+        minlength: 4,
+        maxlength: 4,
+        autocomplete: "off",
+      }),
+    );
+    form.save = async (data) => {
+      await API.login("member", data);
+      form.reset();
+      closeDialog();
+      updateHeader();
+      toast("تم التحقق من بيانات العضوية. يمكنك الآن تسجيل تقييمك.");
     };
-
-    if (navigator.share) {
-      navigator.share(shareData).catch(() => {});
-    } else {
-      copyText(`${shareData.title}\n${shareData.text}`, 'تم نسخ تفاصيل الطبيب للمشاركة');
-    }
+    dialog("دخول أعضاء النقابة", formAction(form, "تحقق وادخل"));
+    if (!API.configured)
+      form.querySelector("button[type=submit]").disabled = true;
   }
-
-  function shareService(name, phone, address) {
-    const text = `${name}\nالعنوان: ${address}\nالهاتف: ${phone}\nعبر منظومة دليل WE الطبي بالدقهلية`;
-    if (navigator.share) {
-      navigator.share({ title: name, text: text, url: window.location.href.split('#')[0] }).catch(() => {});
-    } else {
-      copyText(text, 'تم نسخ بيانات الخدمة الطبية بنجاح');
-    }
+  function adminDialog() {
+    const form = el(
+      "form",
+      { class: "form-stack" },
+      el(
+        "p",
+        { class: "muted" },
+        "الدخول مخصص لحساب المدير المعتمد في MyNekaba. صلاحيات العضوية لا تتيح إدارة الدليل.",
+      ),
+      field("بريد حساب المدير", "email", "email", "", {
+        required: true,
+        autocomplete: "username",
+        dir: "ltr",
+      }),
+      field("كلمة مرور الحساب", "password", "password", "", {
+        required: true,
+        autocomplete: "current-password",
+        maxlength: 256,
+      }),
+    );
+    if (!API.configured)
+      form.append(
+        el("p", { class: "notice warning" }, "خدمة دخول المدير قيد التجهيز."),
+      );
+    form.save = async (data) => {
+      await API.login("admin", data);
+      form.reset();
+      closeDialog();
+      await refresh();
+      renderMain();
+    };
+    dialog("دخول المدير", formAction(form, "دخول الإدارة"));
+    if (!API.configured)
+      form.querySelector("button[type=submit]").disabled = true;
   }
-
-  function copyText(text, successMsg = 'تم النسخ بنجاح') {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(() => {
-        showToast(successMsg, 'success', 2000);
-      }).catch(() => fallbackCopy(text, successMsg));
-    } else {
-      fallbackCopy(text, successMsg);
+  function reviewDialog(target, name, branch) {
+    if (session()?.role !== "member") {
+      if (session()?.role === "admin")
+        toast("حساب الإدارة مخصص لإدارة الدليل. التقييم يتطلب تحقق العضوية.");
+      else memberDialog();
+      return;
     }
-  }
-
-  function fallbackCopy(text, successMsg) {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    document.body.appendChild(textArea);
-    textArea.select();
-    try {
-      document.execCommand('copy');
-      showToast(successMsg, 'success', 2000);
-    } catch (err) {
-      showToast('تعذر النسخ تلقائياً', 'danger', 2000);
-    }
-    document.body.removeChild(textArea);
-  }
-
-  function registerServiceWorker() {
-    if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
-    }
-  }
-
-  // Global API exposed to window
-  window.MedicalApp = {
-    switchTab,
-    openSidebar,
-    closeSidebar,
-    setCoverageScope,
-    onMarkazSelectChange,
-    onContractSelectChange,
-    showDocDetails,
-    openSOSModal,
-    openAuthModal,
-    fillDemoLogin,
-    loginEmployeeFromModal,
-    logoutEmployee,
-    openEmployeeCardModal,
-    autoEnrichNewProvider,
-    shareDoctor,
-    shareService,
-    copyText,
-    openApprovalEmailModal,
-    sendApprovalEmail,
-    openSuggestModal,
-    submitSuggestion,
-    submitNewDoctor,
-    editRecordFromAdmin,
-    openAddDistressModal,
-    saveDistressService,
-    deleteDistressService,
-    openAddGuidelineModal,
-    saveAdminGuideline,
-    deleteAdminGuideline,
-    importEmployeesFromAdmin,
-    closeModal,
-    openVisitEvaluationModal,
-    proceedVisitEvaluation,
-    submitVisitEvaluation,
-    expandCardServices,
-    filterEmergencyDirectory,
-    handleCategoryClick,
-    openServiceFromSidebar(cat) {
-      closeSidebar();
-      switchTab('services');
-      const tabBtn = document.querySelector(`[data-serv-tab="${cat}"]`);
-      if (tabBtn) tabBtn.click();
-    },
-    onCategoryChange(cat) {
-      const specSelect = document.getElementById('new-doc-specialty');
-      if (!specSelect) return;
-      if (cat === 'labs') specSelect.innerHTML = '<option value="تحاليل طبية">تحاليل طبية ومناعة</option>';
-      else if (cat === 'radiology') specSelect.innerHTML = '<option value="أشعة وتصوير طبي">أشعة وتصوير طبي ورنين</option>';
-      else if (cat === 'pharmacies') specSelect.innerHTML = '<option value="صيدلية ودليفري">صيدليات وأدوية</option>';
-      else populateAdminSpecialtyDropdown();
-    },
-    resetFilters() {
-      state.searchQuery = '';
-      state.selectedHospital = 'all';
-      state.selectedSpecialty = 'all';
-      state.selectedClinicType = 'all';
-      state.selectedCoverageScope = 'all';
-      state.selectedContractEntity = 'all';
-      state.selectedMarkaz = 'all';
-      state.sortBy = 'default';
-
-      const input = document.getElementById('main-search-input');
-      if (input) input.value = '';
-
-      const markazSelect = document.getElementById('filter-markaz-select');
-      if (markazSelect) markazSelect.value = 'all';
-
-      const contractSelect = document.getElementById('filter-contract-select');
-      if (contractSelect) contractSelect.value = 'all';
-
-      document.querySelectorAll('[data-scope]').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-scope') === 'all');
+    const form = el(
+      "form",
+      { class: "form-stack" },
+      el("p", {}, name),
+      selectField(
+        "تقييم تجربة الزيارة",
+        "rating",
+        [
+          ["", "اختر التقييم"],
+          ["5", "★★★★★ ممتازة"],
+          ["4", "★★★★ جيدة"],
+          ["3", "★★★ متوسطة"],
+          ["2", "★★ ضعيفة"],
+          ["1", "★ غير مرضية"],
+        ],
+        "",
+      ),
+      field("ملاحظاتك على الزيارة", "comment", "textarea", "", {
+        maxlength: 1500,
+        placeholder: "صف تجربتك دون ذكر رقم قومي أو تفاصيل صحية خاصة.",
+      }),
+      el(
+        "label",
+        {},
+        el("input", { type: "checkbox", name: "visited", required: true }),
+        " أقر بأنني أو أحد أفراد أسرتي تلقينا الخدمة بالفعل.",
+      ),
+    );
+    form.querySelector("select").required = true;
+    form.save = async (data) => {
+      const result = await API.review({
+        target_id: target,
+        branch_id: branch,
+        rating: Number(data.rating),
+        comment: data.comment,
+        visited_declared: data.visited === "on",
       });
-
-      closeSidebar();
-      renderSidebarHospitals();
-      renderSidebarSpecialties();
-      renderSidebarMarkaz();
-      renderSidebarContracts();
-      renderDoctorsList();
-      showToast('تمت إعادة تعيين كافة الفلاتر وعرض كافة السجلات', 'info', 2000);
-    },
-    filterBySpecialty(specName) {
-      state.selectedSpecialty = specName;
-      renderSidebarSpecialties();
-      switchTab('doctors');
-      renderDoctorsList();
-    },
-    filterByHospital(hospShortName) {
-      const match = Object.keys(state.hospitals).find(k => k.includes(hospShortName.replace('مستشفى ', ''))) || 'all';
-      state.selectedHospital = match;
-      renderSidebarHospitals();
-      switchTab('doctors');
-      renderDoctorsList();
-    },
-    filterByMarkaz(markaz) {
-      state.selectedMarkaz = markaz;
-      const select = document.getElementById('filter-markaz-select');
-      if (select) select.value = markaz;
-      renderSidebarMarkaz();
-      switchTab('doctors');
-      renderDoctorsList();
-    },
-    filterByContract(contract) {
-      state.selectedContractEntity = contract;
-      const select = document.getElementById('filter-contract-select');
-      if (select) select.value = contract;
-      renderSidebarContracts();
-      switchTab('doctors');
-      renderDoctorsList();
-    },
-    loginAdmin() {
-      const pin = (document.getElementById('admin-pin-input') || {}).value || '';
-      if (AdminPanel.login(pin)) {
-        showToast('تم تسجيل الدخول بنجاح', 'success', 2000);
-        renderAdminView();
-      } else {
-        showToast('رمز الدخول غير صحيح (رمز المرور: we2026)', 'danger', 2500);
-      }
-    },
-    logoutAdmin() {
-      AdminPanel.logout();
-      showToast('تم تسجيل الخروج من لوحة الإدارة', 'info', 1500);
-      renderAdminView();
-    },
-    approveSuggestion(sugId) {
-      const list = MedicalStorage.getSuggestions();
-      const item = list.find(s => s.id === sugId);
-      if (item) {
-        document.querySelector('[data-admin-view="add-new"]').click();
-        if (document.getElementById('new-doc-name')) document.getElementById('new-doc-name').value = item.name;
-        if (document.getElementById('new-doc-phone')) document.getElementById('new-doc-phone').value = item.phone;
-        if (document.getElementById('new-doc-address')) document.getElementById('new-doc-address').value = item.address;
-        if (document.getElementById('new-doc-markaz')) document.getElementById('new-doc-markaz').value = item.markaz || 'المنصورة';
-        MedicalStorage.deleteSuggestion(sugId);
-        renderAdminSuggestions();
-        renderAdminStats();
-        showToast('تم نقل بيانات المقترح إلى نموذج الإدراج لاستكمال الحفظ', 'info', 3000);
-      }
-    },
-    rejectSuggestion(sugId) {
-      MedicalStorage.deleteSuggestion(sugId);
-      renderAdminSuggestions();
-      renderAdminStats();
-      showToast('تم حذف المقترح', 'info', 1500);
-    },
-    exportCSV() {
-      AdminPanel.exportToCSV(state.records);
-    },
-    exportJSON() {
-      AdminPanel.exportToJSON(MedicalStorage.exportFullBackup());
-    },
-    resetDataDefaults() {
-      if (confirm('هل أنت متأكد من رغبتك في استعادة البيانات الأصلية وإلغاء أي تعديلات محلية؟')) {
-        MedicalStorage.resetToDefaults();
-        loadData();
-        showToast('تمت استعادة بيانات Excel الأصلية بنجاح', 'success', 2500);
-      }
-    }
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
-  } else {
-    initApp();
+      closeDialog();
+      toast(result.message);
+    };
+    dialog("تقييم الزيارة وملاحظاتك", formAction(form, "حفظ التقييم"));
   }
-})(window);
+  async function renderAccount(main) {
+    const u = session();
+    if (!u) {
+      main.append(
+        heading("جلسة العضو"),
+        button("تسجيل الدخول", memberDialog, "button primary"),
+      );
+      return;
+    }
+    main.append(
+      heading("مرحبًا، " + u.name, "هذه الجلسة مخصصة للتقييم والملاحظات فقط."),
+      button("تسجيل الخروج", logout, "button outline"),
+    );
+    if (u.role !== "member") return;
+    const content = el(
+      "div",
+      {},
+      el("p", { class: "muted" }, "جارٍ تحميل تقييماتك…"),
+    );
+    main.append(content);
+    try {
+      const result = await API.myReviews();
+      content.replaceChildren(
+        el("h2", {}, "تقييماتي وملاحظاتي"),
+        ...(result.reviews.length
+          ? result.reviews.map(reviewItem)
+          : [empty("لم تسجل تقييمات بعد. اختر الجهة التي زرتها من الدليل.")]),
+      );
+    } catch (e) {
+      content.replaceChildren(empty(e.message));
+    }
+  }
+  const statusText = (s) =>
+    ({ pending: "بانتظار المراجعة", published: "منشور", hidden: "غير منشور" })[
+      s
+    ] || s;
+  function reviewItem(r) {
+    return el(
+      "article",
+      { class: "review" },
+      el("strong", {}, r.target_name),
+      el(
+        "div",
+        { class: "muted" },
+        `${r.author_name || ""} · ${r.rating}/5 · ${statusText(r.status)}`,
+      ),
+      el("p", {}, r.comment),
+    );
+  }
+  async function logout() {
+    try {
+      await API.logout();
+    } catch (e) {
+      toast(e.message);
+    } finally {
+      updateHeader();
+      go("home");
+      renderMain();
+      toast("تم تسجيل الخروج.");
+    }
+  }
+  async function renderAdmin(main) {
+    if (session()?.role !== "admin") {
+      main.append(
+        heading(
+          "إدارة الدليل الطبي",
+          "للمدير المعتمد إضافة الجهات وتعديلها وحذفها ومراجعة التقييمات.",
+        ),
+        button("دخول المدير", adminDialog, "button primary"),
+      );
+      return;
+    }
+    main.append(
+      heading(
+        "لوحة إدارة الدليل",
+        "تُحفظ التعديلات مركزيًا. سجل أعضاء النقابة لا يُعدّل من هنا.",
+      ),
+      el(
+        "div",
+        { class: "actions-row" },
+        button(
+          "إضافة سجل",
+          () => editDialog(state.adminKind),
+          "button primary",
+        ),
+        button("مراجعة التقييمات", adminReviewDialog, "button outline"),
+        button("تصدير بيانات الدليل", exportCatalog, "button outline"),
+        button("تسجيل الخروج", logout, "button outline"),
+      ),
+    );
+    const kindSelect = selectField(
+      "نوع السجلات",
+      "admin-kind",
+      kinds.map((k) => [k, labels[k]]),
+      state.adminKind,
+    );
+    kindSelect.querySelector("select").addEventListener("change", (e) => {
+      state.adminKind = e.target.value;
+      renderMain();
+    });
+    main.append(kindSelect);
+    const rows = state.catalog[state.adminKind].filter((r) =>
+      matchesText([r.name, r.title, r.hospital, r.address]),
+    );
+    main.append(el("p", { class: "muted" }, `${rows.length} سجلًا`));
+    const body = el(
+      "tbody",
+      {},
+      rows.slice(0, state.limit).map((r) =>
+        el(
+          "tr",
+          {},
+          el("td", {}, r.name || r.title),
+          el("td", {}, r.markaz || r.hospital || r.category || ""),
+          el(
+            "td",
+            {},
+            button(
+              "تعديل",
+              () => editDialog(state.adminKind, r),
+              "text-button",
+            ),
+            button(
+              "حذف",
+              () => deleteDialog(state.adminKind, r),
+              "text-button danger-text",
+            ),
+          ),
+        ),
+      ),
+    );
+    main.append(
+      el(
+        "div",
+        { class: "table-wrap" },
+        el(
+          "table",
+          {},
+          el(
+            "thead",
+            {},
+            el(
+              "tr",
+              {},
+              el("th", {}, "الاسم"),
+              el("th", {}, "المنطقة / التصنيف"),
+              el("th", {}, "إجراءات"),
+            ),
+          ),
+          body,
+        ),
+      ),
+    );
+    if (rows.length > state.limit)
+      main.append(
+        button(
+          "عرض المزيد",
+          () => {
+            state.limit += 24;
+            renderMain();
+          },
+          "button outline load-more",
+        ),
+      );
+  }
+  function editDialog(kind, original) {
+    const r = original || {};
+    const id = r.id || "entry_" + crypto.randomUUID().replaceAll("-", "");
+    const form = el(
+      "form",
+      { class: "form-stack" },
+      field(
+        kind === "medical_guidelines" ? "عنوان النشرة" : "الاسم",
+        "name",
+        "text",
+        r.name || r.title || "",
+        { required: true, maxlength: 250 },
+      ),
+    );
+    const textFields =
+      kind === "records"
+        ? [
+            ["specialty", "التخصص"],
+            ["hospital", "المستشفى"],
+            ["markaz", "المركز / المدينة"],
+            ["address", "العنوان"],
+            ["raw_phone", "أرقام التواصل (افصل بشرطة)"],
+            ["schedule", "المواعيد"],
+            ["notes", "ملاحظات"],
+          ]
+        : kind === "medical_guidelines"
+          ? [
+              ["summary", "الموجز"],
+              ["steps", "الخطوات (سطر لكل خطوة)"],
+            ]
+          : kind === "emergency_services"
+            ? [
+                ["number", "رقم الاتصال"],
+                ["markaz", "المركز / المدينة"],
+                ["description", "وصف الخدمة"],
+                ["hours", "ساعات العمل"],
+              ]
+            : [
+                ["markaz", "المركز / المدينة"],
+                ["address", "العنوان"],
+                ["phone", "أرقام التواصل (افصل بشرطة)"],
+                ["working_hours", "المواعيد"],
+              ];
+    for (const [key, label] of textFields)
+      form.append(
+        field(
+          label,
+          key,
+          ["notes", "summary", "description", "steps"].includes(key)
+            ? "textarea"
+            : "text",
+          Array.isArray(r[key]) ? r[key].join("\n") : r[key] || "",
+          {
+            required: ["specialty", "hospital", "summary"].includes(key),
+            maxlength: 3000,
+          },
+        ),
+      );
+    form.append(
+      field("رابط المصدر (https)", "source_url", "url", r.source_url || "", {
+        maxlength: 2000,
+      }),
+    );
+    if (!["medical_guidelines", "emergency_services"].includes(kind))
+      form.append(
+        selectField(
+          "التغطية وفق المصدر",
+          "coverage_scope",
+          [
+            ["unknown", "غير مؤكدة"],
+            ["employee_only", "العاملون فقط"],
+            ["family_globemed", "أسر جلوب ميد فقط"],
+            ["both", "العاملون والأسر"],
+          ],
+          r.coverage_scope || "unknown",
+        ),
+        field(
+          "تاريخ مراجعة التغطية",
+          "verified_at",
+          "date",
+          r.verified_at || "",
+        ),
+        el(
+          "label",
+          {},
+          el("input", {
+            type: "checkbox",
+            name: "coverage_verified",
+            checked: r.coverage_verified === true,
+          }),
+          " تأكدت من التغطية من المصدر المذكور",
+        ),
+      );
+    if (kind === "emergency_services")
+      form.append(
+        field(
+          "تاريخ التحقق من الرقم",
+          "verification_date",
+          "date",
+          r.verification_date || "",
+        ),
+        el(
+          "label",
+          {},
+          el("input", {
+            type: "checkbox",
+            name: "verified",
+            checked: r.verified === true,
+          }),
+          " تم التحقق من الرقم من المصدر المذكور",
+        ),
+      );
+    if (kind !== "medical_guidelines")
+      form.append(
+        field("رابط الخريطة (https)", "maps_url", "url", r.maps_url || ""),
+      );
+    form.save = async (data) => {
+      const entity = { ...r, ...data, id };
+      delete entity._version;
+      if (kind === "records") {
+        entity.display_name = data.name;
+        entity.raw_name = data.name;
+      }
+      if (kind === "hospitals") {
+        entity.short_name = r.short_name || data.name;
+        entity.phone_digits = telephone(String(data.phone).split(" - ")[0]);
+      }
+      if (kind === "medical_guidelines") {
+        entity.title = data.name;
+        delete entity.name;
+        entity.steps = data.steps
+          .split("\n")
+          .map((x) => x.trim())
+          .filter(Boolean);
+      }
+      if (kind === "emergency_services") {
+        entity.tel = telephone(data.number);
+        entity.verified = data.verified === "on";
+      } else entity.coverage_verified = data.coverage_verified === "on";
+      entity.coverage_label = {
+        unknown: "التغطية تحتاج تأكيدًا من الجهة",
+        employee_only: "العاملون فقط",
+        family_globemed: "أسر جلوب ميد فقط",
+        both: "العاملون والأسر",
+      }[entity.coverage_scope];
+      await API.save(kind, entity, r._version || 0);
+      closeDialog();
+      await refresh();
+      toast("تم حفظ السجل في الدليل المركزي.");
+    };
+    dialog(
+      (original ? "تعديل: " : "إضافة: ") + labels[kind],
+      formAction(form, "حفظ التغييرات"),
+    );
+  }
+  function deleteDialog(kind, r) {
+    const box = el(
+      "div",
+      { class: "form-stack" },
+      el("p", {}, "حذف " + (r.name || r.title) + " من الدليل؟"),
+      el("p", { class: "muted" }, "لا يؤثر ذلك في بيانات أعضاء النقابة."),
+    );
+    const error = el("p", { class: "form-error", role: "alert" });
+    const b = button(
+      "تأكيد الحذف",
+      async () => {
+        b.disabled = true;
+        try {
+          await API.remove(kind, r);
+          closeDialog();
+          await refresh();
+          toast("تم حذف السجل.");
+        } catch (e) {
+          error.textContent = e.message;
+        } finally {
+          b.disabled = false;
+        }
+      },
+      "button danger",
+    );
+    box.append(error, b);
+    dialog("تأكيد حذف السجل", box);
+  }
+  async function adminReviewDialog() {
+    const box = el(
+      "div",
+      {},
+      el("p", { class: "muted" }, "جارٍ تحميل أحدث 500 تقييم…"),
+    );
+    dialog("مراجعة تقييمات الزيارات", box);
+    try {
+      const result = await API.adminReviews();
+      box.replaceChildren();
+      if (!result.reviews.length) box.append(empty("لا توجد تقييمات بعد."));
+      for (const r of result.reviews) {
+        const item = reviewItem(r);
+        item.append(
+          el(
+            "div",
+            { class: "actions-row" },
+            ...["published", "hidden"].map((status) =>
+              button(
+                status === "published" ? "نشر" : "إخفاء",
+                async (event) => {
+                  const b = event.currentTarget;
+                  b.disabled = true;
+                  try {
+                    await API.moderate(r.id, status);
+                    r.status = status;
+                    await refresh();
+                    adminReviewDialog();
+                  } catch (e) {
+                    toast(e.message);
+                  } finally {
+                    b.disabled = false;
+                  }
+                },
+                "button " + (status === "published" ? "primary" : "outline"),
+              ),
+            ),
+          ),
+        );
+        box.append(item);
+      }
+    } catch (e) {
+      box.replaceChildren(empty(e.message));
+    }
+  }
+  function exportCatalog() {
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          { exported_at: new Date().toISOString(), catalog: state.catalog },
+          null,
+          2,
+        ),
+      ],
+      { type: "application/json" },
+    );
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "medical-directory.json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  $("#main-nav").append(
+    ...nav.map(([id, symbol, label]) =>
+      el(
+        "a",
+        { href: "#" + id, class: "nav-item" },
+        el("span", { "aria-hidden": "true" }, symbol),
+        el("span", {}, label),
+      ),
+    ),
+  );
+  $("#member-button").addEventListener("click", memberDialog);
+  $("#dialog-close").addEventListener("click", closeDialog);
+  $("#theme-toggle").addEventListener("click", () => {
+    const t =
+      document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = t;
+    prefs.setTheme(t);
+  });
+  document.documentElement.dataset.theme = prefs.getTheme();
+  $("#search-input").addEventListener("input", (event) => {
+    state.query = event.target.value;
+    state.limit = 24;
+    if (state.tab === "home") {
+      go("doctors");
+    } else renderMain();
+  });
+  $("#clear-search").addEventListener("click", () => {
+    state.query = "";
+    $("#search-input").value = "";
+    renderMain();
+    $("#search-input").focus();
+  });
+  window.addEventListener("hashchange", route);
+  window.addEventListener("online", () => {
+    connection();
+    refresh().catch(() => connection());
+  });
+  window.addEventListener("offline", connection);
+  route();
+  connection();
+  refresh().catch(() => connection());
+  if ("serviceWorker" in navigator) {
+    const controlled = !!navigator.serviceWorker.controller;
+    let reloading = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (controlled && !reloading) {
+        reloading = true;
+        location.reload();
+      }
+    });
+    navigator.serviceWorker
+      .register("./sw.js")
+      .then((reg) => {
+        const offer = () => {
+          if (!reg.waiting) return;
+          const b = $("#update-button");
+          b.hidden = false;
+          b.onclick = () =>
+            reg.waiting?.postMessage({ action: "activate-update" });
+        };
+        offer();
+        reg.addEventListener("updatefound", () =>
+          reg.installing?.addEventListener("statechange", offer),
+        );
+      })
+      .catch(() => {});
+  }
+})();

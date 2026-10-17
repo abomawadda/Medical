@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-WE Medical Directory - Comprehensive Data Processor & Normalizer (v3.0)
+WE Medical Directory - Comprehensive Data Processor & Normalizer (v4.0)
 Advanced Architecture for Telecom Egypt (WE) - Dakahlia Union Branch
 Supports:
 - Contract Entity (جهة التعاقد: مباشر من الشركة / تابع لمستشفى الحكمة / السلاب / الخير)
@@ -477,8 +477,6 @@ def build_data():
                 'markazes': [rec['markaz']],
                 'records_count': 0,
                 'services': spec_services,
-                'rating': round(4.7 + ((rec['id'] % 4) * 0.08), 1),
-                'reviews_count': 14 + (rec['id'] % 19)
             }
 
         doc = doctors_dict[key]
@@ -1037,8 +1035,8 @@ def build_data():
             'city': 'الدقهلية',
             'affiliation': 'نقابة العاملين بالاتصالات WE',
             'service_type': 'تنسيق طوارئ وموافقات',
-            'number': '01000000001',
-            'tel': '01000000001',
+            'number': '',
+            'tel': '',
             'hours': '24 ساعة للحالات الحرجة',
             'is_24h': True,
             'address': 'مقر اللجنة النقابية - سنترال المنصورة غرب',
@@ -1864,74 +1862,13 @@ def build_data():
     ]
 
     # Pre-loaded Dakahlia Employees Directory (for Mobile Number + Last 4 Digits National ID Login)
-    employees_directory = [
-        {
-            'id': 'emp_01',
-            'name': 'محمود العراقي',
-            'title': 'مسؤول اللجنة النقابية ومنسق الرعاية الطبية بالدقهلية',
-            'phone': '01000000001',
-            'national_id_last4': '2026',
-            'sector': 'اللجنة النقابية للعاملين بالمصرية للاتصالات بالدقهلية',
-            'employee_code': 'WE-DK-001',
-            'role': 'admin',
-            'coverage_type': 'شامل: العاملين + أسر العاملين (جلوب ميد)',
-            'globemed_card_no': 'GM-998811-01',
-            'family_members': [
-                {'name': 'الزوجة', 'relation': 'زوجة', 'globemed_id': 'GM-998811-02'},
-                {'name': 'الأبناء', 'relation': 'ابن / ابنة', 'globemed_id': 'GM-998811-03'}
-            ]
-        },
-        {
-            'id': 'emp_02',
-            'name': 'أحمد إبراهيم السيد',
-            'title': 'مهندس أول تشغيل وصيانة السنترالات',
-            'phone': '01012345678',
-            'national_id_last4': '1234',
-            'sector': 'سنترال المنصورة غرب',
-            'employee_code': 'WE-DK-1042',
-            'role': 'employee',
-            'coverage_type': 'شامل: العاملين + أسر العاملين (جلوب ميد)',
-            'globemed_card_no': 'GM-442100-01',
-            'family_members': [
-                {'name': 'منى أحمد (الزوجة)', 'relation': 'زوجة', 'globemed_id': 'GM-442100-02'},
-                {'name': 'عمر أحمد (ابن)', 'relation': 'ابن', 'globemed_id': 'GM-442100-03'}
-            ]
-        },
-        {
-            'id': 'emp_03',
-            'name': 'محمد حسن الشربيني',
-            'title': 'أخصائي خدمة عملاء ومبيعات',
-            'phone': '01098765432',
-            'national_id_last4': '5678',
-            'sector': 'سنترال ميت غمر',
-            'employee_code': 'WE-DK-2105',
-            'role': 'employee',
-            'coverage_type': 'شامل: العاملين + أسر العاملين (جلوب ميد)',
-            'globemed_card_no': 'GM-654321-01',
-            'family_members': [
-                {'name': 'هبة محمود (الزوجة)', 'relation': 'زوجة', 'globemed_id': 'GM-654321-02'}
-            ]
-        },
-        {
-            'id': 'emp_04',
-            'name': 'إبراهيم عبد الفتاح التابعي',
-            'title': 'فني شبكات وتراسل أول',
-            'phone': '01122334455',
-            'national_id_last4': '9012',
-            'sector': 'سنترال دكرنس',
-            'employee_code': 'WE-DK-3319',
-            'role': 'employee',
-            'coverage_type': 'العاملين بالشركة فقط',
-            'globemed_card_no': 'غير مفعل',
-            'family_members': []
-        }
-    ]
+    employees_directory = []  # Membership is verified server-side; never publish employee records.
 
     bundle = {
         'metadata': {
             'title': 'منظومة الدليل الطبي الموحد - المصرية للاتصالات WE بالدقهلية',
             'author': 'الأستاذ / محمود العراقي',
-            'version': '3.0.0',
+            'version': '4.0.0',
             'total_records': len(records),
             'total_doctors': len(doctors_list),
             'total_specialties': len(specialties_list),
@@ -1965,17 +1902,43 @@ def build_data():
         'employees_directory': employees_directory
     }
 
+    # Public directory only: stable provider IDs and honest review/coverage states.
+    bundle.pop('employees_directory', None)
+    record_map = {r['id']: r for r in bundle['records']}
+    for doctor in bundle['doctors']:
+        record_ids = [w['record_id'] for w in doctor['workplaces']]
+        provider_id = 'provider_' + str(min(record_ids))
+        doctor['doctor_id'] = provider_id
+        doctor.pop('rating', None)
+        doctor.pop('reviews_count', None)
+        for record_id in record_ids:
+            record_map[record_id]['provider_id'] = provider_id
+    collections = [bundle['records'], list(bundle['hospitals'].values()), bundle['labs'],
+                   bundle['radiology'], bundle['pharmacies'], bundle['specialized_centers']]
+    for entries in collections:
+        for entry in entries:
+            entry.pop('rating', None)
+            entry.pop('reviews_count', None)
+            entry['coverage_verified'] = bool(entry.get('source_url') and entry.get('verified_at'))
+            if not entry['coverage_verified']:
+                entry['declared_coverage_scope'] = entry.get('coverage_scope', 'unknown')
+                entry['coverage_scope'] = 'unknown'
+                entry['coverage_label'] = 'التغطية تحتاج تأكيدًا من الجهة'
+    for entry in bundle['emergency_services']:
+        entry['verified'] = bool(entry.get('source_url') and entry.get('verification_date'))
+
     with open('data.json', 'w', encoding='utf-8') as f:
         json.dump(bundle, f, ensure_ascii=False, indent=2)
 
     os.makedirs('js', exist_ok=True)
     with open(os.path.join('js', 'data.js'), 'w', encoding='utf-8') as f:
-        f.write('/* WE Medical Directory Dataset v3.0 - Prepared by Mahmoud El-Eraky */\n')
+        f.write('/* WE Medical Directory Dataset v4.0 - Prepared by Mahmoud El-Eraky */\n')
         f.write('window.INITIAL_MEDICAL_DATA = ')
-        json.dump(bundle, f, ensure_ascii=False, indent=2)
+        public_bundle = {k: v for k, v in bundle.items() if k not in ('doctors', 'categories', 'specialties')}
+        json.dump(public_bundle, f, ensure_ascii=False, separators=(',', ':'))
         f.write(';\n')
 
-    print('Enhanced dataset v3.0 built successfully by Mahmoud El-Eraky!')
+    print('Enhanced dataset v4.0 built successfully by Mahmoud El-Eraky!')
     print(f'Total records: {len(records)}')
     print(f'Total doctors: {len(doctors_list)}')
     print(f'Total categories: {len(app_categories)}')

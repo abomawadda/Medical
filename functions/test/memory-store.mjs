@@ -1,0 +1,83 @@
+import { ApiError, kinds } from "../src/core.mjs";
+export function fixtureStore(seed) {
+  const sessions = new Map(),
+    limits = new Map(),
+    reviews = new Map(),
+    overlays = new Map(),
+    audit = [];
+  const base = structuredClone(seed);
+  for (const k of kinds) base[k] ||= [];
+  const store = {
+    sessions,
+    reviews,
+    overlays,
+    audit,
+    async consumeLimit(id, max) {
+      const n = (limits.get(id) || 0) + 1;
+      limits.set(id, n);
+      return n <= max;
+    },
+    async saveSession(id, data) {
+      sessions.set(id, structuredClone(data));
+    },
+    async getSession(id) {
+      return sessions.get(id);
+    },
+    async deleteSession(id) {
+      sessions.delete(id);
+    },
+    async catalog() {
+      const out = structuredClone(base);
+      for (const k of kinds) {
+        const map = new Map(
+          out[k].map((e) => [String(e.id), { ...e, _version: 0 }]),
+        );
+        for (const row of overlays.values())
+          if (row.kind === k) {
+            if (row.deleted) map.delete(row.entityId);
+            else map.set(row.entityId, { ...row.value, _version: row.version });
+          }
+        out[k] = [...map.values()];
+      }
+      return out;
+    },
+    async getStats() {
+      const out = {};
+      for (const r of reviews.values())
+        if (r.status === "published") {
+          const v = (out[r.target_id] ||= { count: 0, sum: 0 });
+          v.count++;
+          v.sum += r.rating;
+        }
+      return Object.fromEntries(
+        Object.entries(out).map(([k, v]) => [
+          k,
+          { count: v.count, average: v.sum / v.count },
+        ]),
+      );
+    },
+    async mutateEntity(kind, id, change, expected, actor, at) {
+      const k = kind + ":" + id;
+      const previous = overlays.get(k);
+      if ((previous?.version || 0) !== expected)
+        throw new ApiError(409, "VERSION_CONFLICT", "تعارض");
+      overlays.set(k, { kind, entityId: id, ...change, version: expected + 1 });
+      audit.push({ kind, id, actor, at });
+    },
+    async saveReview(r) {
+      reviews.set(r.id, structuredClone(r));
+    },
+    async listReviews(filter) {
+      return [...reviews.values()]
+        .filter((r) => !filter.author_id || filter.author_id === r.author_id)
+        .map(({ author_id, ...rest }) => rest);
+    },
+    async moderateReview(id, status, actor) {
+      const r = reviews.get(id);
+      if (!r) throw new ApiError(404, "NOT_FOUND", "غير موجود");
+      r.status = status;
+      audit.push({ id, status, actor });
+    },
+  };
+  return store;
+}

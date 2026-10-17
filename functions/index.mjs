@@ -1,0 +1,60 @@
+import { readFileSync } from "node:fs";
+import { onRequest } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
+import { createService } from "./src/core.mjs";
+import { firebaseAdapters } from "./src/firebase-adapters.mjs";
+import { createHandler } from "./src/http.mjs";
+
+const sessionSecret = defineSecret("MEDICAL_SESSION_SECRET");
+const membershipCredentials = defineSecret("MYNEKABA_READONLY_CREDENTIALS");
+let service;
+function getService() {
+  if (service) return service;
+  const sourceCredentials = JSON.parse(membershipCredentials.value());
+  const allowedStates = JSON.parse(process.env.MEMBER_ALLOWED_STATES || "[]");
+  const adminAccountIds = String(process.env.MYNEKABA_ADMIN_ACCOUNT_IDS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (
+    !Array.isArray(allowedStates) ||
+    !allowedStates.length ||
+    !adminAccountIds.length
+  )
+    throw new Error(
+      "Membership policy and approved admin account IDs are required",
+    );
+  const seed = JSON.parse(
+    readFileSync(new URL("./seed/catalog.json", import.meta.url), "utf8"),
+  );
+  const adapters = firebaseAdapters({
+    medicalProjectId: process.env.GCLOUD_PROJECT,
+    sourceCredentials,
+    sourceApiKey: process.env.MYNEKABA_AUTH_API_KEY,
+    seed,
+  });
+  service = createService({
+    ...adapters,
+    secret: sessionSecret.value(),
+    allowedStates,
+    adminAccountIds,
+  });
+  return service;
+}
+const origins = String(
+  process.env.MEDICAL_ALLOWED_ORIGINS || "https://abomawadda.github.io",
+)
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+export const medicalApi = onRequest(
+  {
+    region: "europe-west1",
+    maxInstances: 5,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    invoker: "public",
+    secrets: [sessionSecret, membershipCredentials],
+  },
+  createHandler({ getService, origins }),
+);
