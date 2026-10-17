@@ -287,8 +287,40 @@ try {
     .getByText("ملاحظة اختبار <img src=x onerror=alert(1)>", { exact: true })
     .waitFor();
   assert.equal(await a.locator("dialog img").count(), 0);
-  await a.getByRole("button", { name: "نشر", exact: true }).click();
-  await a.getByText(/منشور/).first().waitFor();
+  await a.locator("#dialog-content > div").evaluate((node) => node.dataset.testMarker = "original-review-dialog");
+  let moderationRequests = 0;
+  a.on("request", (req) => {
+    if (req.method() === "PATCH" && req.url().includes("/admin/reviews/")) moderationRequests++;
+  });
+  // A successful save must remain successful even if refreshing the directory fails.
+  await adminContext.route("https://medical.example.invalid/v1/catalog", (route) =>
+    route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({message:"fixture refresh unavailable"})}));
+  await a.getByRole("button", { name: "اعتماد ونشر", exact: true }).click();
+  await a.getByText("تم اعتماد التقييم ونشره بنجاح.", {exact:false}).waitFor();
+  await a.getByText(/لا تحتاج إلى إعادة الاعتماد/).waitFor();
+  assert.ok(await a.getByRole("button", {name:"تم الاعتماد والنشر",exact:true}).isDisabled());
+  assert.equal(moderationRequests, 1);
+  assert.equal(await a.locator("#dialog-content > div").getAttribute("data-test-marker"), "original-review-dialog");
+  await adminContext.unroute("https://medical.example.invalid/v1/catalog");
+  assert.deepEqual((await store.getStats())[target], { count: 1, average: 4 });
+  await a.getByRole("button", { name: "إغلاق النافذة" }).click();
+  await a.getByRole("button", { name: "مراجعة التقييمات" }).click();
+  assert.ok(await a.getByRole("button", {name:"تم الاعتماد والنشر",exact:true}).isDisabled());
+  // A failed moderation keeps the saved status and offers a retry without an alert loop.
+  await adminContext.route("https://medical.example.invalid/v1/admin/reviews/*", (route) =>
+    route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({message:"تعذر حفظ التغيير التجريبي"})}));
+  await a.getByRole("button", {name:"إخفاء",exact:true}).click();
+  await a.getByText("تعذر حفظ التغيير التجريبي", {exact:true}).waitFor();
+  assert.ok(await a.getByRole("button", {name:"تم الاعتماد والنشر",exact:true}).isDisabled());
+  assert.ok(await a.getByRole("button", {name:"إخفاء",exact:true}).isEnabled());
+  assert.deepEqual((await store.getStats())[target], { count: 1, average: 4 });
+  await adminContext.unroute("https://medical.example.invalid/v1/admin/reviews/*");
+  await a.getByRole("button", {name:"إخفاء",exact:true}).click();
+  await a.getByText("تم إخفاء التقييم من الحساب العام للنجوم.", {exact:true}).waitFor();
+  await a.waitForFunction(() => [...document.querySelectorAll("dialog button")].some((b) => b.textContent === "اعتماد ونشر" && !b.disabled));
+  assert.equal((await store.getStats())[target]?.count || 0, 0);
+  await a.getByRole("button", {name:"اعتماد ونشر",exact:true}).click();
+  await a.getByText("تم اعتماد التقييم ونشره بنجاح.", {exact:true}).waitFor();
   assert.deepEqual((await store.getStats())[target], { count: 1, average: 4 });
   await a.getByRole("button", { name: "إغلاق النافذة" }).click();
   await a.getByRole("button", { name: "إضافة سجل", exact: true }).click();
@@ -476,6 +508,8 @@ try {
         offlineGate: true,
         foreignCachePreserved: true,
         publicConfigurationRefreshedOnlineAndAvailableOffline: true,
+        moderationSuccessClearAndRepeatActionDisabled: true,
+        moderationSavedDespiteDirectoryRefreshFailure: true,
         dimensions,
         runtimeErrors: errors,
       },

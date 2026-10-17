@@ -1171,7 +1171,7 @@
     }
   }
   const statusText = (s) =>
-    ({ pending: "بانتظار المراجعة", published: "منشور", hidden: "غير منشور" })[
+    ({ pending: "بانتظار الاعتماد", published: "معتمد ومنشور", hidden: "مخفي من التقييم العام" })[
       s
     ] || s;
   function reviewItem(r) {
@@ -1498,37 +1498,60 @@
     dialog("مراجعة تقييمات الزيارات", box);
     try {
       const result = await API.adminReviews();
-      box.replaceChildren();
+      const notice = el("p", { role: "status", "aria-live": "polite" });
+      box.replaceChildren(notice);
       if (!result.reviews.length) box.append(empty("لا توجد تقييمات بعد."));
       for (const r of result.reviews) {
-        const item = reviewItem(r);
-        item.append(
-          el(
-            "div",
-            { class: "actions-row" },
-            ...["published", "hidden"].map((status) =>
-              button(
-                status === "published" ? "نشر" : "إخفاء",
-                async (event) => {
-                  const b = event.currentTarget;
-                  b.disabled = true;
-                  try {
-                    await API.moderate(r.id, status);
-                    r.status = status;
-                    await refresh();
-                    adminReviewDialog();
-                  } catch (e) {
-                    toast(e.message);
-                  } finally {
-                    b.disabled = false;
-                  }
-                },
-                "button " + (status === "published" ? "primary" : "outline"),
-              ),
+        let item, busy = false;
+        const renderReview = () => {
+          const next = reviewItem(r);
+          next.append(
+            el(
+              "div",
+              { class: "actions-row" },
+              ...["published", "hidden"].map((status) => {
+                const action = button(
+                  status === "published"
+                    ? (r.status === status ? "تم الاعتماد والنشر" : "اعتماد ونشر")
+                    : (r.status === status ? "تم الإخفاء" : "إخفاء"),
+                  async () => {
+                    if (busy || r.status === status) return;
+                    busy = true;
+                    notice.textContent = "";
+                    renderReview();
+                    try {
+                      await API.moderate(r.id, status);
+                      r.status = status;
+                      notice.className = "notice";
+                      notice.textContent = status === "published"
+                        ? "تم اعتماد التقييم ونشره بنجاح."
+                        : "تم إخفاء التقييم من الحساب العام للنجوم.";
+                      renderReview();
+                      try {
+                        await refresh();
+                      } catch {
+                        notice.textContent += " تعذر تحديث الدليل الآن؛ حدّث الصفحة لاحقًا. لا تحتاج إلى إعادة الاعتماد.";
+                      }
+                    } catch (e) {
+                      notice.className = "notice warning";
+                      notice.textContent = e.message;
+                    } finally {
+                      busy = false;
+                      renderReview();
+                    }
+                  },
+                  "button " + (status === "published" ? "primary" : "outline"),
+                );
+                action.disabled = busy || r.status === status;
+                return action;
+              }),
             ),
-          ),
-        );
-        box.append(item);
+          );
+          if (item) item.replaceWith(next);
+          else box.append(next);
+          item = next;
+        };
+        renderReview();
       }
     } catch (e) {
       box.replaceChildren(empty(e.message));
