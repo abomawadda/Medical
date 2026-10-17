@@ -1,0 +1,11 @@
+.git
+.vercel
+.env
+.env.*
+docs
+dist
+__pycache__
+*.xlsx
+*.log
+data.json
+build_dataset.py
