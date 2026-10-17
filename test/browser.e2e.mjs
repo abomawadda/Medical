@@ -127,13 +127,16 @@ async function context(connected = true, sw = "block", storageState) {
     serviceWorkers: sw,
     ...(storageState ? { storageState } : {}),
   });
+  await c.route("https://europe-west1-we-medical-dakahlia.cloudfunctions.net/**", (r) => r.abort());
+  await c.route("**/js/config.js", (r) =>
+    r.fulfill({
+      contentType: "text/javascript",
+      body: connected
+        ? "window.MEDICAL_CONFIG={apiBaseUrl:'https://medical.example.invalid'};"
+        : "window.MEDICAL_CONFIG={apiBaseUrl:''};",
+    }),
+  );
   if (connected) {
-    await c.route("**/js/config.js", (r) =>
-      r.fulfill({
-        contentType: "text/javascript",
-        body: "window.MEDICAL_CONFIG={apiBaseUrl:'https://medical.example.invalid'};",
-      }),
-    );
     await c.route("https://medical.example.invalid/**", async (route) => {
       const request = route.request();
       const response = await fetch(origin + new URL(request.url()).pathname, {

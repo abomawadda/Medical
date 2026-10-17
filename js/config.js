@@ -1,2 +1,4 @@
-// Public configuration only. Set the Medical Cloud Function HTTPS URL after deployment.
-window.MEDICAL_CONFIG = Object.freeze({ apiBaseUrl: "" });
+// Public Medical API endpoint. Private credentials stay in Secret Manager.
+window.MEDICAL_CONFIG = Object.freeze({
+  apiBaseUrl: "https://europe-west1-we-medical-dakahlia.cloudfunctions.net/medicalApi",
+});
