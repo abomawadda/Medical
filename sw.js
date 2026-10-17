@@ -1,11 +1,11 @@
-const CACHE_NAME = "we-medical-v4-d0594386aaf1884a";
+const CACHE_NAME = "we-medical-v4-4ae1bbf8cb1d68df";
 const PRECACHE = [
   "./",
   "./index.html",
   "./manifest.json",
   "./css/styles.css",
   "./js/config.js",
-  "./js/data.js",
+  "./css/fonts.css",
   "./js/storage.js",
   "./js/api.js",
   "./js/app.js",
@@ -16,6 +16,8 @@ const PRECACHE = [
   "./img/icon-192.png",
   "./img/icon-512.png",
 ];
+const FONT_ASSETS = ["./img/fonts/3270f0cb47fdabc3.woff2","./img/fonts/40af6d88b63079a0.woff2","./img/fonts/481acf6760031cee.woff2","./img/fonts/6c9f4bab97d6bc5f.woff2","./img/fonts/6d3351fc535f8ef3.woff2","./img/fonts/8ab0af53a3bda9d3.woff2","./img/fonts/8f262393e9249e61.woff2","./img/fonts/9d1f41b13e519d90.woff2","./img/fonts/a005256cb957ecc7.woff2","./img/fonts/c69d345fa1068c2d.woff2","./img/fonts/e8fc56ad5aa556a1.woff2"];
+PRECACHE.push(...FONT_ASSETS);
 const assetUrls = new Set(PRECACHE.map((p) => new URL(p, self.location).href));
 self.addEventListener("install", (event) =>
   event.waitUntil(

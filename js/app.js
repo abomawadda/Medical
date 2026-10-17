@@ -2,8 +2,7 @@
 (() => {
   "use strict";
   const API = window.MedicalAPI,
-    prefs = window.MedicalStorage,
-    initial = window.INITIAL_MEDICAL_DATA || {};
+    prefs = window.MedicalStorage;
   const kinds = [
     "records",
     "hospitals",
@@ -33,15 +32,8 @@
     ["emergency", "✦", "الطوارئ"],
   ];
   const state = {
-    catalog: Object.fromEntries(
-      kinds.map((k) => [
-        k,
-        (Array.isArray(initial[k])
-          ? initial[k]
-          : Object.values(initial[k] || {})
-        ).map((e) => ({ ...e, _version: 0 })),
-      ]),
-    ),
+    catalog: Object.fromEntries(kinds.map((k) => [k, []])),
+    restoring: true,
     stats: {},
     tab: "home",
     query: "",
@@ -193,15 +185,15 @@
     const n = $("#connection-status");
     n.classList.toggle("offline", !navigator.onLine);
     n.textContent = !navigator.onLine
-      ? "أنت دون اتصال · يمكنك الاطلاع على النسخة المحفوظة، والتقييم يحتاج الإنترنت."
+      ? "أنت دون اتصال · تأكيد الدخول والتقييم يحتاجان الإنترنت."
       : !API.configured
-        ? "الدليل متاح للتصفح · الدخول والتقييمات المركزية قيد التجهيز."
+        ? "خدمة تسجيل الدخول قيد التجهيز."
         : state.remote
           ? "متصل · بيانات الدليل والتقييمات من الخدمة المركزية."
-          : "تعرض النسخة المنشورة · تعذر تحديث البيانات المركزية حاليًا.";
+          : "سجّل الدخول للاطلاع على الدليل الطبي.";
   }
   async function refresh() {
-    if (!API.configured) {
+    if (!API.configured || !session()) {
       connection();
       return;
     }
@@ -710,6 +702,22 @@
     updateHeader();
     const main = $("#main");
     main.replaceChildren();
+    const signedIn = !!session();
+    $(".search-panel").hidden = !signedIn;
+    $("#main-nav").hidden = !signedIn;
+    if (!signedIn) return renderLogin(main);
+    if (!state.remote) {
+      main.append(
+        heading("تحميل الدليل الطبي"),
+        el("p", { class: "muted" }, "يتم تحميل الجهات بعد تأكيد الدخول."),
+        button(
+          "إعادة المحاولة",
+          () => refresh().catch((e) => toast(e.message)),
+          "button outline",
+        ),
+      );
+      return;
+    }
     if (state.tab === "home") return renderHome(main);
     if (state.tab === "admin") return renderAdmin(main);
     if (state.tab === "account") return renderAccount(main);
@@ -879,6 +887,10 @@
     location.hash = tab;
   }
   function route() {
+    if (!session()) {
+      renderMain();
+      return;
+    }
     const hash = location.hash.slice(1);
     if (hash.startsWith("entity=")) {
       try {
@@ -916,6 +928,10 @@
     renderMain();
   }
   function openDeepLink(target) {
+    if (!session() || !state.remote) {
+      renderMain();
+      return;
+    }
     const main = $("#main");
     state.tab = "doctors";
     renderFilters();
@@ -935,19 +951,14 @@
       main.append(r ? facilityCard(kind, r) : empty("الجهة لم تعد متاحة."));
     }
   }
-  function memberDialog() {
-    const u = session();
-    if (u) {
-      go(u.role === "admin" ? "admin" : "account");
-      return;
-    }
+  function memberForm() {
     const form = el(
       "form",
       { class: "form-stack" },
       el(
         "p",
         { class: "muted" },
-        "أدخل بياناتك المسجلة لدى النقابة لتقييم زيارتك. لا تحتاج إنشاء حساب.",
+        "أدخل بياناتك المسجلة لدى النقابة للاطلاع على الدليل وتقييم زيارتك. لا تحتاج إنشاء حساب.",
       ),
       !API.configured
         ? el(
@@ -975,17 +986,70 @@
         maxlength: 4,
         autocomplete: "off",
       }),
+      el(
+        "label",
+        { class: "remember-option" },
+        el("input", { type: "checkbox", name: "remember" }),
+        "تذكّر دخولي على هذا الجهاز لمدة ٣٠ يومًا",
+      ),
+      el(
+        "p",
+        { class: "muted" },
+        "اختر التذكّر على جهازك الشخصي فقط. لن نحفظ بيانات التحقق الثلاثة.",
+      ),
     );
     form.save = async (data) => {
-      await API.login("member", data);
+      await API.login("member", { ...data, remember: data.remember === "on" });
       form.reset();
       closeDialog();
       updateHeader();
-      toast("تم التحقق من بيانات العضوية. يمكنك الآن تسجيل تقييمك.");
+      route();
+      await refresh();
+      toast(
+        API.persistenceNotice ||
+          "تم التحقق من بيانات العضوية. مرحبًا بك في الدليل الطبي.",
+      );
     };
-    dialog("دخول أعضاء النقابة", formAction(form, "تحقق وادخل"));
+    formAction(form, "تحقق وادخل");
     if (!API.configured)
       form.querySelector("button[type=submit]").disabled = true;
+    return form;
+  }
+  function renderLogin(main) {
+    const box = el(
+      "section",
+      { class: "login-card" },
+      el("p", { class: "eyebrow" }, "خدمة أعضاء النقابة · المصرية للاتصالات"),
+      el("h1", {}, "مرحبًا بك في دليل WE الطبي"),
+    );
+    if (state.restoring)
+      box.append(
+        el(
+          "p",
+          { class: "notice", role: "status" },
+          "جارٍ التحقق من جلسة الدخول المحفوظة…",
+        ),
+      );
+    else
+      box.append(
+        memberForm(),
+        el(
+          "div",
+          { class: "login-links" },
+          button("دخول المدير", adminDialog, "text-button"),
+          el("a", { href: "tel:123" }, "الإسعاف 123"),
+        ),
+      );
+    main.replaceChildren(box);
+  }
+  function memberDialog() {
+    const u = session();
+    if (u) {
+      go(u.role === "admin" ? "admin" : "account");
+      return;
+    }
+    renderMain();
+    $("#employee_code")?.focus();
   }
   function adminDialog() {
     const form = el(
@@ -1015,6 +1079,9 @@
       await API.login("admin", data);
       form.reset();
       closeDialog();
+      state.tab = "admin";
+      location.hash = "admin";
+      route();
       await refresh();
       renderMain();
     };
@@ -1126,6 +1193,9 @@
     } catch (e) {
       toast(e.message);
     } finally {
+      state.catalog = Object.fromEntries(kinds.map((k) => [k, []]));
+      state.stats = {};
+      state.remote = false;
       updateHeader();
       go("home");
       renderMain();
@@ -1519,9 +1589,39 @@
     refresh().catch(() => connection());
   });
   window.addEventListener("offline", connection);
-  route();
-  connection();
-  refresh().catch(() => connection());
+  async function resume() {
+    state.restoring = true;
+    renderMain();
+    connection();
+    try {
+      await API.restore();
+    } catch (e) {
+      toast(e.message);
+    } finally {
+      state.restoring = false;
+      route();
+      connection();
+    }
+    if (session()) refresh().catch((e) => toast(e.message));
+  }
+  window.addEventListener("medical-session-invalidated", () => {
+    state.catalog = Object.fromEntries(kinds.map((k) => [k, []]));
+    state.stats = {};
+    state.remote = false;
+    if ($("#app-dialog").open) closeDialog();
+    route();
+    connection();
+  });
+  window.addEventListener("online", () => {
+    if (!session()) resume();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && !session()) route();
+  });
+  setInterval(() => {
+    if (!session()) route();
+  }, 60000);
+  resume();
   if ("serviceWorker" in navigator) {
     const controlled = !!navigator.serviceWorker.controller;
     let reloading = false;

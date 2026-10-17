@@ -112,7 +112,7 @@ await service.submitReview(
 );
 const id = (await service.adminReviews(admin)).reviews[0].id;
 await service.moderateReview(admin, id, { status: "published" });
-assert.deepEqual((await service.catalog()).stats["doctor:p1"], {
+assert.deepEqual((await service.catalog(admin)).stats["doctor:p1"], {
   count: 1,
   average: 4,
 });
@@ -127,13 +127,13 @@ await service.submitReview(
   },
   "emulator-member",
 );
-assert.deepEqual((await service.catalog()).stats["doctor:p1"], {
+assert.deepEqual((await service.catalog(admin)).stats["doctor:p1"], {
   count: 0,
   average: null,
 });
 await service.moderateReview(admin, id, { status: "published" });
 await service.moderateReview(admin, id, { status: "published" });
-assert.deepEqual((await service.catalog()).stats["doctor:p1"], {
+assert.deepEqual((await service.catalog(admin)).stats["doctor:p1"], {
   count: 1,
   average: 2,
 });
@@ -149,11 +149,11 @@ const attempts = await Promise.allSettled([
 ]);
 assert.equal(attempts.filter((a) => a.status === "fulfilled").length, 1);
 assert.equal(attempts.find((a) => a.status === "rejected").reason.status, 409);
-const saved = (await service.catalog()).catalog.records[0];
+const saved = (await service.catalog(admin)).catalog.records[0];
 assert.equal(saved._version, 1);
 assert.equal(saved.provider_id, "p1");
 await service.deleteEntity(admin, "records", "1", { expected_version: 1 });
-assert.equal((await service.catalog()).catalog.records.length, 0);
+assert.equal((await service.catalog(admin)).catalog.records.length, 0);
 assert.equal(
   JSON.stringify(
     (await foreign.collection("employees").get()).docs.map((d) => d.data()),

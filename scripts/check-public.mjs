@@ -1,5 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import assert from "node:assert/strict";
+import { access } from "node:fs/promises";
 import { resolve } from "node:path";
 const root = new URL("../", import.meta.url);
 const data = JSON.parse(await readFile(new URL("data.json", root), "utf8"));
@@ -46,6 +47,11 @@ assert.ok(
   "Credentials cannot appear in public config.",
 );
 const html = await readFile(new URL("dist/index.html", root), "utf8");
+assert.ok(
+  !html.includes("js/data.js"),
+  "The directory cannot be loaded before authentication.",
+);
+await assert.rejects(() => access(new URL("dist/js/data.js", root)));
 for (const match of html.matchAll(/(?:src|href)="([^"#]+)"/g)) {
   if (!/^(https?:|tel:)/.test(match[1]))
     await readFile(new URL("dist/" + match[1], root));

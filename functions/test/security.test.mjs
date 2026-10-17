@@ -126,6 +126,61 @@ test("Arabic/Persian digits and full international phone normalization preserve 
   assert.equal(phone("٨"), "");
   assert.equal(phone("01012345678abc"), "");
 });
+test("catalog and session restoration require a live server session", async () => {
+  const f = setup();
+  await assert.rejects(
+    () => f.service.catalog(),
+    (e) => e.status === 401,
+  );
+  const token = await member(f);
+  const identity = await f.service.session(token);
+  assert.equal(identity.role, "member");
+  assert.ok(Number.isFinite(identity.expiresAt));
+  assert.equal((await f.service.catalog(token)).catalog.records.length, 1);
+  await f.service.logout(token);
+  await assert.rejects(
+    () => f.service.catalog(token),
+    (e) => e.status === 401,
+  );
+});
+test("remembered member sessions last 30 days but still enforce source eligibility", async () => {
+  const f = setup();
+  const normal = await f.service.memberLogin(credentials, "normal");
+  const kept = await f.service.memberLogin(
+    { ...credentials, remember: true },
+    "remembered",
+  );
+  assert.equal(kept.expiresAt - normal.expiresAt, 30 * 86400000 - 30 * 60000);
+  f.advance(31 * 60000);
+  assert.equal((await f.service.session(kept.token)).role, "member");
+  await assert.rejects(
+    () => f.service.session(normal.token),
+    (e) => e.status === 401,
+  );
+  f.employees[0].memberState = "موقوف";
+  await assert.rejects(
+    () => f.service.catalog(kept.token),
+    (e) => e.status === 401,
+  );
+  f.employees[0].memberState = "نشط";
+  f.advance(30 * 86400000);
+  await assert.rejects(
+    () => f.service.session(kept.token),
+    (e) => e.status === 401,
+  );
+});
+test("administrator sessions remain short even when remember is requested", async () => {
+  const f = setup();
+  const result = await f.service.adminLogin(
+    { id_token: "valid-fixture-token", remember: true },
+    "admin",
+  );
+  f.advance(11 * 60000);
+  await assert.rejects(
+    () => f.service.session(result.token),
+    (e) => e.status === 401,
+  );
+});
 test("three matching fields create a member session with no source identifiers or credentials", async () => {
   const f = setup();
   const result = await f.service.memberLogin(
@@ -260,7 +315,7 @@ test("expired, revoked and changed-membership sessions cannot write", async () =
 test("review author comes from the server; retries update one review; no invented stars", async () => {
   const f = setup();
   const t = await member(f);
-  assert.deepEqual((await f.service.catalog()).stats, {});
+  assert.deepEqual((await f.service.catalog(t)).stats, {});
   await f.service.submitReview(
     t,
     {
@@ -277,7 +332,7 @@ test("review author comes from the server; retries update one review; no invente
   await f.service.submitReview(t, { ...review, rating: 5 }, "ip");
   assert.equal(f.store.reviews.size, 1);
   assert.equal((await f.service.ownReviews(t)).reviews[0].rating, 5);
-  assert.deepEqual((await f.service.catalog()).stats, {});
+  assert.deepEqual((await f.service.catalog(t)).stats, {});
 });
 test("review requires a live target, matching branch, visit declaration and valid score", async () => {
   const f = setup();
@@ -319,16 +374,16 @@ test("publishing/hiding/updating a review changes actual aggregate values", asyn
   await f.service.submitReview(t, review, "ip");
   const id = [...f.store.reviews.keys()][0];
   await f.service.moderateReview(a, id, { status: "published" });
-  assert.deepEqual((await f.service.catalog()).stats["doctor:p1"], {
+  assert.deepEqual((await f.service.catalog(t)).stats["doctor:p1"], {
     count: 1,
     average: 4,
   });
   await f.service.submitReview(t, { ...review, rating: 2 }, "ip");
-  assert.deepEqual((await f.service.catalog()).stats, {});
+  assert.deepEqual((await f.service.catalog(t)).stats, {});
   await f.service.moderateReview(a, id, { status: "published" });
-  assert.equal((await f.service.catalog()).stats["doctor:p1"].average, 2);
+  assert.equal((await f.service.catalog(t)).stats["doctor:p1"].average, 2);
   await f.service.moderateReview(a, id, { status: "hidden" });
-  assert.deepEqual((await f.service.catalog()).stats, {});
+  assert.deepEqual((await f.service.catalog(t)).stats, {});
 });
 test("admin CRUD is shared and refuses stale edits; role revocation takes effect", async () => {
   const f = setup();
@@ -337,9 +392,12 @@ test("admin CRUD is shared and refuses stale edits; role revocation takes effect
     entity: { ...seed.records[0], name: "اسم محدث" },
     expected_version: 0,
   });
-  assert.equal((await f.service.catalog()).catalog.records[0].name, "اسم محدث");
   assert.equal(
-    (await f.service.catalog()).catalog.records[0].provider_id,
+    (await f.service.catalog(a)).catalog.records[0].name,
+    "اسم محدث",
+  );
+  assert.equal(
+    (await f.service.catalog(a)).catalog.records[0].provider_id,
     "p1",
   );
   await assert.rejects(
@@ -351,7 +409,7 @@ test("admin CRUD is shared and refuses stale edits; role revocation takes effect
     (e) => e.status === 409,
   );
   await f.service.deleteEntity(a, "records", "1", { expected_version: 1 });
-  assert.equal((await f.service.catalog()).catalog.records.length, 0);
+  assert.equal((await f.service.catalog(a)).catalog.records.length, 0);
   f.accounts[0].accountStatus = "disabled";
   await assert.rejects(
     () =>

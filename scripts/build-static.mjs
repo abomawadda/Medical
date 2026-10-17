@@ -14,9 +14,24 @@ for (const asset of assets) await stat(resolve(root, asset));
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 for (const asset of assets) {
-  await cp(resolve(root, asset), resolve(output, asset), { recursive: true });
+  await cp(resolve(root, asset), resolve(output, asset), {
+    recursive: true,
+    filter: (source) => source !== resolve(root, "js/data.js"),
+  });
 }
 const hash = createHash("sha256");
+const fontFiles = (await readdir(resolve(root, "img/fonts")))
+  .filter((n) => n.endsWith(".woff2"))
+  .sort()
+  .map((n) => "./img/fonts/" + n);
+const initialWorker = await readFile(resolve(output, "sw.js"), "utf8");
+await writeFile(
+  resolve(output, "sw.js"),
+  initialWorker.replace(
+    /const FONT_ASSETS = \[[\s\S]*?\];/,
+    "const FONT_ASSETS = " + JSON.stringify(fontFiles) + ";",
+  ),
+);
 async function hashFiles(directory) {
   for (const entry of (await readdir(directory, { withFileTypes: true })).sort(
     (a, b) => a.name.localeCompare(b.name),

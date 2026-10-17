@@ -291,9 +291,11 @@ export function createService({
     if (!(await store.consumeLimit(key, limit, now() + 1800000)))
       fail(429, "RATE_LIMITED", "محاولات كثيرة. يرجى المحاولة بعد قليل.");
   }
-  async function issue(role, sourceId, extra) {
+  async function issue(role, sourceId, extra, remember = false) {
     const token = randomBytes(32).toString("base64url");
-    const expiresAt = now() + (role === "admin" ? 10 : 30) * 60000;
+    const expiresAt =
+      now() +
+      (role === "admin" ? 10 * 60000 : remember ? 30 * 86400000 : 30 * 60000);
     await store.saveSession(digest(token), {
       role,
       sourceId,
@@ -308,9 +310,12 @@ export function createService({
     const session = await store.getSession(digest(token));
     if (!session || session.expiresAt <= now())
       fail(401, "SESSION_EXPIRED", "انتهت الجلسة. يرجى تسجيل الدخول مجددًا.");
-    if (session.role !== role)
+    if (
+      !["member", "admin"].includes(session.role) ||
+      (role && session.role !== role)
+    )
       fail(403, "FORBIDDEN", "هذه العملية غير متاحة لحسابك.");
-    if (role === "member") {
+    if (session.role === "member") {
       const employee = await source.getEmployee(session.sourceId);
       if (
         !eligible(employee) ||
@@ -352,11 +357,16 @@ export function createService({
         !safeEqual(national.slice(-4), n)
       )
         mismatch();
-      return issue("member", e.id, {
-        name: shortName(e.name),
-        fingerprint: fingerprint(e),
-        subject: digest(`member|${e.id}`),
-      });
+      return issue(
+        "member",
+        e.id,
+        {
+          name: shortName(e.name),
+          fingerprint: fingerprint(e),
+          subject: digest(`member|${e.id}`),
+        },
+        body.remember === true,
+      );
     },
     async adminLogin(body, ip) {
       await rate(ip, "admin", 8);
@@ -390,9 +400,10 @@ export function createService({
     },
     async session(token, role) {
       const s = await authorize(token, role);
-      return { name: s.name, role: s.role };
+      return { name: s.name, role: s.role, expiresAt: s.expiresAt };
     },
-    async catalog() {
+    async catalog(token) {
+      await authorize(token);
       return { catalog: await store.catalog(), stats: await store.getStats() };
     },
     async submitReview(token, body, ip) {

@@ -6,12 +6,10 @@ export function createHandler({ getService, origins, logger = console }) {
     res.set("X-Content-Type-Options", "nosniff");
     const origin = req.get("origin");
     if (origin && !origins.includes(origin))
-      return res
-        .status(403)
-        .json({
-          code: "ORIGIN_DENIED",
-          message: "الطلب غير متاح من هذا الموقع.",
-        });
+      return res.status(403).json({
+        code: "ORIGIN_DENIED",
+        message: "الطلب غير متاح من هذا الموقع.",
+      });
     if (origin) {
       res.set("Access-Control-Allow-Origin", origin);
       res.set("Vary", "Origin");
@@ -28,12 +26,10 @@ export function createHandler({ getService, origins, logger = console }) {
         getService();
         return res.json({ configured: true });
       } catch {
-        return res
-          .status(503)
-          .json({
-            configured: false,
-            message: "الخدمة المركزية غير مفعلة حاليًا.",
-          });
+        return res.status(503).json({
+          configured: false,
+          message: "الخدمة المركزية غير مفعلة حاليًا.",
+        });
       }
     }
     try {
@@ -58,7 +54,9 @@ export function createHandler({ getService, origins, logger = console }) {
         ip = req.ip || "unknown";
       let data;
       if (req.method === "GET" && path === "/v1/catalog")
-        data = await service.catalog();
+        data = await service.catalog(token);
+      else if (req.method === "GET" && path === "/v1/session")
+        data = await service.session(token);
       else if (req.method === "POST" && path === "/v1/member/session")
         data = await service.memberLogin(body, ip);
       else if (req.method === "POST" && path === "/v1/admin/session")
@@ -93,12 +91,10 @@ export function createHandler({ getService, origins, logger = console }) {
           .json({ code: error.code, message: error.message });
       // Never log request bodies, credentials, source documents or full exceptions.
       logger.error("medical_api_failed", { code: "SERVICE_UNAVAILABLE" });
-      return res
-        .status(503)
-        .json({
-          code: "SERVICE_UNAVAILABLE",
-          message: "تعذر الاتصال بالخدمة المركزية. يرجى المحاولة لاحقًا.",
-        });
+      return res.status(503).json({
+        code: "SERVICE_UNAVAILABLE",
+        message: "تعذر الاتصال بالخدمة المركزية. يرجى المحاولة لاحقًا.",
+      });
     }
   };
 }

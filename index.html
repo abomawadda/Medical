@@ -16,8 +16,8 @@
     <link rel="manifest" href="manifest.json" />
     <link rel="apple-touch-icon" href="img/icon-192.png" />
     <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/fonts.css" />
     <script defer src="js/config.js"></script>
-    <script defer src="js/data.js"></script>
     <script defer src="js/storage.js"></script>
     <script defer src="js/api.js"></script>
     <script defer src="js/app.js"></script>
@@ -45,7 +45,7 @@
       <button id="update-button" class="button outline" hidden>
         تحديث التطبيق
       </button>
-      <section class="search-panel" aria-label="البحث في الدليل">
+      <section class="search-panel" aria-label="البحث في الدليل" hidden>
         <label for="search-input" class="sr-only"
           >ابحث بالاسم أو التخصص أو العنوان</label
         >
@@ -82,7 +82,7 @@
         <small>تأكد من المواعيد والتعاقد والتغطية مع الجهة قبل الزيارة.</small>
       </footer>
     </div>
-    <nav id="main-nav" class="bottom-nav" aria-label="التنقل الرئيسي"></nav>
+    <nav id="main-nav" class="bottom-nav" aria-label="التنقل الرئيسي" hidden></nav>
     <dialog id="app-dialog" aria-labelledby="dialog-title">
       <div class="dialog-header">
         <h2 id="dialog-title"></h2>

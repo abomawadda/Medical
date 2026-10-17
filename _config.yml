@@ -1,6 +1,7 @@
 # Existing GitHub Pages deployment publishes main/root using Jekyll.
 # Keep only the web application in the published site. Source is on GitHub.
 exclude:
+  - js/data.js
   - functions
   - firebase
   - firebase.json

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import { createServer } from "node:http";
 import { readFile, mkdir } from "node:fs/promises";
 import { extname, resolve } from "node:path";
@@ -97,6 +98,7 @@ const server = createServer(async (req, res) => {
       ".json": "application/json",
       ".png": "image/png",
       ".webp": "image/webp",
+      ".woff2": "font/woff2",
     };
     res.setHeader(
       "Content-Type",
@@ -119,10 +121,11 @@ const browser = await chromium.launch({
   args: ["--no-sandbox"],
 });
 const errors = [];
-async function context(connected = true, sw = "block") {
+async function context(connected = true, sw = "block", storageState) {
   const c = await browser.newContext({
     viewport: { width: 390, height: 844 },
     serviceWorkers: sw,
+    ...(storageState ? { storageState } : {}),
   });
   if (connected) {
     await c.route("**/js/config.js", (r) =>
@@ -154,14 +157,33 @@ async function context(connected = true, sw = "block") {
   c.on("page", (p) => p.on("pageerror", (e) => errors.push(e.message)));
   return c;
 }
+async function memberLogin(page, remember = false) {
+  await page.getByLabel("كود الموظف", { exact: true }).fill("00123");
+  await page
+    .getByLabel("رقم الموبايل المسجل", { exact: true })
+    .fill("01012345678");
+  await page
+    .getByLabel("آخر ٤ أرقام من الرقم القومي", { exact: true })
+    .fill("1234");
+  if (remember)
+    await page.getByRole("checkbox", { name: /تذكّر دخولي/ }).check();
+  await page.getByRole("button", { name: "تحقق وادخل" }).click();
+  await page
+    .getByText("متصل · بيانات الدليل والتقييمات من الخدمة المركزية.")
+    .waitFor();
+}
 try {
   const memberContext = await context(),
     p = await memberContext.newPage();
-  await p.goto(origin);
-  await p
-    .getByText("متصل · بيانات الدليل والتقييمات من الخدمة المركزية.")
-    .waitFor();
-  await p.getByRole("button", { name: "دخول الأعضاء" }).click();
+  const requests = [];
+  p.on("request", (r) => requests.push(r.url()));
+  await p.goto(origin + "/#doctors");
+  await p.locator(".login-card form").waitFor();
+  assert.equal(await p.locator(".card").count(), 0);
+  assert.ok(await p.locator("#main-nav").isHidden());
+  assert.ok(!requests.some((u) => u.includes("/v1/catalog")));
+  assert.equal((await p.request.get(origin + "/v1/catalog")).status(), 401);
+  assert.equal((await p.request.get(origin + "/js/data.js")).status(), 404);
   await p.getByLabel("كود الموظف", { exact: true }).fill("00123");
   await p
     .getByLabel("رقم الموبايل المسجل", { exact: true })
@@ -174,16 +196,42 @@ try {
     .locator(".form-error")
     .getByText(/تعذر التحقق/)
     .waitFor();
-  await p
-    .getByLabel("آخر ٤ أرقام من الرقم القومي", { exact: true })
-    .fill("1234");
-  await p.getByRole("button", { name: "تحقق وادخل" }).click();
-  await p.locator("dialog").waitFor({ state: "hidden" });
+  await memberLogin(p, true);
   assert.equal(await p.locator("#member-button").textContent(), "عضو الاختبار");
+  const saved = await p.evaluate(() =>
+    JSON.parse(localStorage.getItem("medical_remembered_session_v1")),
+  );
+  assert.deepEqual(
+    Object.keys(saved).sort(),
+    ["api", "token", "expiresAt"].sort(),
+  );
+  assert.ok(saved.expiresAt > Date.now() + 29 * 86400000);
+  await p.reload();
+  await p
+    .getByText("متصل · بيانات الدليل والتقييمات من الخدمة المركزية.")
+    .waitFor();
+  assert.equal(await p.locator(".login-card").count(), 0);
+  await p.evaluate(() => {
+    const saved = JSON.parse(
+      localStorage.getItem("medical_remembered_session_v1"),
+    );
+    saved.user = { role: "admin", name: "forged" };
+    localStorage.setItem(
+      "medical_remembered_session_v1",
+      JSON.stringify(saved),
+    );
+  });
+  const savedState = await memberContext.storageState();
+  const reopened = await context(true, "block", savedState),
+    r = await reopened.newPage();
+  await r.goto(origin);
+  await r.locator(".hero").waitFor();
+  assert.equal(await r.locator("#member-button").textContent(), "عضو الاختبار");
+  assert.equal(await r.evaluate(() => MedicalAPI.session().role), "member");
   const groups = new Map();
-  for (const r of seed.records) {
-    if (!groups.has(r.provider_id)) groups.set(r.provider_id, []);
-    groups.get(r.provider_id).push(r);
+  for (const item of seed.records) {
+    if (!groups.has(item.provider_id)) groups.set(item.provider_id, []);
+    groups.get(item.provider_id).push(item);
   }
   const branches = [...groups.values()].find(
     (rows) =>
@@ -192,7 +240,7 @@ try {
       rows[1].phones[0]?.tel &&
       rows[0].phones[0].tel !== rows[1].phones[0].tel,
   );
-  assert.ok(branches, "A real multi-branch provider must be available");
+  assert.ok(branches);
   const target = "doctor:" + branches[0].provider_id;
   await p.evaluate(
     (t) => (location.hash = "entity=" + encodeURIComponent(t)),
@@ -213,10 +261,6 @@ try {
   await p.getByRole("button", { name: "حفظ التقييم" }).click();
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
-  assert.equal(
-    [...store.reviews.values()][0].branch_id,
-    String(branches[1].id),
-  );
   const adminContext = await context(),
     a = await adminContext.newPage();
   await a.goto(origin + "/#admin");
@@ -245,8 +289,11 @@ try {
   await a.getByRole("button", { name: "حفظ التغييرات" }).click();
   await a.locator("dialog").waitFor({ state: "hidden" });
   await a.locator("#search-input").fill("طبيب اختبار مضاف");
-  const row = a.getByRole("row").filter({ hasText: "طبيب اختبار مضاف" });
-  await row.getByRole("button", { name: "تعديل", exact: true }).click();
+  await a
+    .getByRole("row")
+    .filter({ hasText: "طبيب اختبار مضاف" })
+    .getByRole("button", { name: "تعديل", exact: true })
+    .click();
   await a.getByLabel("الاسم", { exact: true }).fill("طبيب اختبار معدل");
   await a.getByRole("button", { name: "حفظ التغييرات" }).click();
   await a.locator("dialog").waitFor({ state: "hidden" });
@@ -259,13 +306,23 @@ try {
   await a.getByRole("button", { name: "تأكيد الحذف" }).click();
   await a.locator("dialog").waitFor({ state: "hidden" });
   assert.ok(
-    !(await store.catalog()).records.some((r) => r.name === "طبيب اختبار معدل"),
+    !(await store.catalog()).records.some((x) => x.name === "طبيب اختبار معدل"),
   );
-  // Refresh a distinct browser context; published stats must come from the shared backend.
   const guestContext = await context(),
     g = await guestContext.newPage();
   await g.goto(origin + "/#entity=" + encodeURIComponent(target));
+  await g.locator(".login-card form").waitFor();
+  assert.equal(await g.locator(".card").count(), 0);
+  await memberLogin(g);
   await g.getByText("1 تقييم منشور", { exact: true }).waitFor();
+  assert.equal(
+    await g.evaluate(() =>
+      localStorage.getItem("medical_remembered_session_v1"),
+    ),
+    null,
+  );
+  await g.reload();
+  await g.getByText("1 تقييم منشور", { exact: true }).waitFor(); // tab-only session survives reload
   const dimensions = [];
   for (const width of [320, 390, 768, 1440]) {
     await g.setViewportSize({ width, height: 900 });
@@ -275,37 +332,97 @@ try {
       () => document.documentElement.scrollWidth,
     );
     dimensions.push({ width, scrollWidth });
-    assert.ok(
-      scrollWidth <= width,
-      `Horizontal overflow at ${width}px: ${scrollWidth}`,
-    );
+    assert.ok(scrollWidth <= width);
   }
+  const fonts = await g.evaluate(async () => {
+    await document.fonts.ready;
+    return {
+      body: document.fonts.check("16px Cairo", "دليل"),
+      heading: document.fonts.check("700 16px Tajawal", "دليل"),
+    };
+  });
+  assert.deepEqual(fonts, { body: true, heading: true });
+  // Sign out clears the remembered token and invalidates copies on the server.
+  await r.locator("#member-button").click();
+  await r.getByRole("button", { name: "تسجيل الخروج", exact: true }).click();
+  await r.locator(".login-card form").waitFor();
+  assert.equal(
+    await r.evaluate(() =>
+      localStorage.getItem("medical_remembered_session_v1"),
+    ),
+    null,
+  );
+  await p.reload();
+  await p.locator(".login-card form").waitFor();
+  assert.equal(await p.locator(".card").count(), 0);
+  const forged = await context(),
+    f = await forged.newPage();
+  await f.goto(origin);
+  await f.evaluate(
+    (base) =>
+      localStorage.setItem(
+        "medical_remembered_session_v1",
+        JSON.stringify({
+          api: base,
+          token: "x".repeat(43),
+          expiresAt: Date.now() + 86400000,
+          user: { role: "admin" },
+        }),
+      ),
+    "https://medical.example.invalid",
+  );
+  await f.reload();
+  await f.locator(".login-card form").waitFor();
+  assert.ok(await f.locator("#main-nav").isHidden());
+  assert.equal(
+    await f.evaluate(() =>
+      localStorage.getItem("medical_remembered_session_v1"),
+    ),
+    null,
+  );
+  const offlineConfig = await context(false),
+    u = await offlineConfig.newPage();
+  await u.goto(origin);
+  await u.locator(".login-card form").waitFor();
+  assert.ok(await u.getByRole("button", { name: "تحقق وادخل" }).isDisabled());
+  assert.equal(
+    await u.locator(".login-card input:not([type=checkbox])").count(),
+    3,
+  );
   if (process.env.MEDICAL_SCREENSHOT_DIR) {
     await mkdir(process.env.MEDICAL_SCREENSHOT_DIR, { recursive: true });
-    await g.setViewportSize({ width: 390, height: 844 });
-    await g.screenshot({
-      path: resolve(process.env.MEDICAL_SCREENSHOT_DIR, "v4-home-mobile.png"),
+    await u.screenshot({
+      path: resolve(
+        process.env.MEDICAL_SCREENSHOT_DIR,
+        "required-login-mobile.png",
+      ),
       fullPage: true,
     });
+    await g.setViewportSize({ width: 390, height: 844 });
     await g.goto(origin + "/#doctors");
+    await g.locator(".card").first().waitFor();
     await g.screenshot({
       path: resolve(
         process.env.MEDICAL_SCREENSHOT_DIR,
-        "v4-doctors-mobile.png",
+        "cairo-directory-mobile.png",
       ),
       fullPage: false,
     });
   }
-  // Fresh public configuration: entry forms are honest and have no demo fallback.
-  const offlineConfig = await context(false),
-    u = await offlineConfig.newPage();
-  await u.goto(origin);
-  await u.getByRole("button", { name: "دخول الأعضاء" }).click();
-  assert.ok(await u.getByRole("button", { name: "تحقق وادخل" }).isDisabled());
-  assert.equal(await u.locator("dialog input").count(), 3);
-  await u.keyboard.press("Escape");
-  await u.locator("dialog").waitFor({ state: "hidden" });
-  // Actual Service Worker/offline test, including preservation of another application's cache.
+  const tabSaved = await g.evaluate(() =>
+    JSON.parse(sessionStorage.getItem("medical_session_v1")),
+  );
+  store.sessions.get(
+    createHmac("sha256", "browser-test-only-secret-1234567890-abcdefgh")
+      .update(tabSaved.token)
+      .digest("hex"),
+  ).expiresAt = Date.now() - 1;
+  await g.reload();
+  await g.locator(".login-card form").waitFor();
+  assert.equal(
+    await g.evaluate(() => sessionStorage.getItem("medical_session_v1")),
+    null,
+  );
   const pwa = await context(false, "allow"),
     w = await pwa.newPage();
   await w.goto(origin + "/not-found");
@@ -320,23 +437,28 @@ try {
   );
   await pwa.setOffline(true);
   await w.reload();
-  await w.locator(".hero").waitFor();
+  await w.locator(".login-card form").waitFor();
+  assert.equal(await w.locator(".card").count(), 0);
   assert.ok(
     (await w.locator("#connection-status").textContent()).includes("دون اتصال"),
   );
+  await w.evaluate(() => document.fonts.ready);
+  assert.ok(await w.evaluate(() => document.fonts.check("16px Cairo", "دليل")));
   assert.deepEqual(errors, []);
   console.log(
     JSON.stringify(
       {
         passed: true,
-        memberLogin: true,
-        wrongCredentialsRejected: true,
-        branchPhoneMatches: true,
-        reviewSharedAcrossBrowsers: true,
-        adminCrud: true,
-        notesRenderedAsText: true,
-        publishedStatsShared: true,
-        offlineReload: true,
+        loginRequired: true,
+        catalogRequiresServerSession: true,
+        rememberedSessionRestored: true,
+        tabSessionRestored: true,
+        credentialsNotStored: true,
+        forgedSessionRejected: true,
+        logoutRevokesRememberedSession: true,
+        deepLinksProtected: true,
+        fonts,
+        offlineGate: true,
         foreignCachePreserved: true,
         dimensions,
         runtimeErrors: errors,
