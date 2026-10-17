@@ -8,8 +8,36 @@ export MEDICAL_DEPLOY_PROJECT=we-medical-dakahlia
 export MYNEKABA_PROJECT_ID=nekaba2026
 export GCLOUD_PROJECT="$MEDICAL_DEPLOY_PROJECT"
 
+if [[ "${1:-}" == --existing-config ]]; then
+  if [[ $# -gt 2 || ( $# -eq 2 && "$2" != --prepare-only ) ]]; then
+    echo 'Use --existing-config optionally followed by --prepare-only.' >&2
+    exit 1
+  fi
+  prepare_saved="${2:-}"
+  deploy_env="functions/.env.$MEDICAL_DEPLOY_PROJECT"
+  if [[ ! -f "$deploy_env" ]]; then
+    echo 'Saved Medical configuration is missing. Supply the approved admin ID and public Web API key.' >&2
+    exit 1
+  fi
+  mapfile -t saved_config < <(node --input-type=module - "$deploy_env" <<'JS'
+import { readFileSync } from 'node:fs';
+const lines = readFileSync(process.argv[2], 'utf8').split(/\r?\n/);
+for (const key of ['MYNEKABA_ADMIN_ACCOUNT_IDS', 'MYNEKABA_AUTH_API_KEY']) {
+  const line = lines.find((line) => line.startsWith(key + '='));
+  if (!line) process.exit(1);
+  process.stdout.write(line.slice(key.length + 1).trim() + '\n');
+}
+JS
+  )
+  if [[ -n "$prepare_saved" ]]; then
+    set -- "${saved_config[@]}" "$prepare_saved"
+  else
+    set -- "${saved_config[@]}"
+  fi
+fi
+
 if [[ $# -lt 2 || $# -gt 3 || ( $# -eq 3 && "$3" != --prepare-only ) ]]; then
-  echo 'Usage: bash scripts/deploy-medical.sh ADMIN_DOCUMENT_ID SOURCE_WEB_API_KEY [--prepare-only]' >&2
+  echo 'Usage: bash scripts/deploy-medical.sh ADMIN_DOCUMENT_ID SOURCE_WEB_API_KEY [--prepare-only], or --existing-config' >&2
   exit 1
 fi
 if [[ ! "$1" =~ ^[a-zA-Z0-9_-]{1,128}$ || ! "$2" =~ ^AIza[a-zA-Z0-9_-]{35}$ ]]; then
@@ -40,6 +68,17 @@ npm test
 npx --yes firebase-tools@15.34.0 deploy \
   --project "$MEDICAL_DEPLOY_PROJECT" \
   --only functions:medical,firestore:rules
+
+node --input-type=module <<'JS'
+const response = await fetch('https://europe-west1-we-medical-dakahlia.cloudfunctions.net/medicalApi/v1/health', {
+  cache: 'no-store', signal: AbortSignal.timeout(30000),
+});
+const health = await response.json();
+if (!response.ok || !health.configured || !['member-profile', 'review-revisions'].every((c) => health.capabilities?.includes(c))) {
+  throw new Error('Deployment finished, but the updated API capabilities could not be confirmed. Do not declare the release complete.');
+}
+console.log('Published API confirmed: member profiles and revision-safe moderation enabled.');
+JS
 
 echo 'Deployment command finished. Verify the API and real login before configuring the public site.'
 echo 'No frontend API URL has been changed by this helper.'

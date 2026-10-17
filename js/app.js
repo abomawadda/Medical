@@ -179,7 +179,9 @@
   }
   function updateHeader() {
     const u = session();
-    $("#member-button").textContent = u ? u.name : "دخول الأعضاء";
+    $("#member-button").textContent = u
+      ? (u.role === "member" ? "مرحبًا، " : "") + u.name
+      : "دخول الأعضاء";
   }
   function connection() {
     const n = $("#connection-status");
@@ -1007,7 +1009,7 @@
       await refresh();
       toast(
         API.persistenceNotice ||
-          "تم التحقق من بيانات العضوية. مرحبًا بك في الدليل الطبي.",
+          "مرحبًا، " + session().name + ". سعداء بوجودك في دليل WE الطبي.",
       );
     };
     formAction(form, "تحقق وادخل");
@@ -1089,7 +1091,7 @@
     if (!API.configured)
       form.querySelector("button[type=submit]").disabled = true;
   }
-  function reviewDialog(target, name, branch) {
+  function reviewDialog(target, name, branch, previous = null) {
     if (session()?.role !== "member") {
       if (session()?.role === "admin")
         toast("حساب الإدارة مخصص لإدارة الدليل. التقييم يتطلب تحقق العضوية.");
@@ -1111,9 +1113,9 @@
           ["2", "★★ ضعيفة"],
           ["1", "★ غير مرضية"],
         ],
-        "",
+        previous ? String(previous.rating) : "",
       ),
-      field("ملاحظاتك على الزيارة", "comment", "textarea", "", {
+      field("ملاحظاتك على الزيارة", "comment", "textarea", previous?.comment || "", {
         maxlength: 1500,
         placeholder: "صف تجربتك دون ذكر رقم قومي أو تفاصيل صحية خاصة.",
       }),
@@ -1135,8 +1137,9 @@
       });
       closeDialog();
       toast(result.message);
+      if (location.hash === "#account") route();
     };
-    dialog("تقييم الزيارة وملاحظاتك", formAction(form, "حفظ التقييم"));
+    dialog(previous ? "تعديل تقييمي" : "تقييم الزيارة وملاحظاتك", formAction(form, "حفظ التقييم"));
   }
   async function renderAccount(main) {
     const u = session();
@@ -1148,10 +1151,37 @@
       return;
     }
     main.append(
-      heading("مرحبًا، " + u.name, "هذه الجلسة مخصصة للتقييم والملاحظات فقط."),
+      heading("مرحبًا، " + u.name, "بياناتك النقابية وتقييمات زياراتك في مكان واحد."),
       button("تسجيل الخروج", logout, "button outline"),
     );
     if (u.role !== "member") return;
+    const profileBox = el("section", { class: "member-profile", "aria-label": "بيانات العضو" },
+      el("h2", {}, "بطاقتي النقابية"), el("p", { class: "muted" }, "جارٍ تحميل بياناتك…"));
+    main.append(profileBox);
+    const showProfile = async () => {
+      try {
+        const {profile} = await API.profile();
+        const date = (value) => value ? new Intl.DateTimeFormat("ar-EG", {
+          timeZone: "Africa/Cairo", dateStyle: "medium", timeStyle: "short",
+        }).format(new Date(value)) : "لم يُسجّل بعد";
+        const fields = [
+          ["الاسم", profile.name], ["كود الموظف", profile.employeeCode],
+          ["رقم العضوية النقابية", profile.membershipCode], ["الوظيفة", profile.jobTitle],
+          ["مكان العمل", profile.workplace], ["آخر دخول إلى الدليل الطبي", date(profile.lastLoginAt)],
+          ["الدخول السابق إلى الدليل الطبي", date(profile.previousLoginAt)],
+        ];
+        profileBox.replaceChildren(el("h2", {}, "بطاقتي النقابية"),
+          el("dl", {class:"profile-grid"}, ...fields.map(([label,value]) =>
+            el("div", {}, el("dt", {}, label), el("dd", {}, value || "غير مسجل لدى النقابة")))),
+          el("p", {class:"muted"}, "بياناتك للعرض لك وحدك من سجل النقابة. تحديثها يتم لدى النقابة."));
+      } catch (error) {
+        profileBox.replaceChildren(el("h2", {}, "بطاقتي النقابية"),
+          el("p", {class:"notice warning"}, error.code === "NOT_FOUND"
+            ? "بطاقة بياناتك تنتظر نشر تحديث الخدمة المركزية. دخولك وتقييماتك متاحان."
+            : error.message));
+      }
+    };
+    void showProfile();
     const content = el(
       "div",
       {},
@@ -1163,7 +1193,11 @@
       content.replaceChildren(
         el("h2", {}, "تقييماتي وملاحظاتي"),
         ...(result.reviews.length
-          ? result.reviews.map(reviewItem)
+          ? result.reviews.map((r) => {
+              const item = reviewItem(r);
+              item.append(button("تعديل تقييمي", () => reviewDialog(r.target_id, r.target_name, r.branch_id, r), "button outline"));
+              return item;
+            })
           : [empty("لم تسجل تقييمات بعد. اختر الجهة التي زرتها من الدليل.")]),
       );
     } catch (e) {
@@ -1490,72 +1524,73 @@
     dialog("تأكيد حذف السجل", box);
   }
   async function adminReviewDialog() {
-    const box = el(
-      "div",
-      {},
-      el("p", { class: "muted" }, "جارٍ تحميل أحدث 500 تقييم…"),
-    );
+    const box = el("div", {}, el("p", {class:"muted"}, "جارٍ تحميل التقييمات…"));
     dialog("مراجعة تقييمات الزيارات", box);
-    try {
-      const result = await API.adminReviews();
-      const notice = el("p", { role: "status", "aria-live": "polite" });
-      box.replaceChildren(notice);
-      if (!result.reviews.length) box.append(empty("لا توجد تقييمات بعد."));
-      for (const r of result.reviews) {
-        let item, busy = false;
-        const renderReview = () => {
-          const next = reviewItem(r);
-          next.append(
-            el(
-              "div",
-              { class: "actions-row" },
-              ...["published", "hidden"].map((status) => {
-                const action = button(
-                  status === "published"
-                    ? (r.status === status ? "تم الاعتماد والنشر" : "اعتماد ونشر")
-                    : (r.status === status ? "تم الإخفاء" : "إخفاء"),
-                  async () => {
-                    if (busy || r.status === status) return;
-                    busy = true;
-                    notice.textContent = "";
-                    renderReview();
-                    try {
-                      await API.moderate(r.id, status);
-                      r.status = status;
-                      notice.className = "notice";
-                      notice.textContent = status === "published"
-                        ? "تم اعتماد التقييم ونشره بنجاح."
-                        : "تم إخفاء التقييم من الحساب العام للنجوم.";
-                      renderReview();
-                      try {
-                        await refresh();
-                      } catch {
-                        notice.textContent += " تعذر تحديث الدليل الآن؛ حدّث الصفحة لاحقًا. لا تحتاج إلى إعادة الاعتماد.";
-                      }
-                    } catch (e) {
-                      notice.className = "notice warning";
-                      notice.textContent = e.message;
-                    } finally {
-                      busy = false;
-                      renderReview();
-                    }
-                  },
-                  "button " + (status === "published" ? "primary" : "outline"),
-                );
-                action.disabled = busy || r.status === status;
-                return action;
-              }),
-            ),
-          );
-          if (item) item.replaceWith(next);
-          else box.append(next);
-          item = next;
-        };
-        renderReview();
+    let reviews = [], reviewed = false, busy = false, error = "", compatible = false, healthUnavailable = false;
+    const draw = () => {
+      const waiting = reviews.filter((r) => r.status === "pending");
+      const history = reviews.filter((r) => r.status !== "pending");
+      const tabs = el("div", {class:"actions-row"},
+        button("بانتظار الاعتماد (" + waiting.length + ")", () => { reviewed=false; error=""; draw(); }, "button " + (!reviewed ? "primary" : "outline")),
+        button("تمت مراجعتها (" + history.length + ")", () => { reviewed=true; error=""; draw(); }, "button " + (reviewed ? "primary" : "outline")));
+      box.replaceChildren(tabs);
+      if (!compatible) box.append(el("p", {class:"notice warning",role:"status"},
+        healthUnavailable
+          ? "تعذر التحقق من جاهزية خدمة المراجعة. أعد الفحص قبل اتخاذ القرار."
+          : "يلزم نشر تحديث الخدمة المركزية لتفعيل مراجعة نسخ التقييمات بأمان. يمكنك الاطلاع على القائمة حاليًا."),
+        button("إعادة فحص الخدمة", load, "button outline"));
+      if (error) box.append(el("p", {class:"notice warning",role:"alert"}, error),
+        button("تحديث قائمة التقييمات", load, "button outline"));
+      const selected = reviewed ? history : waiting;
+      if (!selected.length) box.append(empty(reviewed ? "لا توجد تقييمات تمت مراجعتها." : "لا توجد تقييمات بانتظار الاعتماد."));
+      for (const r of selected) {
+        const item = reviewItem(r);
+        item.append(el("p", {class:"muted"}, "نسخة التقييم: " + (r.revision || 1)));
+        if (r.status !== "pending") item.append(el("p", {class:"notice"},
+          "تمت مراجعة هذه النسخة. العضو وحده يستطيع تعديل محتواها وإرسال نسخة جديدة للمراجعة."));
+        const actions = el("div", {class:"actions-row"});
+        const statuses = r.status === "pending" ? ["published", "hidden"] : r.status === "published" ? ["hidden"] : [];
+        for (const status of statuses) {
+          const action = button(status === "published" ? "اعتماد ونشر" : "إخفاء التقييم", async () => {
+            if (busy || !compatible) return;
+            busy = true;
+            box.querySelectorAll("button[data-review-action]").forEach((b) => b.disabled=true);
+            try {
+              const result = await API.moderate(r.id, status, r.revision || 1);
+              r.status = status;
+              closeDialog();
+              let message = result.changed === false
+                ? "هذه الحالة محفوظة بالفعل؛ لم يُكرر الاعتماد."
+                : status === "published" ? "تم اعتماد التقييم ونشره بنجاح." : "تم إخفاء التقييم بنجاح.";
+              toast(message);
+              try { await refresh(); }
+              catch { toast(message + " تعذر تحديث الدليل الآن؛ حدّث الصفحة لاحقًا."); }
+            } catch (e) {
+              error = e.message;
+            } finally {
+              busy = false;
+              if (box.isConnected && $("#app-dialog").open) draw();
+            }
+          }, "button " + (status === "published" ? "primary" : "outline"));
+          action.dataset.reviewAction = "true";
+          action.disabled = busy || !compatible;
+          actions.append(action);
+        }
+        item.append(actions);
+        box.append(item);
       }
-    } catch (e) {
-      box.replaceChildren(empty(e.message));
-    }
+    };
+    const load = async () => {
+      try {
+        const [result, health] = await Promise.all([API.adminReviews(), API.health().catch(() => ({unavailable:true}))]);
+        reviews = result.reviews;
+        compatible = health.capabilities?.includes("review-revisions") === true;
+        healthUnavailable = health.unavailable === true;
+        error = "";
+        draw();
+      } catch (e) { box.replaceChildren(empty(e.message)); }
+    };
+    await load();
   }
   function exportCatalog() {
     const blob = new Blob(

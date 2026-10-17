@@ -58,6 +58,7 @@ function setup(options = {}) {
       phone: "01012345678",
       nationalId: "29901010101234",
       memberState: "نشط",
+      membershipId: "UNION-123", jobTitle: "مهندس اختبار", workplace: "سنترال اختبار",
     },
   ];
   const accounts = [
@@ -76,6 +77,7 @@ function setup(options = {}) {
       return employees.filter((e) => e.jobId === c);
     },
     getEmployee: async (id) => employees.find((e) => e.id === id),
+    getMemberProfile: async (id) => employees.find((e) => e.id === id),
     findAccounts: async (uid) => accounts.filter((a) => a.firebaseUid === uid),
     getAccount: async (id) => accounts.find((a) => a.id === id),
     verifyAdminIdentity: async (b) => {
@@ -399,16 +401,16 @@ test("publishing/hiding/updating a review changes actual aggregate values", asyn
     a = await admin(f);
   await f.service.submitReview(t, review, "ip");
   const id = [...f.store.reviews.keys()][0];
-  await f.service.moderateReview(a, id, { status: "published" });
+  await f.service.moderateReview(a, id, { status: "published", revision: f.store.reviews.get(id).revision });
   assert.deepEqual((await f.service.catalog(t)).stats["doctor:p1"], {
     count: 1,
     average: 4,
   });
   await f.service.submitReview(t, { ...review, rating: 2 }, "ip");
   assert.deepEqual((await f.service.catalog(t)).stats, {});
-  await f.service.moderateReview(a, id, { status: "published" });
+  await f.service.moderateReview(a, id, { status: "published", revision: f.store.reviews.get(id).revision });
   assert.equal((await f.service.catalog(t)).stats["doctor:p1"].average, 2);
-  await f.service.moderateReview(a, id, { status: "hidden" });
+  await f.service.moderateReview(a, id, { status: "hidden", revision: f.store.reviews.get(id).revision });
   assert.deepEqual((await f.service.catalog(t)).stats, {});
 });
 test("admin CRUD is shared and refuses stale edits; role revocation takes effect", async () => {
@@ -538,4 +540,68 @@ test("HTTP routes enforce authorization rather than UI state", async () => {
     preflight.headers["Access-Control-Allow-Origin"],
     "https://abomawadda.github.io",
   );
+});
+
+
+test("member profile exposes only the current member display fields and real Medical login history", async () => {
+  const f = setup();
+  const token = await member(f);
+  const first = (await f.service.memberProfile(token)).profile;
+  assert.equal(first.name, f.employees[0].name);
+  assert.equal(first.employeeCode, "00123");
+  assert.equal(first.membershipCode, "UNION-123");
+  assert.equal(first.jobTitle, "مهندس اختبار");
+  assert.equal(first.workplace, "سنترال اختبار");
+  assert.ok(first.lastLoginAt);
+  assert.equal(first.previousLoginAt, null);
+  for (const key of ["nationalId", "phone", "sourceId", "passwordHash", "fingerprint"])
+    assert.ok(!(key in first));
+  await f.service.session(token);
+  assert.deepEqual((await f.service.memberProfile(token)).profile, first);
+  f.advance(1000);
+  const later = await member(f);
+  const history = (await f.service.memberProfile(later)).profile;
+  assert.equal(history.lastLoginAt, first.lastLoginAt + 1000);
+  assert.equal(history.previousLoginAt, first.lastLoginAt);
+  await assert.rejects(() => f.service.memberProfile(), (e) => e.status === 401);
+  const adminToken = await admin(f);
+  await assert.rejects(() => f.service.memberProfile(adminToken), (e) => e.status === 403);
+});
+
+test("review versions are approved once, retries do not duplicate auditing, and only author changes reopen moderation", async () => {
+  const f=setup(), t=await member(f), a=await admin(f);
+  await f.service.submitReview(t, review, "review-ip");
+  const id=[...f.store.reviews.keys()][0];
+  const published=await f.service.moderateReview(a,id,{status:"published",revision:1});
+  assert.equal(published.changed,true);
+  const audits=f.store.audit.length;
+  const retry=await f.service.moderateReview(a,id,{status:"published",revision:1});
+  assert.equal(retry.changed,false);
+  assert.equal(f.store.audit.length,audits);
+  const same=await f.service.submitReview(t,review,"same");
+  assert.equal(same.changed,false);
+  assert.equal(same.status,"published");
+  await f.service.moderateReview(a,id,{status:"hidden",revision:1});
+  await assert.rejects(() => f.service.moderateReview(a,id,{status:"published",revision:1}), (e) => e.code === "REVIEW_ALREADY_DECIDED");
+  await assert.rejects(() => f.service.submitReview(a,review,"admin-edit"), (e) => e.status === 403);
+  await f.service.submitReview(t,{...review,comment:"تعديل العضو"},"edit");
+  assert.equal(f.store.reviews.get(id).revision,2);
+  assert.equal(f.store.reviews.get(id).status,"pending");
+  await assert.rejects(() => f.service.moderateReview(a,id,{status:"published",revision:1}), (e) => e.code === "REVIEW_CHANGED");
+  await assert.rejects(() => f.service.moderateReview(a,id,{status:"published"}), (e) => e.status === 409);
+  await f.service.moderateReview(a,id,{status:"published",revision:2});
+  assert.equal(f.store.reviews.get(id).status,"published");
+});
+
+
+test("member profiles and login activity are isolated between members", async () => {
+  const f=setup(), first=await member(f);
+  f.employees.push({...f.employees[0],id:"other-member",jobId:"00234",name:"عضو آخر",membershipId:"OTHER"});
+  const second=(await f.service.memberLogin({...credentials,employee_code:"00234"},"other-ip")).token;
+  assert.equal((await f.service.memberProfile(first)).profile.membershipCode,"UNION-123");
+  assert.equal((await f.service.memberProfile(second)).profile.membershipCode,"OTHER");
+  const before=(await f.service.memberProfile(first)).profile;
+  f.advance(1000);
+  await f.service.memberLogin({...credentials,employee_code:"00234"},"other-ip-2");
+  assert.deepEqual((await f.service.memberProfile(first)).profile,before);
 });

@@ -24,6 +24,7 @@ const employee = {
   phone: "01012345678",
   nationalId: "29901010101234",
   memberState: "نشط",
+  membershipId:"UNION-123", jobTitle:"مهندس اختبار", workplace:"سنترال اختبار",
   name: "عضو الاختبار",
 };
 const account = {
@@ -36,6 +37,7 @@ const account = {
 const source = Object.freeze({
   findEmployees: async (c) => (c === employee.jobId ? [employee] : []),
   getEmployee: async (id) => (id === employee.id ? employee : null),
+  getMemberProfile: async (id) => (id === employee.id ? employee : null),
   findAccounts: async (uid) => (uid === account.firebaseUid ? [account] : []),
   getAccount: async (id) => (id === account.id ? account : null),
   verifyAdminIdentity: async (body) => {
@@ -206,7 +208,7 @@ try {
     .getByText(/تعذر التحقق/)
     .waitFor();
   await memberLogin(p, true);
-  assert.equal(await p.locator("#member-button").textContent(), "عضو الاختبار");
+  assert.equal(await p.locator("#member-button").textContent(), "مرحبًا، عضو الاختبار");
   const saved = await p.evaluate(() =>
     JSON.parse(localStorage.getItem("medical_remembered_session_v1")),
   );
@@ -235,7 +237,7 @@ try {
     r = await reopened.newPage();
   await r.goto(origin);
   await r.locator(".hero").waitFor();
-  assert.equal(await r.locator("#member-button").textContent(), "عضو الاختبار");
+  assert.equal(await r.locator("#member-button").textContent(), "مرحبًا، عضو الاختبار");
   assert.equal(await r.evaluate(() => MedicalAPI.session().role), "member");
   const groups = new Map();
   for (const item of seed.records) {
@@ -287,42 +289,67 @@ try {
     .getByText("ملاحظة اختبار <img src=x onerror=alert(1)>", { exact: true })
     .waitFor();
   assert.equal(await a.locator("dialog img").count(), 0);
-  await a.locator("#dialog-content > div").evaluate((node) => node.dataset.testMarker = "original-review-dialog");
   let moderationRequests = 0;
   a.on("request", (req) => {
     if (req.method() === "PATCH" && req.url().includes("/admin/reviews/")) moderationRequests++;
   });
-  // A successful save must remain successful even if refreshing the directory fails.
   await adminContext.route("https://medical.example.invalid/v1/catalog", (route) =>
     route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({message:"fixture refresh unavailable"})}));
-  await a.getByRole("button", { name: "اعتماد ونشر", exact: true }).click();
-  await a.getByText("تم اعتماد التقييم ونشره بنجاح.", {exact:false}).waitFor();
-  await a.getByText(/لا تحتاج إلى إعادة الاعتماد/).waitFor();
-  assert.ok(await a.getByRole("button", {name:"تم الاعتماد والنشر",exact:true}).isDisabled());
-  assert.equal(moderationRequests, 1);
-  assert.equal(await a.locator("#dialog-content > div").getAttribute("data-test-marker"), "original-review-dialog");
+  await a.getByRole("button", {name:"اعتماد ونشر",exact:true}).click();
+  await a.locator("dialog").waitFor({state:"hidden"});
+  await a.getByText(/تم اعتماد التقييم ونشره بنجاح/).waitFor();
+  assert.equal(moderationRequests,1);
   await adminContext.unroute("https://medical.example.invalid/v1/catalog");
-  assert.deepEqual((await store.getStats())[target], { count: 1, average: 4 });
-  await a.getByRole("button", { name: "إغلاق النافذة" }).click();
-  await a.getByRole("button", { name: "مراجعة التقييمات" }).click();
-  assert.ok(await a.getByRole("button", {name:"تم الاعتماد والنشر",exact:true}).isDisabled());
-  // A failed moderation keeps the saved status and offers a retry without an alert loop.
+  assert.deepEqual((await store.getStats())[target], {count:1,average:4});
+  await a.getByRole("button", {name:"مراجعة التقييمات",exact:true}).click();
+  await a.getByText("لا توجد تقييمات بانتظار الاعتماد.", {exact:true}).waitFor();
+  assert.equal(await a.getByRole("button", {name:"اعتماد ونشر",exact:true}).count(),0);
+  await a.getByRole("button", {name:/تمت مراجعتها/}).click();
+  await a.getByText(/معتمد ومنشور/).first().waitFor();
+  assert.equal(await a.getByRole("button", {name:"اعتماد ونشر",exact:true}).count(),0);
   await adminContext.route("https://medical.example.invalid/v1/admin/reviews/*", (route) =>
     route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({message:"تعذر حفظ التغيير التجريبي"})}));
-  await a.getByRole("button", {name:"إخفاء",exact:true}).click();
+  await a.getByRole("button", {name:"إخفاء التقييم",exact:true}).click();
   await a.getByText("تعذر حفظ التغيير التجريبي", {exact:true}).waitFor();
-  assert.ok(await a.getByRole("button", {name:"تم الاعتماد والنشر",exact:true}).isDisabled());
-  assert.ok(await a.getByRole("button", {name:"إخفاء",exact:true}).isEnabled());
-  assert.deepEqual((await store.getStats())[target], { count: 1, average: 4 });
+  assert.ok(await a.getByRole("button", {name:"إخفاء التقييم",exact:true}).isEnabled());
   await adminContext.unroute("https://medical.example.invalid/v1/admin/reviews/*");
-  await a.getByRole("button", {name:"إخفاء",exact:true}).click();
-  await a.getByText("تم إخفاء التقييم من الحساب العام للنجوم.", {exact:true}).waitFor();
-  await a.waitForFunction(() => [...document.querySelectorAll("dialog button")].some((b) => b.textContent === "اعتماد ونشر" && !b.disabled));
-  assert.equal((await store.getStats())[target]?.count || 0, 0);
+  await a.getByRole("button", {name:"إخفاء التقييم",exact:true}).click();
+  await a.locator("dialog").waitFor({state:"hidden"});
+  assert.equal((await store.getStats())[target]?.count || 0,0);
+  await a.getByRole("button", {name:"مراجعة التقييمات",exact:true}).click();
+  await a.getByRole("button", {name:/تمت مراجعتها/}).click();
+  assert.equal(await a.getByRole("button", {name:"اعتماد ونشر",exact:true}).count(),0);
+  await a.getByRole("button", {name:"إغلاق النافذة"}).click();
+  // The member's name opens their own profile and editing creates a new version.
+  await p.getByRole("button", {name:/مرحبًا، عضو الاختبار/}).click();
+  await p.getByRole("heading", {name:"بطاقتي النقابية",exact:true}).waitFor();
+  await p.getByText("UNION-123", {exact:true}).waitFor();
+  await p.getByText("مهندس اختبار", {exact:true}).waitFor();
+  assert.ok(await p.getByText("آخر دخول إلى الدليل الطبي", {exact:true}).isVisible());
+  assert.ok(!await p.locator(".member-profile").textContent().then((s) => s.includes("29901010101234")));
+  if (process.env.MEDICAL_SCREENSHOT_DIR) {
+    await mkdir(process.env.MEDICAL_SCREENSHOT_DIR, {recursive:true});
+    await p.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"member-profile-mobile.png"),fullPage:true});
+  }
+  await p.getByRole("button", {name:"تعديل تقييمي",exact:true}).click();
+  assert.equal(await p.getByLabel("ملاحظاتك على الزيارة",{exact:true}).inputValue(),"ملاحظة اختبار <img src=x onerror=alert(1)>");
+  await p.getByLabel("ملاحظاتك على الزيارة",{exact:true}).fill("عدّل العضو تقييمه بنفسه");
+  await p.getByRole("checkbox").check();
+  await p.getByRole("button", {name:"حفظ التقييم",exact:true}).click();
+  await p.locator("dialog").waitFor({state:"hidden"});
+  await a.getByRole("button", {name:"مراجعة التقييمات",exact:true}).click();
   await a.getByRole("button", {name:"اعتماد ونشر",exact:true}).click();
-  await a.getByText("تم اعتماد التقييم ونشره بنجاح.", {exact:true}).waitFor();
-  assert.deepEqual((await store.getStats())[target], { count: 1, average: 4 });
-  await a.getByRole("button", { name: "إغلاق النافذة" }).click();
+  await a.locator("dialog").waitFor({state:"hidden"});
+  assert.deepEqual((await store.getStats())[target], {count:1,average:4});
+  // Old production functions must never receive unversioned moderation from the new UI.
+  await adminContext.route("https://medical.example.invalid/v1/health", (route) =>
+    route.fulfill({status:200,contentType:"application/json",body:'{"configured":true}'}));
+  await a.getByRole("button", {name:"مراجعة التقييمات",exact:true}).click();
+  await a.getByText(/يلزم نشر تحديث الخدمة المركزية/).waitFor();
+  await a.getByRole("button", {name:/تمت مراجعتها/}).click();
+  assert.ok(await a.getByRole("button", {name:"إخفاء التقييم",exact:true}).isDisabled());
+  await adminContext.unroute("https://medical.example.invalid/v1/health");
+  await a.getByRole("button", {name:"إغلاق النافذة"}).click();
   await a.getByRole("button", { name: "إضافة سجل", exact: true }).click();
   await a.getByLabel("الاسم", { exact: true }).fill("طبيب اختبار مضاف");
   await a.getByLabel("التخصص", { exact: true }).fill("اختبار");
@@ -508,7 +535,9 @@ try {
         offlineGate: true,
         foreignCachePreserved: true,
         publicConfigurationRefreshedOnlineAndAvailableOffline: true,
-        moderationSuccessClearAndRepeatActionDisabled: true,
+        moderationSuccessClosesDialogAndReviewedItemsLeaveQueue: true,
+        personalProfileAndAuthorOnlyReviewEditing: true,
+        incompatibleBackendModerationBlocked: true,
         moderationSavedDespiteDirectoryRefreshFailure: true,
         dimensions,
         runtimeErrors: errors,

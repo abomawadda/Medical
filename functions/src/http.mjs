@@ -24,7 +24,7 @@ export function createHandler({ getService, origins, logger = console }) {
     if (req.method === "GET" && path === "/v1/health") {
       try {
         getService();
-        return res.json({ configured: true });
+        return res.json({ configured: true, capabilities: ["member-profile", "review-revisions"] });
       } catch {
         return res.status(503).json({
           configured: false,
@@ -55,6 +55,8 @@ export function createHandler({ getService, origins, logger = console }) {
       let data;
       if (req.method === "GET" && path === "/v1/catalog")
         data = await service.catalog(token);
+      else if (req.method === "GET" && path === "/v1/profile")
+        data = await service.memberProfile(token);
       else if (req.method === "GET" && path === "/v1/session")
         data = await service.session(token);
       else if (req.method === "POST" && path === "/v1/member/session")

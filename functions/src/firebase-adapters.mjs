@@ -9,6 +9,7 @@ import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { ApiError, kinds } from "./core.mjs";
 import { createAdminIdentityVerifier, legacyAdminState } from "./admin-identity.mjs";
+import { reviseReview, decideReview, reviewRevision } from "./review-lifecycle.mjs";
 
 const key = (value) => createHash("sha256").update(value).digest("hex");
 export function mergeCatalog(seed, overlays) {
@@ -135,6 +136,11 @@ export function firebaseAdapters({
         )[0],
       );
     },
+    async getMemberProfile(id) {
+      return decode((await sourceDb.getAll(sourceDb.collection("employees").doc(id), {
+        fieldMask: ["name", "jobId", "membershipId", "jobTitle", "workplace"],
+      }))[0]);
+    },
     async findAccounts(uid) {
       const s = await sourceDb
         .collection("user_accounts")
@@ -165,6 +171,7 @@ export function firebaseAdapters({
     reviews = db.collection("medical_reviews"),
     stats = db.collection("medical_review_stats"),
     audit = db.collection("medical_audit");
+  const activity = db.collection("medical_member_activity");
   function adjustStats(current, old, next) {
     let count = current?.count || 0,
       sum = current?.sum || 0;
@@ -196,9 +203,17 @@ export function firebaseAdapters({
         });
       },
       async saveSession(id, data) {
-        await sessions
-          .doc(id)
-          .create({ ...data, expiresAt: Timestamp.fromMillis(data.expiresAt) });
+        const sessionData = { ...data, expiresAt: Timestamp.fromMillis(data.expiresAt) };
+        if (data.role !== "member") return sessions.doc(id).create(sessionData);
+        await db.runTransaction(async (tx) => {
+          const ref = activity.doc(data.subject);
+          const old = (await tx.get(ref)).data();
+          tx.set(ref, { lastLoginAt: data.loginAt, previousLoginAt: old?.lastLoginAt || null });
+          tx.create(sessions.doc(id), sessionData);
+        });
+      },
+      async getMemberActivity(subject) {
+        return (await activity.doc(subject).get()).data() || {};
       },
       async getSession(id) {
         const s = await sessions.doc(id).get();
@@ -257,14 +272,14 @@ export function firebaseAdapters({
       async saveReview(review) {
         const ref = reviews.doc(review.id),
           stat = stats.doc(key(review.target_id));
-        await db.runTransaction(async (tx) => {
+        return db.runTransaction(async (tx) => {
           const [old, totals] = await Promise.all([tx.get(ref), tx.get(stat)]);
           const previous = old.data();
-          tx.set(ref, {
-            ...review,
-            created_at: previous?.created_at || review.updated_at,
-          });
-          tx.set(stat, adjustStats(totals.data(), previous, review));
+          const next = reviseReview(previous, review);
+          if (!next.changed) return { changed: false, status: previous.status, revision: reviewRevision(previous) };
+          tx.set(ref, next.review);
+          tx.set(stat, adjustStats(totals.data(), previous, next.review));
+          return { changed: true, status: next.review.status, revision: next.review.revision };
         });
       },
       async listReviews(filter) {
@@ -274,22 +289,24 @@ export function firebaseAdapters({
         const snapshot = await query.limit(500).get();
         return snapshot.docs.map((s) => {
           const { author_id, ...publicFields } = s.data();
-          return publicFields;
+          return { ...publicFields, revision: reviewRevision(publicFields) };
         });
       },
-      async moderateReview(id, status, actor, at) {
+      async moderateReview(id, status, actor, at, expectedRevision) {
         if (!/^[a-f0-9]{64}$/.test(id))
           throw new ApiError(400, "INVALID_REVIEW", "معرف التقييم غير صالح.");
         const ref = reviews.doc(id),
           log = audit.doc();
-        await db.runTransaction(async (tx) => {
+        return db.runTransaction(async (tx) => {
           const old = await tx.get(ref);
           if (!old.exists)
             throw new ApiError(404, "NOT_FOUND", "التقييم غير موجود.");
           const previous = old.data(),
             stat = stats.doc(key(previous.target_id));
+          const decision = decideReview(previous, status, expectedRevision, at);
+          if (!decision.changed) return { changed: false, status, revision: reviewRevision(previous) };
           const totals = await tx.get(stat);
-          const next = { ...previous, status, moderated_at: at };
+          const next = decision.review;
           tx.set(ref, next);
           tx.set(stat, adjustStats(totals.data(), previous, next));
           tx.create(log, {
@@ -298,7 +315,9 @@ export function firebaseAdapters({
             status,
             actor,
             at,
+            revision: next.revision,
           });
+          return { changed: true, status, revision: next.revision };
         });
       },
     },

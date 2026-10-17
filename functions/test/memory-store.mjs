@@ -1,10 +1,11 @@
 import { ApiError, kinds } from "../src/core.mjs";
+import { reviseReview, decideReview, reviewRevision } from "../src/review-lifecycle.mjs";
 export function fixtureStore(seed) {
   const sessions = new Map(),
     limits = new Map(),
     reviews = new Map(),
     overlays = new Map(),
-    audit = [];
+    audit = [], activity = new Map();
   const base = structuredClone(seed);
   for (const k of kinds) base[k] ||= [];
   const store = {
@@ -19,6 +20,12 @@ export function fixtureStore(seed) {
     },
     async saveSession(id, data) {
       sessions.set(id, structuredClone(data));
+      if (data.role === "member") activity.set(data.subject, {
+        lastLoginAt: data.loginAt, previousLoginAt: activity.get(data.subject)?.lastLoginAt || null,
+      });
+    },
+    async getMemberActivity(subject) {
+      return activity.get(subject) || {};
     },
     async getSession(id) {
       return sessions.get(id);
@@ -65,18 +72,24 @@ export function fixtureStore(seed) {
       audit.push({ kind, id, actor, at });
     },
     async saveReview(r) {
-      reviews.set(r.id, structuredClone(r));
+      const next = reviseReview(reviews.get(r.id), r);
+      if (next.changed) reviews.set(r.id, structuredClone(next.review));
+      return { changed: next.changed, status: next.review.status, revision: reviewRevision(next.review) };
     },
     async listReviews(filter) {
       return [...reviews.values()]
         .filter((r) => !filter.author_id || filter.author_id === r.author_id)
-        .map(({ author_id, ...rest }) => rest);
+        .map(({ author_id, ...rest }) => ({...rest, revision: reviewRevision(rest)}));
     },
-    async moderateReview(id, status, actor) {
+    async moderateReview(id, status, actor, at, expectedRevision) {
       const r = reviews.get(id);
       if (!r) throw new ApiError(404, "NOT_FOUND", "غير موجود");
-      r.status = status;
-      audit.push({ id, status, actor });
+      const decision = decideReview(r, status, expectedRevision, at);
+      if (decision.changed) {
+        reviews.set(id, decision.review);
+        audit.push({ id, status, actor, revision: reviewRevision(r) });
+      }
+      return { changed: decision.changed, status, revision: reviewRevision(r) };
     },
   };
   return store;

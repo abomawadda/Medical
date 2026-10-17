@@ -373,6 +373,7 @@ export function createService({
           name: shortName(e.name),
           fingerprint: fingerprint(e),
           subject: digest(`member|${e.id}`),
+          loginAt: now(),
         },
         body.remember === true,
       );
@@ -426,7 +427,21 @@ export function createService({
       await authorize(token);
       return { catalog: await store.catalog(), stats: await store.getStats() };
     },
+    async memberProfile(token) {
+      const s = await authorize(token, "member");
+      const e = await source.getMemberProfile(s.sourceId);
+      if (!e) fail(401, "SESSION_EXPIRED", "يرجى تسجيل الدخول مجددًا.");
+      const activity = await store.getMemberActivity(s.subject);
+      const value = (v, limit) => String(v ?? "").trim().slice(0, limit);
+      return { profile: {
+        name: value(e.name, 200), employeeCode: value(e.jobId, 80),
+        membershipCode: value(e.membershipId, 80), jobTitle: value(e.jobTitle, 160),
+        workplace: value(e.workplace, 240), lastLoginAt: activity.lastLoginAt || null,
+        previousLoginAt: activity.previousLoginAt || null,
+      } };
+    },
     async submitReview(token, body, ip) {
+      // Only this authenticated member can write the content of their review.
       const s = await authorize(token, "member");
       await rate(ip, "review", 20);
       const target = targets(await store.catalog()).get(body.target_id);
@@ -453,11 +468,13 @@ export function createService({
         status: "pending",
         updated_at: now(),
       };
-      await store.saveReview(review);
+      const saved = await store.saveReview(review);
       return {
         success: true,
-        status: "pending",
-        message: "تم حفظ تقييمك وملاحظاتك، وسيظهر التقييم العام بعد المراجعة.",
+        ...saved,
+        message: saved.changed
+          ? "تم حفظ تقييمك وملاحظاتك، وسيظهر التقييم العام بعد المراجعة."
+          : "تقييمك محفوظ بالفعل ولم يتغير؛ تظل حالة مراجعته كما هي.",
       };
     },
     async ownReviews(token) {
@@ -472,8 +489,10 @@ export function createService({
       const s = await authorize(token, "admin");
       if (!["published", "hidden"].includes(body.status))
         fail(400, "INVALID_STATUS", "حالة المراجعة غير صالحة.");
-      await store.moderateReview(id, body.status, s.sourceId, now());
-      return { success: true };
+      if (!Number.isInteger(body.revision) || body.revision < 1)
+        fail(409, "REVIEW_CHANGED", "حدّث التطبيق وقائمة التقييمات قبل الاعتماد.");
+      const result = await store.moderateReview(id, body.status, s.sourceId, now(), body.revision);
+      return { success: true, ...result };
     },
     async putEntity(token, kind, id, body) {
       const s = await authorize(token, "admin");

@@ -117,7 +117,9 @@ window.MedicalAPI = (() => {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       if (protectedRequest && [401, 403].includes(response.status)) forget();
-      throw new Error(payload.message || "تعذر إكمال العملية.");
+      const error = new Error(payload.message || "تعذر إكمال العملية.");
+      error.code = payload.code;
+      throw error;
     }
     return payload;
   }
@@ -188,14 +190,16 @@ window.MedicalAPI = (() => {
       }
     },
     catalog: () => request("/catalog", { protectedRequest: true }),
+    health: () => request("/health"),
+    profile: () => request("/profile", { protectedRequest: true }),
     review: (body) =>
       request("/reviews", { method: "POST", body, protectedRequest: true }),
     myReviews: () => request("/reviews/mine", { protectedRequest: true }),
     adminReviews: () => request("/admin/reviews", { protectedRequest: true }),
-    moderate: (id, status) =>
+    moderate: (id, status, revision) =>
       request("/admin/reviews/" + encodeURIComponent(id), {
         method: "PATCH",
-        body: { status },
+        body: { status, revision },
         protectedRequest: true,
       }),
     save: (kind, entity, version) =>

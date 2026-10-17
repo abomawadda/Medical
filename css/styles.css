@@ -868,3 +868,11 @@ h3,
     font-size: 1.6rem;
   }
 }
+
+/* Member details are fetched for the current session only. */
+.member-profile { margin: 1.25rem 0; padding: 1.25rem; border: 1px solid var(--border); border-radius: 1.25rem; }
+.profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.profile-grid > div { min-width: 0; overflow-wrap: anywhere; }
+.profile-grid dt { color: var(--muted); font-size: .9rem; }
+.profile-grid dd { margin: .3rem 0 0; font-weight: 700; }
+@media (max-width: 480px) { .profile-grid { grid-template-columns: 1fr; } }

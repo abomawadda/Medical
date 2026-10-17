@@ -36,6 +36,7 @@ await foreign.collection("employees").doc("member-one").set({
   phone: "01012345678",
   nationalId: "29901010101234",
   memberState: "نشط",
+  membershipId:"UNION-123", jobTitle:"مهندس اختبار", workplace:"سنترال اختبار",
   privateField: "must-not-be-selected",
 });
 await foreign.collection("user_accounts").doc("admin-one").set({
@@ -121,8 +122,17 @@ await service.submitReview(
   },
   "emulator-member",
 );
+const ownProfile = (await service.memberProfile(member)).profile;
+assert.equal(ownProfile.employeeCode, "00123");
+assert.equal(ownProfile.jobTitle, "مهندس اختبار");
+assert.ok(ownProfile.lastLoginAt);
+assert.ok(!("nationalId" in ownProfile));
+assert.ok(!("phone" in ownProfile));
+const profileSource = await adapters.source.getMemberProfile("member-one");
+assert.ok(!("nationalId" in profileSource));
+assert.ok(!("privateField" in profileSource));
 const id = (await service.adminReviews(admin)).reviews[0].id;
-await service.moderateReview(admin, id, { status: "published" });
+await service.moderateReview(admin, id, { status: "published", revision: 1 });
 assert.deepEqual((await service.catalog(admin)).stats["doctor:p1"], {
   count: 1,
   average: 4,
@@ -142,12 +152,25 @@ assert.deepEqual((await service.catalog(admin)).stats["doctor:p1"], {
   count: 0,
   average: null,
 });
-await service.moderateReview(admin, id, { status: "published" });
-await service.moderateReview(admin, id, { status: "published" });
+const concurrent = await Promise.all([
+  service.moderateReview(admin,id,{status:"published",revision:2}),
+  service.moderateReview(admin,id,{status:"published",revision:2}),
+]);
+assert.equal(concurrent.filter((r) => r.changed).length,1);
+const ownDbForAudits = getFirestore((await import("firebase-admin/app")).getApps().find((a) => a.name === "medical-data"));
+const moderationAudits = (await ownDbForAudits.collection("medical_audit").get()).docs
+  .map((d) => d.data()).filter((d) => d.action === "review.moderate");
+assert.equal(moderationAudits.length,2);
 assert.deepEqual((await service.catalog(admin)).stats["doctor:p1"], {
   count: 1,
   average: 2,
 });
+await service.moderateReview(admin,id,{status:"hidden",revision:2});
+await assert.rejects(() => service.moderateReview(admin,id,{status:"published",revision:2}), (e) => e.code === "REVIEW_ALREADY_DECIDED");
+await service.submitReview(member,{target_id:"doctor:p1",branch_id:"1",rating:3,comment:"نسخة جديدة من العضو",visited_declared:true},"edit-member");
+await assert.rejects(() => service.moderateReview(admin,id,{status:"published",revision:2}), (e) => e.code === "REVIEW_CHANGED");
+await service.moderateReview(admin,id,{status:"published",revision:3});
+assert.equal((await service.catalog(admin)).stats["doctor:p1"].average,3);
 const attempts = await Promise.allSettled([
   service.putEntity(admin, "records", "1", {
     entity: { ...seed.records[0], name: "تعديل أ" },
