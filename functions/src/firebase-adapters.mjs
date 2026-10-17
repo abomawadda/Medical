@@ -8,6 +8,7 @@ import {
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { ApiError, kinds } from "./core.mjs";
+import { createAdminIdentityVerifier, legacyAdminState } from "./admin-identity.mjs";
 
 const key = (value) => createHash("sha256").update(value).digest("hex");
 export function mergeCatalog(seed, overlays) {
@@ -29,6 +30,8 @@ export function firebaseAdapters({
   medicalProjectId,
   sourceCredentials,
   sourceApiKey,
+  adminAccountIds = [],
+  bindingSecret,
   seed,
 }) {
   if (
@@ -66,6 +69,36 @@ export function firebaseAdapters({
   const accountFields = ["name", "firebaseUid", "accountStatus", "role"];
   const decode = (snap) =>
     snap.exists ? { ...snap.data(), id: snap.id } : null;
+  const approvedIds = [...new Set(adminAccountIds)];
+  if (approvedIds.length > 20 || approvedIds.some((id) => typeof id !== "string" || !id || id.includes("/")))
+    throw new Error("Invalid approved administrator IDs");
+  const credentialFields = [...accountFields, "email", "username", "authMode",
+    "credentialAuthority", "registrationState", "passwordSalt", "passwordHash"];
+  async function readCredentials(ids) {
+    if (!ids.length) return [];
+    return (await sourceDb.getAll(
+      ...ids.map((id) => sourceDb.collection("user_accounts").doc(id)),
+      { fieldMask: credentialFields },
+    )).map(decode).filter(Boolean);
+  }
+  const verifyAdminIdentity = createAdminIdentityVerifier({
+    readApprovedAccounts: () => readCredentials(approvedIds),
+    bindingSecret,
+    verifyToken: (token) => getAuth(foreign).verifyIdToken(token),
+    async signInPassword(email, password) {
+      if (!sourceApiKey) throw new Error("Admin sign-in not configured");
+      const response = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(sourceApiKey)}`,
+        {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, returnSecureToken: true }),
+          signal: AbortSignal.timeout(10000),
+        },
+      );
+      if (!response.ok) throw new Error("Admin sign-in rejected");
+      return (await response.json()).idToken;
+    },
+  });
   // Expose only reads. This identity must also have read-only IAM permissions.
   const source = Object.freeze({
     async findEmployees(employeeCode) {
@@ -120,36 +153,11 @@ export function firebaseAdapters({
         )[0],
       );
     },
-    async verifyAdminIdentity(body) {
-      let token = body.id_token;
-      if (!token) {
-        if (
-          !sourceApiKey ||
-          typeof body.email !== "string" ||
-          typeof body.password !== "string" ||
-          body.email.length > 254 ||
-          body.password.length > 256
-        )
-          throw new Error("Invalid admin credentials");
-        const response = await fetch(
-          `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(sourceApiKey)}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: body.email,
-              password: body.password,
-              returnSecureToken: true,
-            }),
-            signal: AbortSignal.timeout(10000),
-          },
-        );
-        if (!response.ok) throw new Error("Admin sign-in rejected");
-        token = (await response.json()).idToken;
-      }
-      const decoded = await getAuth(foreign).verifyIdToken(token);
-      return { uid: decoded.uid, accountId: decoded.accountId || "" };
+    async getLegacyAdminState(id) {
+      if (!approvedIds.includes(id)) return null;
+      return legacyAdminState((await readCredentials([id]))[0], bindingSecret);
     },
+    verifyAdminIdentity,
   });
   const sessions = db.collection("medical_sessions"),
     limits = db.collection("medical_limits"),

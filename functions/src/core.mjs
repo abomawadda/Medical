@@ -328,12 +328,16 @@ export function createService({
       )
         fail(401, "SESSION_EXPIRED", "يرجى تسجيل الدخول مجددًا.");
     } else {
-      const account = await source.getAccount(session.sourceId);
+      const account = session.authMethod === "source-legacy"
+        ? await source.getLegacyAdminState(session.sourceId)
+        : await source.getAccount(session.sourceId);
       if (
         !adminAccountIds.includes(session.sourceId) ||
         account?.accountStatus !== "active" ||
         account?.role !== "admin" ||
-        account?.firebaseUid !== session.firebaseUid
+        (account?.firebaseUid || "") !== session.firebaseUid ||
+        (session.authMethod === "source-legacy" &&
+          (!account?.credentialBinding || !safeEqual(account.credentialBinding, session.credentialBinding || "")))
       )
         fail(403, "FORBIDDEN", "حساب الإدارة غير متاح.");
     }
@@ -375,6 +379,7 @@ export function createService({
     },
     async adminLogin(body, ip) {
       await rate(ip, "admin", 8);
+      await rate("all", "admin-account", 12);
       if (!adminAccountIds.length)
         fail(503, "ADMIN_NOT_CONFIGURED", "خدمة دخول المدير غير مفعلة حاليًا.");
       let identity;
@@ -383,7 +388,14 @@ export function createService({
       } catch {
         fail(401, "ADMIN_LOGIN_FAILED", "تعذر التحقق من بيانات المدير.");
       }
-      const accounts = await source.findAccounts(identity.uid);
+      const legacy = identity.method === "source-legacy";
+      if (legacy && (!adminAccountIds.includes(identity.accountId) || !identity.credentialBinding))
+        fail(403, "FORBIDDEN", "حساب الإدارة غير متاح.");
+      if (!legacy && (typeof identity.uid !== "string" || !identity.uid))
+        fail(403, "FORBIDDEN", "حساب الإدارة غير متاح.");
+      const accounts = legacy
+        ? [await source.getLegacyAdminState(identity.accountId)].filter(Boolean)
+        : await source.findAccounts(identity.uid);
       if (accounts.length !== 1)
         fail(403, "FORBIDDEN", "حساب الإدارة غير متاح.");
       const a = accounts[0];
@@ -391,12 +403,15 @@ export function createService({
         !adminAccountIds.includes(a.id) ||
         a.accountStatus !== "active" ||
         a.role !== "admin" ||
-        (identity.accountId && identity.accountId !== a.id)
+        (identity.accountId && identity.accountId !== a.id) ||
+        (legacy && ((a.firebaseUid || "") !== identity.uid ||
+          !safeEqual(a.credentialBinding || "", identity.credentialBinding)))
       )
         fail(403, "FORBIDDEN", "حساب الإدارة غير متاح.");
       return issue("admin", a.id, {
         name: shortName(a.name),
-        firebaseUid: identity.uid,
+        firebaseUid: identity.uid || "",
+        ...(legacy ? { authMethod: "source-legacy", credentialBinding: identity.credentialBinding } : {}),
       });
     },
     async logout(token) {

@@ -275,7 +275,7 @@ try {
   await a.goto(origin + "/#admin");
   await a.getByRole("button", { name: "دخول المدير", exact: true }).click();
   await a
-    .getByLabel("بريد حساب المدير", { exact: true })
+    .getByLabel("بريد حساب المدير أو اسم المستخدم", { exact: true })
     .fill("admin@example.invalid");
   await a
     .getByLabel("كلمة مرور الحساب", { exact: true })

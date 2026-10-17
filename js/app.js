@@ -1060,7 +1060,7 @@
         { class: "muted" },
         "الدخول مخصص لحساب المدير المعتمد في MyNekaba. صلاحيات العضوية لا تتيح إدارة الدليل.",
       ),
-      field("بريد حساب المدير", "email", "email", "", {
+      field("بريد حساب المدير أو اسم المستخدم", "email", "text", "", {
         required: true,
         autocomplete: "username",
         dir: "ltr",

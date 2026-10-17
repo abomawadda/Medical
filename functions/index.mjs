@@ -33,6 +33,8 @@ function getService() {
     medicalProjectId: process.env.GCLOUD_PROJECT,
     sourceCredentials,
     sourceApiKey: process.env.MYNEKABA_AUTH_API_KEY,
+    adminAccountIds,
+    bindingSecret: sessionSecret.value(),
     seed,
   });
   service = createService({

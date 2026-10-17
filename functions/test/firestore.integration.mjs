@@ -1,6 +1,6 @@
 // Real Firestore SDK/transaction integration against a local emulator only.
 import assert from "node:assert/strict";
-import { generateKeyPairSync } from "node:crypto";
+import { generateKeyPairSync, createHash } from "node:crypto";
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { firebaseAdapters } from "../src/firebase-adapters.mjs";
@@ -43,8 +43,17 @@ await foreign.collection("user_accounts").doc("admin-one").set({
   firebaseUid: "admin-uid",
   role: "admin",
   accountStatus: "active",
+  email: "fixture-admin@example.invalid",
+  passwordSalt: "emulator-only-salt",
+  passwordHash: createHash("sha256").update("emulator-only-salt::fixture-password").digest("hex"),
   privateField: "must-not-be-selected",
 });
+await foreign.collection("user_accounts").doc("unapproved-admin").set({
+  email: "unapproved@example.invalid", role: "admin", accountStatus: "active",
+  passwordSalt: "emulator-only-salt",
+  passwordHash: createHash("sha256").update("emulator-only-salt::fixture-password").digest("hex"),
+});
+const accountsBefore = JSON.stringify((await foreign.collection("user_accounts").get()).docs.map((d) => d.data()));
 await foreign.collection("employees").doc("arabic-code").set({ jobId: "٠٠٩٩" });
 await foreign.collection("employees").doc("numeric-code").set({ jobId: 456 });
 const before = JSON.stringify(
@@ -64,6 +73,8 @@ const seed = {
 const adapters = firebaseAdapters({
   medicalProjectId: ownId,
   sourceCredentials: credentials,
+  adminAccountIds: ["admin-one"],
+  bindingSecret: "emulator-only-test-secret-1234567890abc",
   seed,
 });
 const masked = await adapters.source.getEmployee("member-one");
@@ -82,12 +93,12 @@ assert.equal(
 const foundAccounts = await adapters.source.findAccounts("admin-uid");
 assert.equal(foundAccounts.length, 1);
 assert.ok(!("privateField" in foundAccounts[0]));
+assert.ok(!("passwordHash" in foundAccounts[0]));
+assert.ok(!("passwordSalt" in foundAccounts[0]));
+assert.equal(await adapters.source.getLegacyAdminState("unapproved-admin"), null);
+await assert.rejects(() => adapters.source.verifyAdminIdentity({email:"unapproved@example.invalid",password:"fixture-password"}));
 const service = createService({
   ...adapters,
-  source: {
-    ...adapters.source,
-    verifyAdminIdentity: async () => ({ uid: "admin-uid" }),
-  },
   secret: "emulator-only-test-secret-1234567890abc",
   adminAccountIds: ["admin-one"],
   allowedStates: ["نشط"],
@@ -98,7 +109,7 @@ const member = (
     "emulator-member",
   )
 ).token;
-const admin = (await service.adminLogin({}, "emulator-admin")).token;
+const admin = (await service.adminLogin({email:"fixture-admin@example.invalid",password:"fixture-password"}, "emulator-admin")).token;
 await service.submitReview(
   member,
   {
@@ -165,8 +176,15 @@ await assert.rejects(
   () => service.ownReviews(member),
   (e) => e.status === 401,
 );
+assert.equal(JSON.stringify((await foreign.collection("user_accounts").get()).docs.map((d) => d.data())), accountsBefore);
+const ownDb = getFirestore((await import("firebase-admin/app")).getApps().find((a) => a.name === "medical-data"));
+const storedSessions = JSON.stringify((await ownDb.collection("medical_sessions").get()).docs.map((d) => d.data()));
+assert.ok(!storedSessions.includes("passwordHash"));
+assert.ok(!storedSessions.includes("emulator-only-salt"));
+await foreign.collection("user_accounts").doc("admin-one").update({passwordHash:"a".repeat(64)});
+await assert.rejects(() => service.session(admin), (e) => e.status === 403);
 console.log(
-  "Firestore emulator: masked source reads, persisted sessions, transactional ratings, conflict handling, soft deletion and unchanged membership source passed.",
+  "Firestore emulator: approved legacy admin authentication, credential isolation, password-change revocation, masked source reads, persisted sessions, transactional ratings, conflict handling, soft deletion and unchanged source during app operations passed.",
 );
 await Promise.all([foreign.terminate()]);
 process.exit(0);
