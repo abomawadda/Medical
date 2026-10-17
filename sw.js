@@ -1,10 +1,10 @@
-const CACHE_NAME = "we-medical-v4-d6060c85eb685f51";
+const CACHE_NAME = "we-medical-v4-5a89947a05fb9b57";
 const PRECACHE = [
   "./",
   "./index.html",
   "./manifest.json",
   "./css/styles.css",
-  "./js/config.js",
+  "./js/config.js?v=20261017-live",
   "./css/fonts.css",
   "./js/storage.js",
   "./js/api.js",
@@ -43,10 +43,25 @@ self.addEventListener("activate", (event) =>
       .then(() => self.clients.claim()),
   ),
 );
-// One coherent precached release. APIs, credentials and third-party requests bypass the cache.
+// Application assets stay coherent; public endpoint configuration refreshes online.
+// APIs, credentials and third-party requests bypass the cache.
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET" || !assetUrls.has(event.request.url))
     return;
+  if (new URL(event.request.url).pathname.endsWith("/js/config.js")) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      try {
+        const response = await fetch(event.request, { cache: "no-store" });
+        if (!response.ok) throw new Error("Configuration unavailable");
+        await cache.put(event.request, response.clone());
+        return response;
+      } catch {
+        return (await cache.match(event.request)) || Response.error();
+      }
+    })());
+    return;
+  }
   event.respondWith(
     caches
       .open(CACHE_NAME)

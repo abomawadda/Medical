@@ -52,9 +52,15 @@ const service = createService({
   allowedStates: ["نشط"],
 });
 let origin;
+let servedConfig = null;
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://localhost");
+    if (url.pathname === "/js/config.js" && servedConfig !== null) {
+      res.setHeader("Content-Type", "text/javascript");
+      res.end("window.MEDICAL_CONFIG=" + JSON.stringify({apiBaseUrl: servedConfig}) + ";");
+      return;
+    }
     if (url.pathname.startsWith("/v1/")) {
       let body = "";
       for await (const c of req) body += c;
@@ -128,7 +134,7 @@ async function context(connected = true, sw = "block", storageState) {
     ...(storageState ? { storageState } : {}),
   });
   await c.route("https://europe-west1-we-medical-dakahlia.cloudfunctions.net/**", (r) => r.abort());
-  await c.route("**/js/config.js", (r) =>
+  await c.route("**/js/config.js*", (r) =>
     r.fulfill({
       contentType: "text/javascript",
       body: connected
@@ -428,11 +434,16 @@ try {
   );
   const pwa = await context(false, "allow"),
     w = await pwa.newPage();
+  servedConfig = "";
   await w.goto(origin + "/not-found");
   await w.evaluate(() => caches.open("another-application-cache"));
   await w.goto(origin);
   await w.evaluate(() => navigator.serviceWorker.ready);
   await w.waitForFunction(() => !!navigator.serviceWorker.controller);
+  await pwa.unroute("**/js/config.js*");
+  servedConfig = "https://updated-config.example.invalid";
+  await w.reload();
+  assert.equal(await w.evaluate(() => window.MEDICAL_CONFIG.apiBaseUrl), servedConfig);
   assert.ok(
     (await w.evaluate(() => caches.keys())).includes(
       "another-application-cache",
@@ -441,6 +452,7 @@ try {
   await pwa.setOffline(true);
   await w.reload();
   await w.locator(".login-card form").waitFor();
+  assert.equal(await w.evaluate(() => window.MEDICAL_CONFIG.apiBaseUrl), servedConfig);
   assert.equal(await w.locator(".card").count(), 0);
   assert.ok(
     (await w.locator("#connection-status").textContent()).includes("دون اتصال"),
@@ -463,6 +475,7 @@ try {
         fonts,
         offlineGate: true,
         foreignCachePreserved: true,
+        publicConfigurationRefreshedOnlineAndAvailableOffline: true,
         dimensions,
         runtimeErrors: errors,
       },
