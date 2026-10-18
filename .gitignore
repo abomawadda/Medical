@@ -25,3 +25,5 @@ functions/seed/
 # Short-lived GitHub OIDC credential files and public operational reports
 gha-creds-*.json
 medical-health.json
+medical-quality.json
+medical-catalog-quality.json

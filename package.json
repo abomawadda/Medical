@@ -5,6 +5,7 @@
     "build": "node scripts/build-static.mjs",
     "test": "node --test functions/test/*.test.mjs",
     "check": "node scripts/check-public.mjs",
+    "audit:catalog": "node scripts/audit-catalog.mjs",
     "test:browser": "node test/browser.e2e.mjs"
   },
   "devDependencies": {

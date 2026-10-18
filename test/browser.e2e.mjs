@@ -284,6 +284,26 @@ try {
     .fill("fixture-password");
   await a.getByRole("button", { name: "دخول الإدارة" }).click();
   await a.getByRole("heading", { name: "لوحة إدارة الدليل" }).waitFor();
+  await a.getByRole("button", { name: "جودة بيانات الدليل", exact: true }).click();
+  await a.getByRole("heading", { name: "جودة بيانات الدليل", exact: true }).waitFor();
+  await a.getByLabel("نوع الملاحظة", {exact:true}).selectOption("missing_source");
+  await a.getByLabel("القسم المراد مراجعته", {exact:true}).selectOption("records");
+  assert.equal(await a.locator(".quality-item").count(), 30);
+  const [qualityDownload] = await Promise.all([
+    a.waitForEvent("download"),
+    a.getByRole("button", {name:"تنزيل تقرير الجودة",exact:true}).click(),
+  ]);
+  const qualityReport = JSON.parse(await readFile(await qualityDownload.path(), "utf8"));
+  assert.equal(qualityReport.total, Object.entries(seed).filter(([kind]) => kind !== "medical_guidelines").reduce((sum, [,rows]) => sum + rows.length, 0));
+  assert.ok(!JSON.stringify(qualityReport).includes("ملاحظة اختبار"));
+  assert.ok(!JSON.stringify(qualityReport).includes(employee.nationalId));
+  if (process.env.MEDICAL_SCREENSHOT_DIR) {
+    await mkdir(process.env.MEDICAL_SCREENSHOT_DIR, {recursive:true});
+    await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"admin-quality-mobile.png"),fullPage:true});
+  }
+  await a.getByRole("button", {name:"مراجعة السجل وتعديله",exact:true}).first().click();
+  await a.getByRole("heading", {name:"تعديل: الأطباء والعيادات",exact:true}).waitFor();
+  await a.getByRole("button", {name:"إغلاق النافذة",exact:true}).click();
   await a.getByRole("button", { name: "مراجعة التقييمات" }).click();
   await a
     .getByText("ملاحظة اختبار <img src=x onerror=alert(1)>", { exact: true })

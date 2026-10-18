@@ -921,3 +921,10 @@ h3,
   .companion-next { flex-direction:column; align-items:stretch; padding:1.15rem; }
   .companion-guide ol { grid-template-columns:1fr; gap:.65rem; }
 }
+.quality-item {
+  border: 1px solid var(--border, #ddd);
+  border-radius: 1rem;
+  padding: 1rem;
+  overflow-wrap: anywhere;
+}
+.quality-item h3 { margin-top: 0; }

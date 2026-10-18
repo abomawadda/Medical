@@ -1337,6 +1337,7 @@
           "button primary",
         ),
         button("مراجعة التقييمات", adminReviewDialog, "button outline"),
+        button("جودة بيانات الدليل", qualityDialog, "button outline"),
         button("تصدير بيانات الدليل", exportCatalog, "button outline"),
         button("تسجيل الخروج", logout, "button outline"),
       ),
@@ -1450,6 +1451,7 @@
             ? [
                 ["number", "رقم الاتصال"],
                 ["markaz", "المركز / المدينة"],
+                ["address", "العنوان / نطاق الخدمة"],
                 ["description", "وصف الخدمة"],
                 ["hours", "ساعات العمل"],
               ]
@@ -1668,22 +1670,57 @@
     };
     await load();
   }
-  function exportCatalog() {
+  function qualityDialog() {
+    if (session()?.role !== "admin") return;
+    const report = window.MedicalQuality.audit(state.catalog);
+    let kind = "", code = "", limit = 30;
+    const box = el("div", { class: "form-stack" });
+    dialog("جودة بيانات الدليل", box);
+    const draw = () => {
+      const rows = report.issues.filter((i) => (!kind || i.kind === kind) && (!code || i.code === code));
+      const kindField = selectField("القسم المراد مراجعته", "quality-kind", [["", "كل الأقسام"], ...Object.keys(report.counts).map((k) => [k, labels[k]])], kind);
+      const codeField = selectField("نوع الملاحظة", "quality-code", [["", "كل الملاحظات"], ...Object.keys(report.byCode).map((c) => [c, qualityLabel(c)])], code);
+      kindField.querySelector("select").addEventListener("change", (e) => { kind = e.target.value; limit = 30; draw(); });
+      codeField.querySelector("select").addEventListener("change", (e) => { code = e.target.value; limit = 30; draw(); });
+      box.replaceChildren(
+        el("p", {class:"muted"}, `فُحص ${report.total} سجلًا؛ ${report.affected} منها يحتاج مراجعة. هذا فحص اكتمال واتساق، ولا يثبت صحة التعاقد أو عمل الهاتف.`),
+        el("p", {}, "لا تُحذف التكرارات تلقائيًا. قد يكون للطبيب أكثر من فرع، وقد تشترك الجهات في رقم استقبال. تُراجع المعلومات التي مضى على تحققها 180 يومًا."),
+        kindField, codeField,
+        button("تنزيل تقرير الجودة", () => downloadJSON(report, "medical-catalog-quality.json"), "button outline"),
+        el("p", {role:"status"}, `${rows.length} ملاحظة مطابقة للمرشحات`),
+        ...rows.slice(0, limit).map((issue) => {
+          const record = state.catalog[issue.kind]?.[issue.rowIndex];
+          const editable = record?.id && state.catalog[issue.kind].filter((r) => String(r.id) === String(record.id)).length === 1;
+          return el("article", {class:"quality-item"},
+            el("h3", {}, issue.name || "سجل بلا اسم"),
+            el("small", {class:"muted"}, `${labels[issue.kind]} · ${qualityLabel(issue.code)}`),
+            el("p", {}, issue.message),
+            editable ? button("مراجعة السجل وتعديله", () => editDialog(issue.kind, record), "button outline") : el("p", {}, "يلزم تصحيح المعرّف قبل التعديل لحماية السجلات الأخرى."));
+        }),
+        rows.length === 0 ? el("p", {}, "لا توجد ملاحظات ضمن الاختيار الحالي؛ صحة المعلومات تحتاج تأكيدًا من مصدرها.") : null,
+        rows.length > limit ? button("عرض المزيد من الملاحظات", () => { limit += 30; draw(); }, "button outline") : null,
+      );
+    };
+    draw();
+  }
+  function qualityLabel(code) {
+    return ({missing_id:"معرّف ناقص", duplicate_id:"معرّف مكرر", missing_name:"اسم ناقص", missing_specialty:"تخصص ناقص", missing_address:"عنوان ناقص", missing_area:"منطقة ناقصة", missing_contact:"رقم اتصال ناقص", unconfirmed:"بحاجة لتأكيد", missing_source:"مصدر ناقص", missing_date:"تاريخ تحقق ناقص", invalid_date:"تاريخ غير صالح", stale:"معلومة قديمة", possible_duplicate:"تكرار محتمل"})[code] || code;
+  }
+  function downloadJSON(value, filename) {
     const blob = new Blob(
       [
-        JSON.stringify(
-          { exported_at: new Date().toISOString(), catalog: state.catalog },
-          null,
-          2,
-        ),
+        JSON.stringify(value, null, 2),
       ],
       { type: "application/json" },
     );
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "medical-directory.json";
+    a.download = filename;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  function exportCatalog() {
+    downloadJSON({ exported_at: new Date().toISOString(), catalog: state.catalog }, "medical-directory.json");
   }
   $("#main-nav").append(
     ...nav.map(([id, symbol, label]) =>

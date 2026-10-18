@@ -12,6 +12,7 @@
 
 - [معاينة تجربة التصميم الأولى](docs/DESIGN_PREVIEW_AR.md)
 - [النشر الآلي وفحص الصحة وحالة التفعيل](docs/AUTOMATED_DEPLOYMENT_AR.md)
+- [جودة بيانات الدليل والتنظيف والنسخ الاحتياطي وحدود التفعيل](docs/OPERATIONS_AND_DATA_QUALITY_AR.md)
 - [خارطة رفيق الموظف الشاملة والأفكار ومراحل الدمج](docs/EMPLOYEE_COMPANION_ROADMAP_AR.md)
 - [حالة الإصدار وطريقة تفعيل الخلفية](docs/RELEASE_2026_10_18_AR.md)
 
