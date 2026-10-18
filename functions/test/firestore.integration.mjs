@@ -218,6 +218,14 @@ assert.ok((await service.catalog(admin)).catalog.hospitals.filter(h=>multi.creat
 await service.batchEntityState(admin,batch);
 assert.ok((await service.catalog(admin)).catalog.hospitals.filter(h=>multi.created.includes(h.id)).every(h=>h.service_status==='suspended'));
 await assert.rejects(()=>service.batchEntityState(admin,batch),e=>e.code==='VERSION_CONFLICT');
+const latestHospitals=(await service.catalog(admin)).catalog.hospitals.filter(h=>multi.created.includes(h.id));
+const shared={items:latestHospitals.map(r=>({kind:'hospitals',id:r.id,version:r._version})),patch:{category:'مستشفى استثماري مراجع',network_members:['employee'],markaz:'طلخا'}};
+await assert.rejects(()=>service.batchEntityData(admin,{...shared,items:[shared.items[0],{...shared.items[1],version:99}]}),e=>e.code==='VERSION_CONFLICT');
+await service.batchEntityData(admin,shared);
+const updatedHospitals=(await service.catalog(admin)).catalog.hospitals.filter(h=>multi.created.includes(h.id));
+assert.ok(updatedHospitals.every(h=>h.category==='مستشفى استثماري مراجع'&&h.network_override===true&&h.markaz==='طلخا'));
+assert.deepEqual(updatedHospitals[0].contact_groups.mobile,['01012345678']);
+assert.deepEqual(updatedHospitals[1].contact_groups.landline,['0502000001']);
 const attempts = await Promise.allSettled([
   service.putEntity(admin, "records", "1", {
     entity: { ...seed.records[0], name: "تعديل أ" },

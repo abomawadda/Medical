@@ -307,7 +307,7 @@ export function validateEntity(kind, input, previous) {
     if(out.publication_status === 'published' && (!out.issuing_authority || !(out.source_reference || out.source_url) || !out.verified_at)) fail(400,'PUBLICATION_SOURCE_REQUIRED','النشر يحتاج الجهة المصدرة ومرجعًا وتاريخ مراجعة.');
   }
   if(kind === "hospitals" && !previous && !out.category)out.category="مستشفى استثماري";
-  for(const key of ['organization_id','organization_name'])if(previous?.[key])out[key]=previous[key];
+  for(const key of ['organization_id','organization_name','network_override'])if(previous?.[key])out[key]=previous[key];
   if (kind === "records") {
     out.provider_id = previous?.provider_id || `provider_${randomUUID()}`;
     out.display_name ||= out.name;
@@ -492,7 +492,7 @@ export function createService({
       const catalog = user.role === "admin" ? all : memberCatalog(all,now());
       const allowed = targets(catalog);
       const stats = Object.fromEntries(Object.entries(await store.getStats()).filter(([id]) => allowed.has(id)));
-      return {catalog, stats, adminBatch:true, structuredBranches:true, facilityBranches: true, facilityStats: await store.getGroupedStats(facilities.reviewGroups(catalog)), reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
+      return {catalog, stats, adminBatch:true, adminBatchData:true, structuredBranches:true, facilityBranches: true, facilityStats: await store.getGroupedStats(facilities.reviewGroups(catalog)), reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
     },
     async adminProfile(token) {
       const session=await authorize(token,"admin");
@@ -642,6 +642,33 @@ export function createService({
         if(!parent || parent.directory_visibility==='hidden' || (parent.contract_listing===false && parent.publication_approval?.status!=='approved'))fail(400,'PARENT_HIDDEN','أظهر واعتمد المستشفى التابعة أولًا، أو ضمها إلى التحديد نفسه.');
       }
       await store.mutateEntities(changes,session.sourceId,now());
+      return {success:true,updated:changes.length};
+    },
+    async batchEntityData(token,body){
+      const session=await authorize(token,'admin');
+      const {items,patch}=body;
+      const fields=['markaz','category','specialty','network_members'];
+      if(!Array.isArray(items)||!items.length||items.length>50||!patch||typeof patch!=='object'||Array.isArray(patch)||!Object.keys(patch).length||Object.keys(patch).some(key=>!fields.includes(key)))fail(400,'INVALID_BATCH','اختر حقولًا مشتركة محددة ومن سجل إلى 50 سجلًا.');
+      for(const key of ['markaz','category','specialty'])if(Object.hasOwn(patch,key)&&(typeof patch[key]!=='string'||!patch[key].trim()||patch[key].length>160))fail(400,'INVALID_BATCH','القيم المشتركة يجب أن تكون نصوصًا غير فارغة بحد أقصى 160 حرفًا.');
+      if(Object.hasOwn(patch,'network_members') && (!Array.isArray(patch.network_members)||!patch.network_members.length||patch.network_members.some(n=>!['employee','family','retiree'].includes(n))||new Set(patch.network_members).size!==patch.network_members.length))fail(400,'INVALID_BATCH','اختر فئات مستفيدين صحيحة.');
+      const supported=['records','hospitals','labs','radiology','pharmacies','specialized_centers'];
+      if(items.some(item=>!item || !supported.includes(item.kind)||typeof item.id!=='string'||!Number.isInteger(item.version)))fail(400,'INVALID_BATCH','التعديل المشترك يخص الأطباء والجهات الطبية المحددة فقط.');
+      if(Object.hasOwn(patch,'specialty') && items.some(item=>item.kind!=='records'))fail(400,'INVALID_BATCH','التخصص يطبق على الأطباء فقط.');
+      if(Object.hasOwn(patch,'category') && (items.some(item=>item.kind==='records')||new Set(items.map(item=>item.kind)).size!==1))fail(400,'INVALID_BATCH','التصنيف يتطلب سجلات من نوع جهة واحد.');
+      const catalog=await store.catalog(),seen=new Set();
+      const changes=items.map(item=>{
+        const key=item.kind+':'+item.id;if(seen.has(key))fail(400,'INVALID_BATCH','السجل مكرر داخل التحديد.');seen.add(key);
+        const previous=catalog[item.kind].find(r=>String(r.id)===item.id);
+        if(!previous || (previous._version||0)!==item.version)fail(409,'VERSION_CONFLICT','تغير أحد السجلات. حدّث القائمة وأعد المعاينة؛ لم يُحفظ أي تعديل.');
+        if(Object.hasOwn(patch,'specialty') && catalog.records.some(r=>r.provider_id===previous.provider_id && r.specialty!==patch.specialty.trim() && !items.some(i=>i.kind==='records' && i.id===String(r.id))))fail(400,'PROVIDER_BRANCHES_REQUIRED','حدّد جميع مقار الطبيب لتغيير تخصصه، أو راجع تخصص كل مقر أولًا.');
+        const normalized=Object.fromEntries(Object.entries(patch).map(([key,value])=>[key,typeof value==='string'?value.trim():[...value]]));
+        const entity={...previous,...normalized};delete entity._version;
+        if(Object.hasOwn(patch,'markaz')){entity.city=normalized.markaz;if(normalized.markaz!==previous.markaz)entity.maps_url='';}
+        if(Object.hasOwn(patch,'network_members'))entity.network_override=true;
+        entity.admin_reviewed_at=new Date(now()).toISOString();entity.directory_update={type:'updated',at:new Date(now()).toISOString()};
+        return {kind:item.kind,id:item.id,value:entity,expectedVersion:item.version};
+      });
+      await store.mutateEntities(changes,session.sourceId,now(),'entity.batch.data');
       return {success:true,updated:changes.length};
     },
     async createEntityBranches(token,body) {

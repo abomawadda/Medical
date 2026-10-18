@@ -5,5 +5,5 @@ export function withFamilyContracts(seed,override) {
   if(!family.length)return override;
   const rels=new Map((override.contract_relationships || []).map(r=>[r.id,r]));
   for(const r of family)if(!rels.has(r.id))rels.set(r.id,r);
-  return {...override,contract_relationships:[...rels.values()],network_members:[...new Set([...(override.network_members || []),...family.flatMap(r=>r.network_members)])]};
+  return {...override,contract_relationships:[...rels.values()],network_members:override.network_override === true ? [...(override.network_members || [])] : [...new Set([...(override.network_members || []),...family.flatMap(r=>r.network_members)])]};
 }

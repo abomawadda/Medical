@@ -168,6 +168,7 @@ window.MedicalAPI = (() => {
       forget();
   });
   return Object.freeze({
+    batchData:body=>request('/admin/batch-data',{method:'PATCH',body,protectedRequest:true}),
     batchState:body=>request('/admin/batch',{method:'PATCH',body,protectedRequest:true}),
     createBranches:body=>request('/admin/branches',{method:'POST',body,protectedRequest:true}),
     configured,

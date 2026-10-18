@@ -1298,3 +1298,5 @@ html { overflow-anchor:none; scroll-behavior:auto; }
 .batch-preview {max-height:220px;overflow:auto;line-height:1.9;font-size:.82rem;padding-inline-start:22px}
 .branch-editor {border:1px solid var(--border);border-radius:16px;padding:14px;display:grid;gap:12px;min-width:0;margin:12px 0}
 .branch-editor legend {font-weight:700;color:var(--primary)}.new-branches-panel {border-block:1px solid var(--border);padding:12px 0}
+.batch-data-editor {border:1px solid var(--border);border-radius:16px;padding:14px;min-width:0;display:grid;gap:12px}
+.batch-data-preview {max-height:310px;overflow:auto}.batch-change-row {border-bottom:1px solid var(--border);padding:10px 0;font-size:.82rem;overflow-wrap:anywhere}.batch-change-row p {margin:5px 0}

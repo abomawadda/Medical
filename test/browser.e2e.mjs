@@ -197,7 +197,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"نبض النقابة - رعاية أقرب لك ولأسرتك · الإصدار 4.3.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"نبض النقابة - رعاية أقرب لك ولأسرتك · الإصدار 4.4.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -353,7 +353,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.3.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.4.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -451,6 +451,24 @@ try {
   assert.equal(await bp.locator('[data-facility-branch]').count(),2);
   if(process.env.MEDICAL_SCREENSHOT_DIR)await bp.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'hospital-multiple-addresses.png'),fullPage:true});
   await branchesContext.close();
+  // Shared-field changes require an exact preview and leave contacts untouched.
+  await a.getByLabel('قائمة العمل',{exact:true}).selectOption('all');
+  for(const h of newHospitals)await a.locator('[data-admin-id="'+h.id+'"] .batch-row-check').check();
+  await a.getByRole('button',{name:'معالجة المحدد (2)',exact:true}).click();
+  await a.getByLabel('العملية الجماعية',{exact:true}).selectOption('edit');
+  await a.getByLabel('المركز الجديد',{exact:true}).selectOption('بلقاس');
+  await a.getByLabel('المستفيدون الجدد',{exact:true}).selectOption('employee');
+  await a.getByRole('button',{name:'معاينة التغييرات',exact:true}).click();
+  assert.equal(await a.locator('.batch-change-row').count(),2);
+  await a.getByLabel('راجعت القيم الحالية والجديدة وأوافق على تطبيقها على المحدد',{exact:true}).check();
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'bulk-data-preview.png'),fullPage:true});
+  await a.getByRole('button',{name:'تطبيق على المحدد',exact:true}).click();
+  await a.locator('dialog').waitFor({state:'hidden'});
+  const edited=(await store.catalog()).hospitals.filter(h=>newHospitals.some(n=>n.id===h.id));
+  assert.ok(edited.every(r=>r.markaz==='بلقاس' && r.maps_url===''));
+  assert.deepEqual(edited[0].contact_groups.mobile,['01012345678']);
+  await a.getByLabel('قائمة العمل',{exact:true}).selectOption('pending');
+
   await a.getByLabel('نوع السجلات',{exact:true}).selectOption('records');
   await a.setViewportSize({width:1440,height:1000});
   const sidebar=await a.locator('#main-nav').boundingBox();

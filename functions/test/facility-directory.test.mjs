@@ -63,3 +63,10 @@ test('orthographic display cleanup preserves reviewed identities, while a countr
   rows[0].country_code='SA';assert.equal(facilities.branches(g.kind,rows).length,2);
  }
 });
+
+test('an explicit administrative beneficiary override preserves imported evidence without silently restoring a removed network',async()=>{
+ const {withFamilyContracts}=await import('../src/family-projection.mjs');
+ const seed={contract_relationships:[{id:'family_source',source_ref:'family-20261018',network_members:['family','retiree']}]};
+ const row=withFamilyContracts(seed,{id:'test',network_members:['employee'],network_override:true});
+ assert.deepEqual(row.network_members,['employee']);assert.equal(row.contract_relationships[0].id,'family_source');
+});

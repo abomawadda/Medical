@@ -290,6 +290,7 @@
     state.contractDirectory = result.contractDirectory === true;
     state.adminWorkspace = result.adminWorkspace === true;
     state.adminBatch = result.adminBatch === true;
+    state.adminBatchData = result.adminBatchData === true;
     state.structuredBranches = result.structuredBranches === true;
     if(isAdmin() && state.adminWorkspace)state.options=(await API.adminOptions()).options || {};
     if(!state.greetingName && (!isAdmin() || state.adminWorkspace)) {
@@ -1607,7 +1608,7 @@
     const filter=(kind,status="")=>{state.adminKind=kind;state.adminState=status;state.limit=24;state.query="";$("#search-input").value="";renderMain();};
     main.append(el("section",{class:"admin-intro"},el("div",{},el("span",{class:"eyebrow"},"مساحة العمل الإدارية"),heading("مركز إدارة نبض النقابة","الجهات والتعاقدات والمحتوى في مساحة عمل واحدة.")),el("div",{class:"actions-row"},button("إضافة سجل",()=>editDialog(state.adminKind === "all" ? "records" : state.adminKind),"button primary"),button("حساب المدير",()=>go("account"),"button outline"))));
     if(!state.adminWorkspace)main.append(el("p",{class:"notice warning"},"صلاحية اعتماد الجهات والقوائم المشتركة وبطاقة المدير تحتاج نشر تحديث Firebase مرة واحدة بالإعداد المحفوظ."));
-    if(!state.adminBatch || !state.structuredBranches)main.append(el('p',{class:'notice warning'},'الفروع المتعددة والمعالجة الجماعية جاهزتان في الواجهة وتحتاجان نشر تحديث Firebase لتفعيل الحفظ.'));
+    if(!state.adminBatch || !state.structuredBranches || !state.adminBatchData)main.append(el('p',{class:'notice warning'},'الفروع المتعددة والمعالجة الجماعية جاهزتان في الواجهة وتحتاجان نشر تحديث Firebase لتفعيل الحفظ.'));
     main.append(el("section",{class:"admin-metrics","aria-label":"ملخص الإدارة"},[
       ["إجمالي السجلات",all.length,()=>{state.adminWorklist="all";filter("all");}],
       ["المخفية والمحجوبة",all.filter(({r})=>hidden(r)).length,()=>filter("all","hidden")],
@@ -1649,11 +1650,44 @@
   function batchStateDialog(rows){
     if(!rows.length)return;
     if(rows.length>50){toast('حدد 50 سجلًا بحد أقصى لكل عملية.');return;}
-    const form=el('form',{class:'form-stack'},el('p',{},'ستُطبق العملية على '+rows.length+' سجلًا محددًا.'),el('ul',{class:'batch-preview'},rows.map(({kind,r})=>el('li',{},r.name+' · '+labels[kind]+' · '+(r.markaz || r.city || '')+' · '+r.id))),selectField('العملية الجماعية','operation',[['hide','إخفاء عن الأعضاء'],['show','إظهار للأعضاء'],['pause','إيقاف مؤقت'],['resume','استئناف الخدمة']],'hide'),el('p',{class:'muted'},'العملية تشمل السجلات المحددة فقط. حالة المستشفى تنعكس على خدماتها التابعة. لن تُنشر أخبار تلقائيًا.'),el('label',{},el('input',{type:'checkbox',name:'approve_contract'}),' راجعت وأعتمد تعاقد السجلات المحجوبة عند اختيار الإظهار'));
+    const editable=rows.every(({kind})=>['records','hospitals','labs','radiology','pharmacies','specialized_centers'].includes(kind));
+    const form=el('form',{class:'form-stack'},el('p',{},'ستُطبق العملية على '+rows.length+' سجلًا محددًا.'),el('ul',{class:'batch-preview'},rows.map(({kind,r})=>el('li',{},r.name+' · '+labels[kind]+' · '+(r.markaz || r.city || '')+' · '+r.id))),selectField('العملية الجماعية','operation',[['hide','إخفاء عن الأعضاء'],['show','إظهار للأعضاء'],['pause','إيقاف مؤقت'],['resume','استئناف الخدمة'],...(editable?[['edit','تعديل البيانات المشتركة']]:[])],'hide'),el('p',{class:'muted'},'العملية تشمل السجلات المحددة فقط. حالة المستشفى تنعكس على خدماتها التابعة. لن تُنشر أخبار تلقائيًا.'));
+    const approval=el('label',{},el('input',{type:'checkbox',name:'approve_contract'}),' راجعت وأعتمد تعاقد السجلات المحجوبة عند اختيار الإظهار');form.append(approval);
+    const editor=el('fieldset',{class:'batch-data-editor',disabled:true,hidden:true},el('legend',{},'الحقول المشتركة'),el('p',{class:'muted'},'اختر الحقول المطلوبة فقط. فئات المستفيدين المختارة تستبدل الفئات الحالية للسجلات المحددة، مع حفظ مصادر التعاقد التاريخية. تغيير المركز يحفظ العنوان ويمسح رابط الخريطة السابق للمراجعة. لتغيير تخصص طبيب متعدد المقار، حدّد جميع مقاره.'));
+    const centers=[...new Set([...dakahliaCenters,...(state.options.markaz || []),...rows.map(({r})=>r.markaz || r.city)].filter(Boolean))];
+    editor.append(selectField('المركز الجديد','batch_markaz',[['','دون تغيير'],...centers.map(v=>[v,v])],''));
+    if(rows.every(({kind})=>kind==='records'))editor.append(selectField('التخصص الجديد','batch_specialty',[['','دون تغيير'],...[...new Set([...state.catalog.records.map(r=>r.specialty),...(state.options.specialty || [])].filter(Boolean))].map(v=>[v,v])],''));
+    if(new Set(rows.map(({kind})=>kind)).size===1 && rows[0].kind!=='records'){
+      const kind=rows[0].kind,values=[...new Set([labels[kind],...(kind==='hospitals'?['مستشفى استثماري','مستشفى حكومي','مستشفى جامعي']:[]),...state.catalog[kind].map(r=>r.category),...(state.options['category_'+kind] || [])].filter(Boolean))];
+      editor.append(selectField('التصنيف الجديد','batch_category',[['','دون تغيير'],...values.map(v=>[v,v])],''));
+    }
+    editor.append(selectField('المستفيدون الجدد','batch_network',[['','دون تغيير'],['employee','الموظفون'],['family','الأسر والمعاشات'],['all','الموظفون والأسر والمعاشات']],''));
+    const preview=el('div',{class:'batch-data-preview'}),confirm=el('input',{type:'checkbox',name:'confirm_data',required:true});let stamp='';
+    const patch=()=>{const data=Object.fromEntries(new FormData(form)),result={};for(const [key,input] of [['markaz','batch_markaz'],['specialty','batch_specialty'],['category','batch_category']])if(data[input])result[key]=data[input];if(data.batch_network)result.network_members=data.batch_network==='all'?['employee','family','retiree']:data.batch_network==='family'?['family','retiree']:['employee'];return result;};
+    const readable=(key,value)=>key==='network_members'?(value || []).map(v=>({employee:'الموظفون',family:'الأسر',retiree:'المعاشات'}[v] || v)).join(' · '):String(value || 'غير مسجل');
+    editor.append(button('معاينة التغييرات',()=>{
+      const proposed=patch();if(!Object.keys(proposed).length){toast('اختر حقلًا واحدًا على الأقل.');return;}
+      stamp=JSON.stringify(proposed);confirm.checked=false;
+      const cards=rows.map(({r})=>{
+        const card=el('article',{class:'batch-change-row'},el('strong',{},r.name+' · '+r.id));
+        for(const [key,value] of Object.entries(proposed))card.append(el('p',{},({markaz:'المركز',category:'التصنيف',specialty:'التخصص',network_members:'المستفيدون'}[key])+': الحالية '+readable(key,r[key])+'؛ الجديدة '+readable(key,value)));
+        return card;
+      });replaceNodes(preview,cards);
+    },'button outline'),preview,el('label',{},confirm,' راجعت القيم الحالية والجديدة وأوافق على تطبيقها على المحدد'));
+    for(const input of editor.querySelectorAll('select'))input.addEventListener('change',()=>{stamp='';confirm.checked=false;preview.replaceChildren();});
+    form.append(editor);
+    form.querySelector('[name="operation"]').addEventListener('change',e=>{const editing=e.target.value==='edit';editor.hidden=!editing;editor.disabled=!editing;approval.hidden=editing;stamp='';confirm.checked=false;preview.replaceChildren();});
     form.save=async data=>{
-      if(!state.adminBatch)throw new Error('المعالجة الجماعية تحتاج تحديث Firebase. لم تتغير السجلات.');
-      const [field,value]={hide:['directory_visibility','hidden'],show:['directory_visibility','visible'],pause:['service_status','suspended'],resume:['service_status','active']}[data.operation];
-      await API.batchState({field,value,items:rows.map(({kind,r})=>({kind,id:String(r.id),version:r._version || 0})),approve_contract:data.approve_contract==='on'});
+      const items=rows.map(({kind,r})=>({kind,id:String(r.id),version:r._version || 0}));
+      if(data.operation==='edit'){
+        if(!state.adminBatchData)throw new Error('تعديل البيانات الجماعي يحتاج تحديث Firebase. لم تتغير السجلات.');
+        const proposed=patch();if(!stamp || stamp!==JSON.stringify(proposed) || data.confirm_data!=='on')throw new Error('عاين التغييرات وراجع القيم قبل تطبيقها.');
+        await API.batchData({items,patch:proposed});
+      }else{
+        if(!state.adminBatch)throw new Error('المعالجة الجماعية تحتاج تحديث Firebase. لم تتغير السجلات.');
+        const [field,value]={hide:['directory_visibility','hidden'],show:['directory_visibility','visible'],pause:['service_status','suspended'],resume:['service_status','active']}[data.operation];
+        await API.batchState({field,value,items,approve_contract:data.approve_contract==='on'});
+      }
       toast('تمت معالجة '+rows.length+' سجلًا.');
       try{await refresh();}catch{toast('حُفظت العملية. حدّث الصفحة لعرض النتائج.');}
       closeDialog();

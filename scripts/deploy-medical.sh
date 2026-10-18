@@ -85,7 +85,7 @@ const response = await fetch('https://europe-west1-we-medical-dakahlia.cloudfunc
   cache: 'no-store', signal: AbortSignal.timeout(30000),
 });
 const health = await response.json();
-if (!response.ok || !health.configured || !['member-profile', 'review-revisions', 'staff-directory', 'provider-images', 'provider-illustrations', 'directory-state-v1', 'family-directory-v1', 'directory-content-v1', 'contract-directory-v1', 'public-emergency-v1', 'admin-workspace-v1', 'review-criteria-v1', 'facility-branches-v1', 'admin-batch-v1', 'structured-branches-v1'].every((c) => health.capabilities?.includes(c))) {
+if (!response.ok || !health.configured || !['member-profile', 'review-revisions', 'staff-directory', 'provider-images', 'provider-illustrations', 'directory-state-v1', 'family-directory-v1', 'directory-content-v1', 'contract-directory-v1', 'public-emergency-v1', 'admin-workspace-v1', 'review-criteria-v1', 'facility-branches-v1', 'admin-batch-v1', 'admin-batch-data-v1', 'structured-branches-v1'].every((c) => health.capabilities?.includes(c))) {
   throw new Error('Deployment finished, but the updated API capabilities could not be confirmed. Do not declare the release complete.');
 }
 console.log('Published API confirmed: member profiles, revision-safe moderation, staff directory, admin workspace and measured review criteria enabled.');

@@ -769,3 +769,29 @@ test('new doctor addresses share one provider, and batch showing a dependent bra
  assert.ok(rows.every(r=>r.directory_visibility==='hidden'));
  assert.equal(f.employees[0].name,'عضو اختبار محلي');
 });
+
+test('shared data changes are explicit, versioned and atomic, preserve contacts and approvals, and cannot alter names or publish records',async()=>{
+ const f=setup(),a=await admin(f),m=await member(f);
+ const previous=(await f.store.catalog()).records[0];
+ await f.store.mutateEntity('records','1',{value:{...previous,contact_groups:{mobile:['01012345678'],landline:[],shortcode:[]},directory_visibility:'hidden',maps_url:'https://maps.example.invalid/old',publication_approval:{status:'approved',by:'original',at:'2026-01-01'}}},0,'fixture',1);
+ const items=[{kind:'records',id:'1',version:1},{kind:'hospitals',id:'h1',version:0}];
+ await assert.rejects(()=>f.service.batchEntityData(m,{items,patch:{markaz:'طلخا'}}),e=>e.status===403);
+ for(const patch of [{name:'بديل'},{directory_visibility:'visible'},{network_members:[]},{network_members:['fake']},{category:'تصنيف'}])await assert.rejects(()=>f.service.batchEntityData(a,{items,patch}),e=>e.code==='INVALID_BATCH');
+ await assert.rejects(()=>f.service.batchEntityData(a,{items:[items[0],{...items[1],version:9}],patch:{markaz:'طلخا'}}),e=>e.code==='VERSION_CONFLICT');
+ assert.equal((await f.store.catalog()).records[0]._version,1);
+ await f.service.batchEntityData(a,{items,patch:{markaz:'طلخا',network_members:['family','retiree']}});
+ const row=(await f.store.catalog()).records[0];
+ assert.equal(row.markaz,'طلخا');assert.equal(row.city,'طلخا');assert.equal(row.maps_url,'');
+ assert.equal(row.name,previous.name);assert.equal(row.directory_visibility,'hidden');assert.equal(row.publication_approval.by,'original');
+ assert.deepEqual(row.contact_groups.mobile,['01012345678']);assert.deepEqual(row.network_members,['family','retiree']);assert.equal(row.network_override,true);
+ assert.equal(f.store.audit.at(-1).action,'entity.batch.data');
+});
+
+test('a shared specialty change cannot leave unselected locations of the same physician with a conflicting specialty',async()=>{
+ const f=setup(),a=await admin(f),row=(await f.store.catalog()).records[0];
+ await f.store.mutateEntity('records','second_location',{value:{...row,id:'second_location'}},0,'fixture',1);
+ await assert.rejects(()=>f.service.batchEntityData(a,{items:[{kind:'records',id:'1',version:0}],patch:{specialty:'قلب'}}),e=>e.code==='PROVIDER_BRANCHES_REQUIRED');
+ assert.equal((await f.store.catalog()).records[0]._version,0);
+ await f.service.batchEntityData(a,{items:[{kind:'records',id:'1',version:0},{kind:'records',id:'second_location',version:1}],patch:{specialty:'قلب'}});
+ assert.ok((await f.store.catalog()).records.every(r=>r.specialty==='قلب'));
+});
