@@ -333,6 +333,18 @@ try {
   await a.getByRole("button", { name: "دخول الإدارة" }).click();
   await a.getByRole("heading", { name: "مركز إدارة نبض النقابة" }).waitFor();
   assert.ok(await a.locator("#connection-status").isVisible());
+  await a.locator("#member-button").click();
+  await a.getByRole("heading",{name:"حساب مدير المنظومة",exact:true}).waitFor();
+  await a.getByText("الصلاحية",{exact:true}).waitFor();
+  await a.getByRole("button",{name:"فتح لوحة الإدارة",exact:true}).click();
+  await a.getByRole("heading",{name:"مركز إدارة نبض النقابة",exact:true}).waitFor();
+  await a.setViewportSize({width:1440,height:1000});
+  const sidebar=await a.locator('#main-nav').boundingBox();
+  assert.ok(sidebar.height>700 && sidebar.width<250);
+  assert.ok((await a.locator('.page-shell').boundingBox()).width>1100);
+  assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=1440));
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"admin-desktop-workspace.png"),fullPage:false});
+  await a.setViewportSize({width:390,height:844});
   // Visibility is authoritative on the API; suspension preserves the listing.
   const managed = seed.records[0], managedProvider = "doctor:" + managed.provider_id;
   const managedRows = (await store.catalog()).records.filter(r=>r.provider_id===managed.provider_id);
@@ -362,7 +374,7 @@ try {
   await p.reload();
   await p.locator('[data-target="'+managedProvider+'"]').waitFor();
   assert.equal(await p.getByText("موقوف مؤقتًا",{exact:true}).count(),0);
-  assert.equal(await a.locator(".admin-metrics article").count(),3);
+  assert.equal(await a.locator(".admin-metrics article").count(),4);
   if(process.env.MEDICAL_SCREENSHOT_DIR) { await a.evaluate(()=>window.scrollTo(0,0)); await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"admin-redesign-mobile.png"),fullPage:false,style:"#toast{visibility:hidden}"}); }
 
   await a.getByRole("button",{name:"مراجعة المواقع والمواعيد",exact:true}).click();
@@ -460,6 +472,14 @@ try {
   await adminContext.unroute("https://medical.example.invalid/v1/health");
   await a.getByRole("button", {name:"إغلاق النافذة"}).click();
   await a.getByRole("button", { name: "إضافة سجل", exact: true }).click();
+  await a.getByRole("button",{name:"إضافة عنصر إلى التخصص",exact:true}).click();
+  await a.getByLabel("اسم العنصر الجديد: التخصص",{exact:true}).fill("تخصص اختبار محفوظ");
+  await a.getByRole("button",{name:"حفظ العنصر",exact:true}).click();
+  await a.locator('.inline-option:not([hidden])').waitFor({state:"hidden"});
+  await a.getByRole("button",{name:"إغلاق النافذة",exact:true}).click();
+  await a.reload();await a.getByRole("heading",{name:"مركز إدارة نبض النقابة",exact:true}).waitFor();
+  await a.getByRole("button",{name:"إضافة سجل",exact:true}).click();
+  assert.ok((await a.getByLabel("التخصص",{exact:true}).locator("option").allTextContents()).includes("تخصص اختبار محفوظ"));
   await a.getByLabel("الاسم", { exact: true }).fill("طبيب اختبار مضاف");
   await a.getByLabel("التخصص", { exact: true }).selectOption({index:1});
   await a.getByLabel("المركز / المدينة", {exact:true}).selectOption("المنصورة");
@@ -529,6 +549,39 @@ try {
   assert.ok(
     !(await store.catalog()).records.some((x) => x.name === "طبيب اختبار معدل"),
   );
+  // Hidden source entries can now be explicitly approved by the administrator.
+  await a.locator('.admin-metrics article').filter({hasText:"المخفية والمحجوبة"}).getByRole('button').click();
+  const unlistedLab=a.locator('tr[data-admin-id="lab_1"]');
+  await unlistedLab.getByRole('button',{name:"إظهار",exact:true}).click();
+  await a.getByRole('checkbox',{name:"راجعت جهة التعاقد وأعتمد إظهار هذا السجل للأعضاء",exact:true}).check();
+  await a.getByRole('button',{name:"تأكيد التغيير",exact:true}).click();
+  await a.locator('dialog').waitFor({state:'hidden'});
+  assert.ok((await store.catalog()).labs.find(r=>r.id==='lab_1').publication_approval);
+  await a.getByLabel('حالة العرض والخدمة',{exact:true}).selectOption('visible');
+  await a.locator('#search-input').fill('معامل المختبر');
+  await a.locator('tr[data-admin-id="lab_1"]').getByRole('button',{name:'إخفاء',exact:true}).click();
+  await a.getByRole('button',{name:'تأكيد التغيير',exact:true}).click();await a.locator('dialog').waitFor({state:'hidden'});
+  await a.getByLabel('حالة العرض والخدمة',{exact:true}).selectOption('');
+  await a.locator('#search-input').fill('');
+  await a.getByLabel('نوع السجلات',{exact:true}).selectOption('records');
+  await a.getByRole('button',{name:'إضافة سجل',exact:true}).click();
+  await a.getByLabel('الاسم',{exact:true}).fill('طبيب مرتبط للاختبار');
+  await a.getByLabel('التخصص',{exact:true}).selectOption('تخصص اختبار محفوظ');
+  await a.getByLabel('المركز / المدينة',{exact:true}).selectOption('المنصورة');
+  await a.getByLabel('المستفيدون',{exact:true}).selectOption('employee');
+  await a.getByLabel('مسار التعاقد',{exact:true}).selectOption('hospital');
+  await a.getByRole('button',{name:'إضافة عنصر إلى المستشفى',exact:true}).click();
+  await a.getByLabel('اسم العنصر الجديد: المستشفى',{exact:true}).fill('مستشفى اختبار جديدة مستقلة');
+  await a.getByRole('checkbox',{name:'راجعت التعاقد وأعتمد إظهار المستشفى الجديدة',exact:true}).check();
+  await a.getByRole('button',{name:'حفظ العنصر',exact:true}).click();
+  await a.locator('.inline-option:not([hidden])').waitFor({state:'hidden'});
+  await a.getByRole('checkbox',{name:'راجعت بيانات الجهة وتعاقدها وأعتمد إظهارها للأعضاء',exact:true}).check();
+  await a.getByRole('button',{name:'حفظ التغييرات',exact:true}).click();
+  await a.locator('dialog').waitFor({state:'hidden'});
+  const parentCreated=(await store.catalog()).hospitals.find(r=>r.name==='مستشفى اختبار جديدة مستقلة');
+  assert.equal(parentCreated.contract_entity_id,parentCreated.id);assert.equal(parentCreated.contract_listing,true);
+  const childCreated=(await store.catalog()).records.find(r=>r.name==='طبيب مرتبط للاختبار');
+  assert.equal(childCreated.contract_entity_id,parentCreated.id);assert.equal(childCreated.contract_listing,true);
   const guestContext = await context(),
     g = await guestContext.newPage();
   await g.goto(origin + "/#entity=" + encodeURIComponent(target));

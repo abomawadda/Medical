@@ -37,6 +37,7 @@ export const kinds = [
   "medical_guidelines",
   "emergency_services",
 ];
+const hasContract=r=>[r.contract_entity,r.contract_entity_id].every(v=>typeof v === "string" && !!v.trim() && !/^(null|undefined|unknown|غير محدد)$/i.test(v.trim()));
 const mismatch = () =>
   fail(
     401,
@@ -64,7 +65,7 @@ export function publishedDocument(r, at=Date.now()) {
 export function memberCatalog(catalog, at=Date.now()) {
   const hospitals = catalog.hospitals || [];
   const parent = r => hospitals.find(h => (r.contract_parent_id || r.contract_entity_id) === h.id || (r.hospital && [h.name,h.short_name].includes(r.hospital)));
-  const dependsOnHospital = (kind,r) => kind === "records" || (kind === "emergency_services" && !!r.contract_parent_id);
+  const dependsOnHospital = (kind,r) => kind === "records" || (r.contract_type === "hospital" && r.contract_entity_id !== String(r.id)) || (kind === "emergency_services" && !!r.contract_parent_id);
   return Object.fromEntries(kinds.map(kind => [kind, (catalog[kind] || [])
     .filter(r => {
       if (r.contract_listing === false || r.directory_visibility === "hidden") return false;
@@ -75,7 +76,7 @@ export function memberCatalog(catalog, at=Date.now()) {
       }
       return kind !== "medical_guidelines" || publishedDocument(r,at);
     })
-    .map(r => ({...r, service_status: r.service_status === "suspended" || (dependsOnHospital(kind,r) && parent(r)?.service_status === "suspended") ? "suspended" : "active"}))]));
+    .map(({publication_approval,...r}) => ({...r, service_status: r.service_status === "suspended" || (dependsOnHospital(kind,r) && parent(r)?.service_status === "suspended") ? "suspended" : "active"}))]));
 }
 
 export function targets(catalog) {
@@ -279,6 +280,7 @@ export function validateEntity(kind, input, previous) {
   if (out.image_verified !== undefined && typeof out.image_verified !== "boolean") fail(400,"INVALID_ENTITY","حالة اعتماد الصورة غير صالحة.");
   if (out.image_url && (!out.image_verified || !out.image_source_url)) fail(400,"IMAGE_SOURCE_REQUIRED","أضف مصدر الصورة وأكد هوية الجهة وحق الاستخدام أولًا.");
   if (out.governorate_code && !/^EG-[A-Z]{1,3}$/.test(out.governorate_code)) fail(400,"INVALID_ENTITY","رمز المحافظة غير صالح.");
+  if(out.contract_type && !["direct_we","hospital","family_network","independent"].includes(out.contract_type))fail(400,"INVALID_ENTITY","مسار التعاقد غير صالح.");
   if (out.network_members && (!Array.isArray(out.network_members) || out.network_members.some((n) => !["employee","family","retiree"].includes(n)))) fail(400,"INVALID_ENTITY","فئة الشبكة غير صالحة.");
   for (const field of ["coverage_verified", "verified"]) {
     if (out[field] !== undefined && typeof out[field] !== "boolean")
@@ -356,6 +358,7 @@ export function createService({
       role,
       sourceId,
       ...extra,
+      loginAt: extra.loginAt ?? new Date(now()).toISOString(),
       expiresAt,
     });
     return { token, expiresAt, user: { name: extra.name, role } };
@@ -480,7 +483,23 @@ export function createService({
       const catalog = user.role === "admin" ? all : memberCatalog(all,now());
       const allowed = targets(catalog);
       const stats = Object.fromEntries(Object.entries(await store.getStats()).filter(([id]) => allowed.has(id)));
-      return {catalog, stats, directoryState: true, contractDirectory: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
+      return {catalog, stats, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
+    },
+    async adminProfile(token) {
+      const session=await authorize(token,"admin");
+      const account=await source.getAccount(session.sourceId);
+      return {profile:{name:String(account?.name || session.name || "مدير المنظومة").slice(0,200),email:String(account?.email || "").slice(0,254),role:"admin",accountStatus:account?.accountStatus || "active",lastLoginAt:session.loginAt || null,expiresAt:new Date(session.expiresAt).toISOString()}};
+    },
+    async adminOptions(token) {
+      await authorize(token,"admin");
+      return {options:await store.getOptions()};
+    },
+    async addAdminOption(token,key,body) {
+      const session=await authorize(token,"admin");
+      if(!["specialty","markaz","hospital",...['hospitals','labs','radiology','pharmacies','specialized_centers','medical_guidelines'].map(k=>'category_'+k)].includes(key))fail(400,"INVALID_OPTION","هذه القائمة ذات قيم تنظيمية ثابتة.");
+      const value=typeof body.value === "string" ? body.value.normalize('NFKC').trim().replace(/\s+/g,' ') : "";
+      if(!value || value.length>160 || /[<>\u0000-\u001f]/u.test(value))fail(400,"INVALID_OPTION","أدخل اسمًا صالحًا لا يتجاوز 160 حرفًا.");
+      return {value:await store.addOption(key,value,session.sourceId,now())};
     },
     async memberProfile(token) {
       const s = await authorize(token, "member");
@@ -565,6 +584,11 @@ export function createService({
         fail(409,"VERSION_CONFLICT","تغيرت مقار الجهة؛ حدّث الدليل وأعد المحاولة.");
       await store.mutateEntities(selected.map(r=>{
         const entity={...r,[field]:value,directory_update:{type:field === 'service_status' ? (value === 'suspended' ? 'suspended' : 'resumed') : 'updated',at:new Date(now()).toISOString()}}; delete entity._version;
+        if(field === "directory_visibility" && value === "visible" && r.contract_listing === false) {
+          if(body.approve_contract !== true)fail(400,"APPROVAL_REQUIRED","اعتمد جهة التعاقد أولًا لإظهار السجل.");
+          if(kind !== "emergency_services" && !hasContract(r))fail(400,"CONTRACT_REQUIRED","أكمل جهة التعاقد في بيانات السجل أولًا.");
+          entity.publication_approval={status:"approved",by:s.sourceId,at:new Date(now()).toISOString()};
+        }
         return {kind,id:String(r.id),value:entity,expectedVersion:r._version || 0};
       }),s.sourceId,now());
       return {success:true,updated:selected.length};
@@ -585,6 +609,12 @@ export function createService({
         { ...body.entity, id: previous?.id || id },
         previous,
       );
+      if(previous?.publication_approval)entity.publication_approval=previous.publication_approval;
+      if(body.approve_contract === true) {
+        if(kind === "medical_guidelines" || (kind !== "emergency_services" && !hasContract(entity)))fail(400,"CONTRACT_REQUIRED","أكمل جهة التعاقد قبل اعتماد الإظهار.");
+        entity.publication_approval={status:"approved",by:s.sourceId,at:new Date(now()).toISOString()};
+        entity.directory_visibility="visible";
+      }
       entity.admin_reviewed_at=new Date(now()).toISOString();
       entity.directory_update={type:previous ? 'updated' : 'added',at:new Date(now()).toISOString()};
       await store.mutateEntity(

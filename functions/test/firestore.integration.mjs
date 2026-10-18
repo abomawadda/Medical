@@ -112,6 +112,16 @@ const member = (
   )
 ).token;
 const admin = (await service.adminLogin({email:"fixture-admin@example.invalid",password:"fixture-password"}, "emulator-admin")).token;
+await service.addAdminOption(admin,"specialty",{value:"تخصص محفوظ بالمحاكي"});
+assert.deepEqual((await service.adminOptions(admin)).options.specialty,["تخصص محفوظ بالمحاكي"]);
+await assert.rejects(()=>service.adminOptions(member),e=>e.status===403);
+const adminProfile=(await service.adminProfile(admin)).profile;
+assert.equal(adminProfile.email,"fixture-admin@example.invalid");assert.ok(!JSON.stringify(adminProfile).includes("passwordHash"));
+await service.putEntity(admin,"hospitals","self_contract",{entity:{name:"مستشفى اختبار مستقلة",contract_type:"independent",contract_entity:"مستشفى اختبار مستقلة",contract_entity_id:"self_contract"},expected_version:0,approve_contract:true});
+assert.ok((await service.catalog(member)).catalog.hospitals.some(r=>r.id==="self_contract"));
+await service.setEntityState(admin,"hospitals","self_contract",{field:"directory_visibility",value:"hidden",scope:"entity",versions:{self_contract:1}});
+assert.ok(!(await service.catalog(member)).catalog.hospitals.some(r=>r.id==="self_contract"));
+
 await service.submitReview(
   member,
   {
@@ -198,7 +208,7 @@ assert.equal((await service.catalog(member)).catalog.records.length,1); // Unsou
 await service.setEntityState(admin,"records","1",{field:"directory_visibility",value:"hidden",scope:"provider",versions:{"1":1,second:2}});
 assert.equal((await service.catalog(member)).catalog.records.length,0);
 assert.equal((await service.catalog(admin)).catalog.records.length,2);
-await service.setEntityState(admin,"records","1",{field:"directory_visibility",value:"visible",scope:"provider",versions:{"1":2,second:3}});
+await service.setEntityState(admin,"records","1",{field:"directory_visibility",value:"visible",scope:"provider",approve_contract:true,versions:{"1":2,second:3}});
 await service.setEntityState(admin,"records","1",{field:"service_status",value:"suspended",scope:"entity",versions:{"1":3}});
 assert.equal((await service.catalog(member)).catalog.records.find(r=>String(r.id)==="1").service_status,"suspended");
 await service.deleteEntity(admin,"records","second",{expected_version:4});

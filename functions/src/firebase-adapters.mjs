@@ -55,7 +55,7 @@ export function firebaseAdapters({
     "nationalId",
     "memberState",
   ];
-  const accountFields = ["name", "firebaseUid", "accountStatus", "role"];
+  const accountFields = ["name", "email", "firebaseUid", "accountStatus", "role"];
   const decode = (snap) =>
     snap.exists ? { ...snap.data(), id: snap.id } : null;
   const approvedIds = [...new Set(adminAccountIds)];
@@ -180,6 +180,16 @@ export function firebaseAdapters({
   return {
     source,
     store: {
+      async getOptions() {
+        const values={};
+        for(const doc of (await db.collection("medical_options").limit(1000).get()).docs){const row=doc.data();(values[row.key] ||= []).push(row.value);}
+        return values;
+      },
+      async addOption(optionKey,value,actor,at) {
+        const normalized=value.normalize('NFKC').toLocaleLowerCase('ar').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه');
+        const ref=db.collection("medical_options").doc(key(optionKey+":"+normalized));
+        return db.runTransaction(async tx=>{const existing=await tx.get(ref);if(existing.exists)return existing.data().value;tx.create(ref,{key:optionKey,value,created_at:at});tx.create(audit.doc(),{action:"option.add",optionKey,actor,at});return value;});
+      },
       async consumeLimit(id, max, expiry) {
         const ref = limits.doc(id);
         return db.runTransaction(async (tx) => {

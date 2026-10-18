@@ -1193,3 +1193,52 @@ html { overflow-anchor:none; scroll-behavior:auto; }
  .login-card .form-field {gap:2px}
  .login-card .login-president {margin-top:7px;padding-top:5px}
 }
+
+/* Administrative workbench: common actions stay beside the record. */
+.desktop-nav-item {display:none}
+.admin-intro {display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.admin-intro h1 {margin:4px 0}
+.admin-intro .section-heading {margin:0}
+.admin-metrics {grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.admin-metric-count {border:0;background:transparent;color:var(--primary);font-size:1.9rem;font-weight:800;min-height:44px;cursor:pointer}
+.admin-section-tabs,.admin-tools {display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.admin-section-tabs .button {font-size:.82rem;padding:8px 12px}
+.admin-tools {padding:14px;background:var(--card);border:1px solid var(--border);border-radius:16px}
+.admin-filterbar {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:16px}
+.admin-results-heading {display:flex;gap:16px;justify-content:space-between;align-items:center;margin:20px 0 12px}
+.admin-record-id {display:block;overflow-wrap:anywhere;font-size:.72rem;margin-top:5px}
+.admin-records th {position:sticky;top:0;background:var(--card);z-index:1}
+.admin-records td {vertical-align:top;padding:16px 12px}
+.admin-records tbody tr:hover {background:var(--primary-soft)}
+.admin-row-actions {min-width:230px}
+.admin-row-actions .text-button {border:1px solid var(--border);border-radius:9px;margin:2px;font-size:.75rem}
+.status-visible {display:inline-block;padding:6px 10px;background:#e7f5ed;color:#20614a;border-radius:20px;font-size:.74rem;font-weight:700}
+.form-field:has(.add-option-button) {position:relative;grid-template-columns:1fr 42px;align-items:end}
+.form-field:has(.add-option-button)>label {grid-column:1/-1}
+.add-option-button {border:1px solid var(--border);background:var(--primary-soft);color:var(--primary);min-height:44px;border-radius:10px;font-size:1.5rem;cursor:pointer}
+.inline-option {grid-column:1/-1;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--primary-soft)}
+.inline-option[hidden] {display:none}
+.inline-option input[type=text] {width:100%;min-height:44px;margin-bottom:10px}
+.admin-publication {border:1px solid var(--border);padding:12px;border-radius:12px;background:var(--primary-soft)}
+@media(max-width:650px) {
+ .admin-metrics {grid-template-columns:repeat(2,minmax(0,1fr))}
+ .admin-filterbar {grid-template-columns:1fr}
+ .admin-results-heading {display:block}
+ .admin-records table {min-width:760px}
+ .admin-intro .actions-row {width:100%}
+}
+@media(min-width:1100px) {
+ .workspace-view .app-header {padding:12px 28px}
+ .workspace-view .page-shell {max-width:none;width:calc(100% - 264px);margin-inline-start:248px;margin-inline-end:16px;padding:24px 18px 40px}
+ .workspace-view .bottom-nav {position:fixed;inset-block-start:96px;inset-block-end:16px;inset-inline-start:16px;inset-inline-end:auto;width:216px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:8px;padding:16px 10px;border:1px solid var(--border);border-radius:20px;overflow-y:auto;box-shadow:0 8px 30px #24123b0a}
+ .workspace-view .bottom-nav[hidden] {display:none}
+ .workspace-view .nav-item {display:flex;flex-direction:row;justify-content:flex-start;align-items:center;gap:14px;flex:0 0 auto;width:100%;min-height:52px;padding:10px 16px;font-size:.9rem;text-align:start}
+ .workspace-view .desktop-nav-item {display:flex}
+ .workspace-view .desktop-admin-link[hidden] {display:none}
+ .workspace-view .bottom-nav .desktop-nav-item:first-of-type {margin-top:auto}
+ .workspace-view .grid {grid-template-columns:repeat(auto-fill,minmax(290px,1fr))}
+ .workspace-view .search-panel {margin-bottom:24px}
+ .workspace-view .admin-records {max-height:65vh;overflow:auto}
+ .admin-view .admin-records table {width:100%;min-width:850px}
+ .workspace-view dialog {width:min(780px,calc(100% - 48px))}
+}

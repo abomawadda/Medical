@@ -60,6 +60,8 @@
     limit: 24,
     adminKind: "records",
     adminState: "",
+    adminWorklist:"pending",
+    options:{},
     remote: false,
   };
   const $ = (s) => document.querySelector(s);
@@ -275,6 +277,8 @@
     state.directoryState = result.directoryState === true;
     state.familyDirectory = result.familyDirectory === true;
     state.contractDirectory = result.contractDirectory === true;
+    state.adminWorkspace = result.adminWorkspace === true;
+    if(isAdmin() && state.adminWorkspace)state.options=(await API.adminOptions()).options || {};
     state.stats = result.stats || {};
     state.remote = true;
     connection();
@@ -887,6 +891,9 @@
     main.dataset.catalogReady = String(!!session() && state.remote);
     main.replaceChildren();
     const signedIn = !!session();
+    document.documentElement.classList.toggle("workspace-view",signedIn);
+    document.documentElement.classList.toggle("admin-view",signedIn && state.tab === "admin");
+    const desktopAdmin=$(".desktop-admin-link");if(desktopAdmin)desktopAdmin.hidden=!isAdmin();
     previewNotice.hidden = !isAdmin();
     $(".search-panel").hidden = !signedIn || (companionPreview && ["home", "account"].includes(state.tab));
     $("#main-nav").hidden = !signedIn;
@@ -976,7 +983,9 @@
         heading("الطوارئ العامة بالدولة","المستشفيات والمراكز الحكومية داخل محافظة الدقهلية"),
         publicRows.length ? gridCards(publicRows.map(emergencyCard)) : empty("لا توجد جهات حكومية مطابقة للبحث الحالي.")));
       const other=selected.filter(r=>!contracted.includes(r) && !publicRows.includes(r));
-      if(isAdmin() && other.length) main.append(heading("سجلات أخرى للمراجعة"),gridCards(other.map(emergencyCard)));
+      const publicOther=other.filter(r=>r.emergency_group === "public_hotline");
+      if(publicOther.length)main.append(heading("خطوط مساندة"),gridCards(publicOther.map(emergencyCard)));
+      if(isAdmin() && other.some(r=>!publicOther.includes(r))) main.append(heading("سجلات أخرى للمراجعة"),gridCards(other.filter(r=>!publicOther.includes(r)).map(emergencyCard)));
       return;
     }
     if (["services","dental"].includes(state.tab))
@@ -1135,7 +1144,8 @@
     state.tab = "profile";
     renderFilters();
     const navTarget=target.startsWith("doctor:") ? "#doctors" : "#services";
-    $("#main-nav").querySelectorAll("a").forEach(a=>{const active=a.getAttribute("href") === navTarget;a.classList.toggle("active",active);if(active)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");});
+    $("#main-nav").append(el("a",{href:"#account",class:"nav-item desktop-nav-item"},el("span",{},"◎"),el("span",{},"حسابي")),el("a",{href:"#admin",class:"nav-item desktop-nav-item desktop-admin-link",hidden:!isAdmin()},el("span",{},"⚙"),el("span",{},"إدارة المنظومة")));
+  $("#main-nav").querySelectorAll("a").forEach(a=>{const active=a.getAttribute("href") === navTarget;a.classList.toggle("active",active);if(active)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");});
     main.replaceChildren();
     if (target.startsWith("doctor:")) {
       const p = providers().find((p) => "doctor:" + p.id === target);
@@ -1264,7 +1274,7 @@
   function memberDialog() {
     const u = session();
     if (u) {
-      go(u.role === "admin" ? "admin" : "account");
+      go("account");
       return;
     }
     renderMain();
@@ -1374,10 +1384,19 @@
       return;
     }
     main.append(
-      heading("مرحبًا، " + u.name, "بياناتك النقابية وتقييمات زياراتك في مكان واحد."),
+      heading("مرحبًا، " + u.name, u.role === "admin" ? "بيانات حسابك وصلاحيات إدارة المنظومة." : "بياناتك النقابية وتقييمات زياراتك في مكان واحد."),
       button("تسجيل الخروج", logout, "button outline"),
     );
-    if (u.role !== "member") return;
+    if (u.role === "admin") {
+      const box=el("section",{class:"member-profile admin-profile","aria-label":"بيانات المدير"},el("h2",{},"حساب مدير المنظومة"),el("p",{},u.name));
+      main.append(box,button("فتح لوحة الإدارة",()=>go("admin"),"button primary"));
+      try {
+        const {profile}=await API.adminProfile();
+        const date=v=>v?new Intl.DateTimeFormat("ar-EG",{timeZone:"Africa/Cairo",dateStyle:"medium",timeStyle:"short"}).format(new Date(v)):"غير مسجل";
+        box.replaceChildren(el("h2",{},"حساب مدير المنظومة"),el("dl",{class:"profile-grid"},[["الاسم",profile.name],["البريد",profile.email || "غير مسجل في الحساب"],["الصلاحية","مدير المنظومة"],["حالة الحساب",profile.accountStatus === "active" ? "نشط" : profile.accountStatus],["دخول الجلسة الحالية",date(profile.lastLoginAt)],["انتهاء الجلسة",date(profile.expiresAt)]].map(([label,value])=>el("div",{},el("dt",{},label),el("dd",{},value)))));
+      } catch(error) {box.append(el("p",{class:"notice warning"},state.adminWorkspace ? error.message : "عرض بيانات المدير الكاملة يحتاج تحديث خدمة Firebase."));}
+      return;
+    }
     if (companionPreview) main.append(el("div", {class:"companion-account-actions"},
       button("العودة للرئيسية", () => go("home"), "button primary"),
       button("جهاتي المفضلة", () => go("favorites"), "button outline")));
@@ -1465,121 +1484,44 @@
     }
   }
   async function renderAdmin(main) {
-    if (session()?.role !== "admin") {
-      main.append(
-        heading(
-          "إدارة الدليل الطبي",
-          "للمدير المعتمد إضافة الجهات وتعديلها وحذفها ومراجعة التقييمات.",
-        ),
-        button("دخول المدير", adminDialog, "button primary"),
-      );
-      return;
-    }
-    main.append(
-      heading(
-        "مركز إدارة نبض النقابة",
-        "تُحفظ التعديلات مركزيًا. سجل أعضاء النقابة لا يُعدّل من هنا.",
-      ),
-      el(
-        "div",
-        { class: "actions-row" },
-        button(
-          "إضافة سجل",
-          () => editDialog(state.adminKind),
-          "button primary",
-        ),
-        button("إضافة تعليمات",()=>editDialog("medical_guidelines"),"button outline"),
-        button("إضافة خبر",()=>editDialog("medical_guidelines",null,"news"),"button outline"),
-        button("مراجعة التقييمات", adminReviewDialog, "button outline"),
-        button("جودة بيانات الدليل", qualityDialog, "button outline"),
-        button("مراجعة المواقع والمواعيد", researchDialog, "button outline"),
-        button("تصدير بيانات الدليل", exportCatalog, "button outline"),
-        button("تسجيل الخروج", logout, "button outline"),
-      ),
-    );
-    if(!state.contractDirectory) main.append(el("p",{class:"notice warning"},"حجب الجهات غير الواردة بالمصادر ينتظر نشر تحديث Firebase بالإعداد المحفوظ."));
-    if(!state.familyDirectory) main.append(el("p",{class:"notice warning"},"دليل الأسر الجديد ينتظر نشر تحديث Firebase؛ تبويب الأسر يعرض البيانات المنشورة سابقًا فقط."));
-    main.append(el("div",{class:"admin-metrics"}, [["إجمالي السجلات",kinds.flatMap(k=>state.catalog[k]).length],["مخفية",kinds.flatMap(k=>state.catalog[k]).filter(r=>r.directory_visibility === "hidden" || r.contract_listing === false).length],["موقوفة مؤقتًا",kinds.flatMap(k=>state.catalog[k]).filter(r=>r.service_status === "suspended").length]].map(([label,count])=>el("article",{},el("strong",{},count),el("span",{},label)))));
-    const kindSelect = selectField(
-      "نوع السجلات",
-      "admin-kind",
-      kinds.map((k) => [k, labels[k]]),
-      state.adminKind,
-    );
-    kindSelect.querySelector("select").addEventListener("change", (e) => {
-      state.adminKind = e.target.value;
-      renderMain();
-    });
-    main.append(el("div",{class:"admin-filterbar"},kindSelect));
-    const statusSelect=selectField("حالة العرض والخدمة","admin-state",[["","كل الحالات"],["visible","ظاهرة"],["hidden","مخفية"],["suspended","موقوفة مؤقتًا"]],state.adminState);
-    statusSelect.querySelector("select").addEventListener("change",e=>{state.adminState=e.target.value;state.limit=24;renderMain();});
-    main.querySelector(".admin-filterbar").append(statusSelect);
-    if(state.adminKind === "records") main.append(el("p",{class:"muted"},"كل صف يمثل مقرًا. عند تغيير الحالة يمكنك اختيار جميع مقار الطبيب أو هذا المقر فقط."));
-    const rows = state.catalog[state.adminKind].filter((r) =>
-      (!r.admin_reviewed_at || !!state.query.trim()) && matchesText([r.name, r.title, r.hospital, r.address]) && (!state.adminState || (state.adminState === "suspended" ? r.service_status === "suspended" : (r.directory_visibility === "hidden" || r.contract_listing === false ? "hidden" : "visible") === state.adminState)),
-    );
-    main.append(el("p", { class: "muted" }, `${rows.length} سجلًا · السجلات التي حدّثتها تظهر عند البحث عنها.`));
-    const body = el(
-      "tbody",
-      {},
-      rows.slice(0, state.limit).map((r) =>
-        el(
-          "tr",
-          {},
-          el("td", {}, el("strong",{},r.name || r.title),el("div",{class:"admin-state"},(r.directory_visibility === "hidden" || r.contract_listing === false) ? el("span",{class:"service-status"},r.contract_listing === false ? "محجوبة: يلزم مصدر تعاقد معتمد" : "مخفية عن الأعضاء") : el("span",{class:"muted"},"ظاهرة في الدليل"), statusBadge(r))),
-          el("td", {}, r.markaz || r.hospital || r.category || ""),
-          el(
-            "td",
-            {},
-            button(
-              "تعديل",
-              () => editDialog(state.adminKind, r),
-              "text-button",
-            ),
-            button(r.directory_visibility === "hidden" ? "إظهار" : "إخفاء", () => changeEntityState(state.adminKind,r,"directory_visibility",r.directory_visibility === "hidden" ? "visible" : "hidden"), "text-button"),
-            button(r.service_status === "suspended" ? "استئناف الخدمة" : "إيقاف مؤقت", () => changeEntityState(state.adminKind,r,"service_status",r.service_status === "suspended" ? "active" : "suspended"), "text-button"),
-            button(
-              "حذف",
-              () => deleteDialog(state.adminKind, r),
-              "text-button danger-text",
-            ),
-          ),
-        ),
-      ),
-    );
-    main.append(
-      el(
-        "div",
-        { class: "table-wrap" },
-        el(
-          "table",
-          {},
-          el(
-            "thead",
-            {},
-            el(
-              "tr",
-              {},
-              el("th", {}, "الاسم"),
-              el("th", {}, "المنطقة / التصنيف"),
-              el("th", {}, "إجراءات"),
-            ),
-          ),
-          body,
-        ),
-      ),
-    );
-    if (rows.length > state.limit)
-      main.append(
-        button(
-          "عرض المزيد",
-          () => {
-            state.limit += 24;
-            renderMain();
-          },
-          "button outline load-more",
-        ),
-      );
+    if(!isAdmin()){main.append(heading("إدارة الدليل الطبي"),button("دخول المدير",adminDialog,"button primary"));return;}
+    const all=kinds.flatMap(kind=>state.catalog[kind].map(r=>({kind,r})));
+    const parentOf=r=>r.contract_type === "hospital" && r.contract_entity_id !== String(r.id) ? state.catalog.hospitals.find(h=>h.id === r.contract_entity_id) : null;
+    const parentHidden=r=>{const parent=parentOf(r);return parent && (parent.directory_visibility === "hidden" || parent.contract_listing === false);};
+    const hidden=r=>r.directory_visibility === "hidden" || r.contract_listing === false || parentHidden(r) || (!!r.title && !publishedContent(r));
+    const filter=(kind,status="")=>{state.adminKind=kind;state.adminState=status;state.limit=24;state.query="";$("#search-input").value="";renderMain();};
+    main.append(el("section",{class:"admin-intro"},el("div",{},el("span",{class:"eyebrow"},"مساحة العمل الإدارية"),heading("مركز إدارة نبض النقابة","الجهات والتعاقدات والمحتوى في مساحة عمل واحدة.")),el("div",{class:"actions-row"},button("إضافة سجل",()=>editDialog(state.adminKind === "all" ? "records" : state.adminKind),"button primary"),button("حساب المدير",()=>go("account"),"button outline"))));
+    if(!state.adminWorkspace)main.append(el("p",{class:"notice warning"},"صلاحية اعتماد الجهات والقوائم المشتركة وبطاقة المدير تحتاج نشر تحديث Firebase مرة واحدة بالإعداد المحفوظ."));
+    main.append(el("section",{class:"admin-metrics","aria-label":"ملخص الإدارة"},[
+      ["إجمالي السجلات",all.length,()=>{state.adminWorklist="all";filter("all");}],
+      ["المخفية والمحجوبة",all.filter(({r})=>hidden(r)).length,()=>filter("all","hidden")],
+      ["موقوفة مؤقتًا",all.filter(({r})=>r.service_status === "suspended").length,()=>filter("all","suspended")],
+      ["لم تُراجع بعد",all.filter(({r})=>!r.admin_reviewed_at).length,()=>{state.adminWorklist="pending";filter("all");}],
+    ].map(([label,count,action])=>el("article",{},button(String(count),action,"admin-metric-count"),el("span",{},label)))));
+    main.append(el("div",{class:"admin-section-tabs","aria-label":"أقسام الإدارة"},kinds.map(kind=>button(labels[kind]+" · "+state.catalog[kind].length,()=>filter(kind),"button "+(state.adminKind===kind?"primary":"outline")))));
+    main.append(el("div",{class:"admin-tools"},button("مراجعة التقييمات",adminReviewDialog,"button outline"),button("إضافة تعليمات",()=>editDialog("medical_guidelines"),"button outline"),button("إضافة خبر",()=>editDialog("medical_guidelines",null,"news"),"button outline"),button("جودة بيانات الدليل",qualityDialog,"text-button"),button("مراجعة المواقع والمواعيد",researchDialog,"text-button"),button("تصدير بيانات الدليل",exportCatalog,"text-button")));
+    const kindSelect=selectField("نوع السجلات","admin-kind",[["all","كل الأقسام"],...kinds.map(k=>[k,labels[k]])],state.adminKind);
+    const statusSelect=selectField("حالة العرض والخدمة","admin-state",[["","كل الحالات"],["visible","ظاهرة"],["hidden","مخفية ومحجوبة"],["suspended","موقوفة مؤقتًا"]],state.adminState);
+    const worklist=selectField("قائمة العمل","admin-worklist",[["pending","بانتظار المراجعة"],["all","جميع السجلات بما فيها المحدّثة"]],state.adminWorklist);
+    for(const [field,key] of [[kindSelect,"adminKind"],[statusSelect,"adminState"],[worklist,"adminWorklist"]])field.querySelector("select").addEventListener("change",e=>{state[key]=e.target.value;state.limit=24;renderMain();});
+    main.append(el("section",{class:"admin-filterbar"},kindSelect,statusSelect,worklist));
+    const rows=all.filter(({kind,r})=>(state.adminKind === "all" || kind === state.adminKind) &&
+      (state.adminWorklist === "all" || state.adminState === "hidden" || state.adminState === "suspended" || !r.admin_reviewed_at || state.query.trim()) &&
+      matchesText([r.name,r.title,r.id,r.hospital,r.address,r.markaz]) &&
+      (!state.adminState || (state.adminState === "suspended" ? r.service_status === "suspended" : state.adminState === "hidden" ? hidden(r) : !hidden(r))));
+    main.append(el("div",{class:"admin-results-heading"},el("strong",{},rows.length+" سجلًا"),el("span",{class:"muted"},"ابحث بالأعلى بالاسم أو العنوان أو المعرّف. السجلات المحدّثة خارج قائمة المراجعة؛ المخفية متاحة دائمًا من ملخص الإدارة.")));
+    const body=el("tbody",{},rows.slice(0,state.limit).map(({kind,r})=>el("tr",{"data-admin-id":String(r.id)},
+      el("td",{},el("strong",{},r.name || r.title),el("small",{class:"muted admin-record-id"},String(r.id))),
+      el("td",{},labels[kind],el("small",{class:"muted admin-record-id"},r.markaz || r.city || r.hospital || "")),
+      el("td",{},el("span",{class:hidden(r)?"service-status":"status-visible"},r.title && !publishedContent(r) ? (r.publication_status === "published" ? "غير سارية / تحتاج استكمال مرجع" : "مسودة — للإدارة فقط") : parentHidden(r) ? "مخفية تبعًا للمستشفى" : r.contract_listing === false ? "محجوبة — تنتظر اعتمادك" : r.directory_visibility === "hidden" ? "مخفية عن الأعضاء" : "ظاهرة في الدليل"),statusBadge(r)),
+      el("td",{},r.contract_entity || (kind === "medical_guidelines" ? r.issuing_authority : "غير مسجلة")),
+      el("td",{class:"admin-row-actions"},button("تعديل",()=>editDialog(kind,r),"text-button"),
+        kind === "medical_guidelines" ? button("تحرير النشر",()=>editDialog(kind,r),"text-button") : parentHidden(r) ? button("إدارة المستشفى",()=>{state.adminKind="hospitals";state.adminState="";state.query=parentOf(r).name;$("#search-input").value=state.query;renderMain();},"text-button") : button(hidden(r)?"إظهار":"إخفاء",()=>changeEntityState(kind,r,"directory_visibility",hidden(r)?"visible":"hidden"),"text-button"),
+        button(r.service_status === "suspended"?"استئناف الخدمة":"إيقاف مؤقت",()=>changeEntityState(kind,r,"service_status",r.service_status === "suspended"?"active":"suspended"),"text-button"),
+        button("حذف",()=>deleteDialog(kind,r),"text-button danger-text")))));
+    main.append(el("div",{class:"table-wrap admin-records"},el("table",{},el("thead",{},el("tr",{},["الجهة / المعرّف","القسم / الموقع","حالة النشر","جهة التعاقد / المصدر","الإجراءات"].map(t=>el("th",{},t)))),body)));
+    if(!rows.length)main.append(empty("لا توجد سجلات ضمن الاختيار. اختر جميع السجلات أو غيّر البحث."));
+    if(rows.length>state.limit)main.append(button("عرض المزيد",()=>{state.limit+=24;renderMain();},"button outline load-more"));
   }
   function researchDialog() {
     if(!isAdmin()) return;
@@ -1610,6 +1552,8 @@
       : "الإيقاف يبقي المقر ظاهرًا بعلامة موقوف مؤقتًا. تتأثر به مقار الأطباء التابعة للمستشفى فقط."));
     const group=el("input",{type:"checkbox",checked:true});
     if (all.length>1) content.append(el("label",{class:"remember-option"},group,` تطبيق على جميع مقار هذا الطبيب (${all.length})`));
+    const approval=el("input",{type:"checkbox"});
+    if(key === "directory_visibility" && value === "visible" && all.some(e=>e.contract_listing === false))content.append(el("label",{class:"remember-option"},approval,kind === "emergency_services" ? "راجعت بيانات خدمة الطوارئ وأعتمد إظهارها" : "راجعت جهة التعاقد وأعتمد إظهار هذا السجل للأعضاء"));
     const error=el("p",{class:"notice warning",role:"alert",hidden:true});content.append(error);
     dialog(r.name || r.title,content);
     const save=button("تأكيد التغيير",async()=>{
@@ -1618,13 +1562,47 @@
         const health=await API.health();
         if(!health.capabilities?.includes("directory-state-v1")) throw new Error("هذه الميزة تحتاج نشر تحديث الخدمة المركزية أولًا. لم تتغير حالة الجهة.");
         const selected=all.length>1 && group.checked ? all : [r];
-        await API.setState(kind,r.id,{field:key,value,scope:selected.length>1 ? "provider" : "entity",versions:Object.fromEntries(selected.map(e=>[String(e.id),e._version || 0]))});
+        if(key === "directory_visibility" && value === "visible" && selected.some(e=>e.contract_listing === false)) {
+          if(!health.capabilities?.includes("admin-workspace-v1"))throw new Error("اعتماد الجهات يحتاج تحديث Firebase أولًا.");
+          if(!approval.checked)throw new Error("أكد مراجعة جهة التعاقد لاعتماد الإظهار.");
+        }
+        await API.setState(kind,r.id,{field:key,value,scope:selected.length>1 ? "provider" : "entity",versions:Object.fromEntries(selected.map(e=>[String(e.id),e._version || 0])),approve_contract:approval.checked});
         closeDialog();toast("تم حفظ الحالة.");
         try {await refresh();} catch {toast("حُفظت الحالة. حدّث الصفحة لعرض التغيير.");}
       } catch(e) {error.textContent=e.message;error.hidden=false;}
       finally {save.disabled=false;}
     },"button primary");
     content.append(save);
+  }
+  function addListControl(form,wrapper,key,label,optionKey) {
+    const panel=el("div",{class:"inline-option",hidden:true});
+    const input=el("input",{type:"text",maxlength:160,"aria-label":"اسم العنصر الجديد: "+label});
+    const error=el("p",{class:"form-error",role:"alert"});
+    const publish=el("input",{type:"checkbox"});
+    const save=button("حفظ العنصر",async()=>{
+      save.disabled=true;error.textContent="";
+      try {
+        if(!state.adminWorkspace)throw new Error("حفظ القوائم يحتاج تحديث خدمة Firebase أولًا.");
+        const value=input.value.trim();if(!value)throw new Error("اكتب اسم العنصر الجديد.");
+        let stored=value;
+        if(key === "hospital") {
+          const beneficiary=form.querySelector('[name="beneficiary_group"]')?.value;
+          const markaz=form.querySelector('[name="markaz"]')?.value;
+          if(!beneficiary || !markaz)throw new Error("اختر المستفيدين والمركز في النموذج أولًا لتحديد بيانات المستشفى الجديدة.");
+          const parentId="entry_"+crypto.randomUUID().replaceAll("-","");
+          const entity={id:parentId,name:value,short_name:value,markaz,city:markaz,network_members:beneficiary === "all"?["employee","family","retiree"]:beneficiary === "family"?["family","retiree"]:["employee"],contract_type:"independent",contract_entity:value,contract_entity_id:parentId,directory_visibility:"hidden"};
+          await API.save("hospitals",entity,0,publish.checked);stored=parentId;
+          const result=await API.catalog();state.catalog=cleanDisplay(result.catalog);
+          toast(publish.checked?"أضيفت المستشفى واعتمد إظهارها.":"أضيفت المستشفى كمسودة مخفية؛ يمكنك اعتمادها من قائمة المخفية.");
+        } else {stored=(await API.addOption(optionKey,value)).value;(state.options[optionKey] ||= []).push(stored);}
+        const select=wrapper.querySelector("select");if(![...select.options].some(o=>o.value===stored))select.append(el("option",{value:stored},key === "hospital" ? value : stored));select.value=stored;select.dispatchEvent(new Event("change"));panel.hidden=true;input.value="";
+      } catch(e){error.textContent=e.message;}finally{save.disabled=false;}
+    },"button primary");
+    panel.append(input);
+    if(key === "hospital")panel.append(el("label",{class:"remember-option"},publish,"راجعت التعاقد وأعتمد إظهار المستشفى الجديدة"));
+    panel.append(save,button("إلغاء",()=>panel.hidden=true,"text-button"),error);
+    wrapper.append(button("+",()=>{panel.hidden=!panel.hidden;if(!panel.hidden)input.focus();},"add-option-button"),panel);
+    wrapper.querySelector(".add-option-button").setAttribute("aria-label","إضافة عنصر إلى "+label);
   }
   function editDialog(kind, original,documentType) {
     const r = original || (documentType ? {document_type:documentType} : {});
@@ -1640,8 +1618,7 @@
         { required: true, maxlength: 250 },
       ),
     );
-    if (!["medical_guidelines","emergency_services"].includes(kind) && (!original || r.contract_listing === false))
-      form.prepend(el("p",{class:"notice warning"},"الجهات غير الواردة في ملفات التعاقد المعتمدة تبقى محجوبة عن الأعضاء. حفظ البيانات أو الضغط على إظهار لا يضيف اعتماد تعاقد؛ يلزم إدراج الجهة في ملف تعاقد معتمد."));
+
     const textFields =
       kind === "records"
         ? [
@@ -1670,17 +1647,23 @@
                 ["address", "العنوان"],
                 ["working_hours", "المواعيد"],
               ];
+    if(!["records","medical_guidelines","emergency_services"].includes(kind))textFields.push(["hospital","المستشفى التابعة لها (للتعاقد عبر مستشفى)"]);
     const choices={
-      specialty:[...new Set(state.catalog.records.map(x=>x.specialty).filter(Boolean))],
+      specialty:[...new Set([...state.catalog.records.map(x=>x.specialty),...(state.options.specialty || [])].filter(Boolean))],
       hospital:[...new Set(["عيادة مستقلة",...state.catalog.hospitals.map(x=>x.short_name || x.name),...state.catalog.records.map(x=>x.hospital)].filter(Boolean))],
-      markaz:[...new Set([...dakahliaCenters,...kinds.flatMap(k=>state.catalog[k]).map(x=>x.markaz || x.city)].filter(Boolean))],
+      markaz:[...new Set([...dakahliaCenters,...(state.options.markaz || []),...kinds.flatMap(k=>state.catalog[k]).map(x=>x.markaz || x.city)].filter(Boolean))],
     };
     for (const [key, label] of textFields) {
       if(choices[key]) {
         const values=[...new Set([...choices[key],r[key]].filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ar"));
-        const wrapper=selectField(label,key,[["","اختر "+label],...values.map(v=>[v,v])],r[key] || "");
-        wrapper.querySelector("select").required=key !== "markaz" || kind !== "emergency_services";
+        const hospitalChoices=[["عيادة مستقلة","عيادة مستقلة"],...state.catalog.hospitals.map(h=>[String(h.id),h.name+" · "+(h.markaz || h.city || "")])];
+        const currentHospital=state.catalog.hospitals.find(h=>String(h.id)===r.contract_entity_id || [h.name,h.short_name].includes(r.hospital));
+        const currentValue=key === "hospital" ? currentHospital ? String(currentHospital.id) : r.hospital || "" : r[key] || "";
+        if(key === "hospital" && currentValue && !hospitalChoices.some(([v])=>v===currentValue))hospitalChoices.push([currentValue,currentValue]);
+        const wrapper=selectField(label,key,[["","اختر "+label],...(key === "hospital" ? hospitalChoices : values.map(v=>[v,v]))],currentValue);
+        wrapper.querySelector("select").required=key === "specialty" || (key === "markaz" && kind !== "emergency_services") || (key === "hospital" && kind === "records");
         form.append(wrapper);
+        addListControl(form,wrapper,key,label,key);
       } else form.append(field(label,key,["notes","summary","description","steps"].includes(key) ? "textarea" : "text",Array.isArray(r[key]) ? r[key].join("\n") : r[key] || "",{required:key === "summary",maxlength:3000}));
     }
     if(kind === "medical_guidelines") {
@@ -1698,10 +1681,10 @@
     if(!["medical_guidelines","emergency_services"].includes(kind)) {
       const n=r.network_members || [];
       form.append(selectField("المستفيدون","beneficiary_group",[["","اختر المستفيدين"],["employee","الموظفون"],["family","الأسر والمعاشات"],["all","الموظفون والأسر والمعاشات"]],n.includes("employee") && n.some(x=>x !== "employee") ? "all" : n.includes("family") || n.includes("retiree") ? "family" : n.includes("employee") ? "employee" : ""),
-        selectField("مسار التعاقد","contract_type",[["","اختر مسار التعاقد"],["direct_we","تعاقد مباشر من الشركة"],["hospital","عبر مستشفى"],["family_network","شبكة الأسر والمعاشات"]],r.contract_type || ""));
+        selectField("مسار التعاقد","contract_type",[["","اختر مسار التعاقد"],["direct_we","تعاقد مباشر من الشركة"],["hospital","عبر مستشفى"],["family_network","شبكة الأسر والمعاشات"],["independent",kind === "hospitals" ? "المستشفى نفسها / جهة مستقلة" : "جهة أو عيادة مستقلة"]],r.contract_type || (kind === "hospitals" ? "independent" : "")));
       for(const key of ["beneficiary_group","contract_type"]) form.querySelector('[name="'+key+'"]').required=true;
       if(kind !== "records") {
-        const categories=[...new Set([labels[kind],...state.catalog[kind].map(e=>e.category),...(kind === "specialized_centers" ? ["مركز أسنان","علاج طبيعي","بصريات"] : [])].filter(Boolean))];
+        const categories=[...new Set([labels[kind],...state.catalog[kind].map(e=>e.category),...(state.options["category_"+kind] || []),...(kind === "specialized_centers" ? ["مركز أسنان","علاج طبيعي","بصريات"] : [])].filter(Boolean))];
         form.append(selectField("نوع الجهة","category",categories.map(v=>[v,v]),r.category || labels[kind]));
       }
     }
@@ -1775,6 +1758,15 @@
         selectField("نوع الصورة","image_kind",[["portrait","صورة الطبيب أو الطبيبة"],["facility","صورة المقر أو المركز"],["logo","شعار الجهة"]],r.image_kind || (kind === "records" ? "portrait" : "facility")),
         el("label", {class:"remember-option"}, el("input",{type:"checkbox",name:"image_verified",checked:r.image_verified === true}), " تأكدت من هوية صاحب الصورة وحق استخدامها"),
       );
+    if(kind !== "medical_guidelines") {
+      form.append(selectField("حالة العرض","directory_visibility",[["visible","ظاهرة للأعضاء"],["hidden","مسودة / مخفية عن الأعضاء"]],r.directory_visibility || "visible"));
+      if(!original || r.contract_listing === false)form.append(el("label",{class:"remember-option admin-publication"},el("input",{type:"checkbox",name:"approve_contract"}),kind === "emergency_services" ? "راجعت بيانات خدمة الطوارئ وأعتمد إظهارها" : "راجعت بيانات الجهة وتعاقدها وأعتمد إظهارها للأعضاء"));
+    }
+    const categorySelect=form.querySelector('[name="category"]');
+    if(categorySelect) {
+      for(const value of state.options["category_"+kind] || [])if(![...categorySelect.options].some(o=>o.value===value))categorySelect.append(el("option",{value},value));
+      addListControl(form,categorySelect.closest(".form-field"),"category","نوع الجهة","category_"+kind);
+    }
     form.save = async (data) => {
       const entity = { ...r, ...data, id };
       if(kind === "medical_guidelines") {
@@ -1784,10 +1776,16 @@
         entity.network_members=data.beneficiary_group === "all" ? ["employee","family","retiree"] : data.beneficiary_group === "family" ? ["family","retiree"] : ["employee"];
         entity.city=data.markaz;
         entity.country_code="EG";entity.governorate="الدقهلية";entity.governorate_code="EG-DK";
-        const hospital=state.catalog.hospitals.find(h=>[h.name,h.short_name].includes(data.hospital));
-        if(kind === "records" && (data.hospital !== r.hospital || data.contract_type !== r.contract_type || !original)) {
-          entity.contract_entity_id=data.contract_type === "hospital" && hospital ? hospital.id : data.contract_type;
-          entity.contract_entity=data.contract_type === "hospital" ? data.hospital : data.contract_type === "family_network" ? "شبكة الأسر والمعاشات" : "تعاقد مباشر من الشركة";
+        const hospital=state.catalog.hospitals.find(h=>[String(h.id),h.name,h.short_name].includes(data.hospital));
+        if(kind === "records" && hospital)entity.hospital=hospital.short_name || hospital.name;
+        if(data.contract_type === "hospital") {
+          if(!hospital)throw new Error("اختر مستشفى مسجلة لربط التعاقد بها، أو اختر جهة مستقلة.");
+          entity.contract_entity="تابع لـ"+hospital.name;entity.contract_entity_id=hospital.id;
+        } else if(data.contract_type === "independent") {
+          entity.contract_entity=data.name;entity.contract_entity_id=id;
+        } else {
+          entity.contract_entity=data.contract_type === "family_network" ? "شبكة الأسر والمعاشات" : "تعاقد مباشر من الشركة WE";
+          entity.contract_entity_id=data.contract_type === "family_network" ? "family_network" : "direct_we";
         }
       }
       delete entity.beneficiary_group;
@@ -1835,10 +1833,13 @@
         family_globemed: "أسر جلوب ميد فقط",
         both: "العاملون والأسر",
       }[entity.coverage_scope];
-      await API.save(kind, entity, r._version || 0);
+      if(data.approve_contract === "on" && !state.adminWorkspace)throw new Error("اعتماد الإظهار يحتاج تحديث Firebase أولًا.");
+      const draft=(!original || r.contract_listing === false) && data.approve_contract !== "on" && kind !== "medical_guidelines";
+      if(draft)entity.directory_visibility="hidden";
+      await API.save(kind, entity, r._version || 0,data.approve_contract === "on");
       closeDialog();
       await refresh();
-      toast("تم حفظ السجل في الدليل المركزي.");
+      toast(draft ? "حُفظت مسودة مخفية. يمكنك اعتماد إظهارها من قائمة المخفية." : "تم حفظ السجل في الدليل المركزي.");
     };
     dialog(
       (original ? "تعديل: " : "إضافة: ") + labels[kind],
@@ -2010,6 +2011,7 @@
       ),
     ),
   );
+  $("#main-nav").append(el("a",{href:"#account",class:"nav-item desktop-nav-item"},el("span",{},"◎"),el("span",{},"حسابي")),el("a",{href:"#admin",class:"nav-item desktop-nav-item desktop-admin-link",hidden:!isAdmin()},el("span",{},"⚙"),el("span",{},"إدارة المنظومة")));
   $("#main-nav").querySelectorAll("a").forEach(a=>a.addEventListener("click",event=>{event.preventDefault();go(a.getAttribute("href").slice(1));}));
   $("#member-button").addEventListener("click", memberDialog);
   $("#dialog-close").addEventListener("click", closeDialog);

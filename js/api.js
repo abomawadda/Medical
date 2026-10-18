@@ -191,6 +191,9 @@ window.MedicalAPI = (() => {
     },
     catalog: () => request("/catalog", { protectedRequest: true }),
     health: () => request("/health"),
+    adminProfile:()=>request("/admin/profile",{protectedRequest:true}),
+    adminOptions:()=>request("/admin/options",{protectedRequest:true}),
+    addOption:(key,value)=>request("/admin/options/"+encodeURIComponent(key),{method:"PUT",body:{value},protectedRequest:true}),
     profile: () => request("/profile", { protectedRequest: true }),
     review: (body) =>
       request("/reviews", { method: "POST", body, protectedRequest: true }),
@@ -203,7 +206,7 @@ window.MedicalAPI = (() => {
         protectedRequest: true,
       }),
     setState: (kind,id,body) => request("/admin/entities/"+encodeURIComponent(kind)+"/"+encodeURIComponent(id),{method:"PATCH",body,protectedRequest:true}),
-    save: (kind, entity, version) =>
+    save: (kind, entity, version, approveContract=false) =>
       request(
         "/admin/entities/" +
           encodeURIComponent(kind) +
@@ -211,7 +214,7 @@ window.MedicalAPI = (() => {
           encodeURIComponent(entity.id),
         {
           method: "PUT",
-          body: { entity, expected_version: version },
+          body: { entity, expected_version: version, approve_contract:approveContract },
           protectedRequest: true,
         },
       ),

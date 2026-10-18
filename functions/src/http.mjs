@@ -24,7 +24,7 @@ export function createHandler({ getService, origins, logger = console }) {
     if (req.method === "GET" && path === "/v1/health") {
       try {
         getService();
-        return res.json({ configured: true, capabilities: ["member-profile", "review-revisions", "staff-directory", "provider-images", "provider-illustrations", "directory-state-v1", "family-directory-v1", "directory-content-v1", "contract-directory-v1", "public-emergency-v1"] });
+        return res.json({ configured: true, capabilities: ["member-profile", "review-revisions", "staff-directory", "provider-images", "provider-illustrations", "directory-state-v1", "family-directory-v1", "directory-content-v1", "contract-directory-v1", "public-emergency-v1", "admin-workspace-v1"] });
       } catch {
         return res.status(503).json({
           configured: false,
@@ -55,6 +55,12 @@ export function createHandler({ getService, origins, logger = console }) {
       let data;
       if (req.method === "GET" && path === "/v1/catalog")
         data = await service.catalog(token);
+      else if (req.method === "GET" && path === "/v1/admin/profile")
+        data=await service.adminProfile(token);
+      else if (req.method === "GET" && path === "/v1/admin/options")
+        data=await service.adminOptions(token);
+      else if (req.method === "PUT" && /^\/v1\/admin\/options\/[a-z_]+$/.test(path))
+        data=await service.addAdminOption(token,path.split('/').pop(),body);
       else if (req.method === "GET" && path === "/v1/profile")
         data = await service.memberProfile(token);
       else if (req.method === "GET" && path === "/v1/session")

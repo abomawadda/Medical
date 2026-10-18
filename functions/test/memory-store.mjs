@@ -10,7 +10,10 @@ export function fixtureStore(seed) {
     audit = [], activity = new Map();
   const base = structuredClone(seed);
   for (const k of kinds) base[k] ||= [];
+  const options=new Map();
   const store = {
+    async getOptions(){return Object.fromEntries([...new Set([...options.values()].map(r=>r.key))].map(k=>[k,[...options.values()].filter(r=>r.key===k).map(r=>r.value)]));},
+    async addOption(key,value,actor,at){const id=key+":"+value.normalize("NFKC").toLocaleLowerCase("ar").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه");if(!options.has(id)){options.set(id,{key,value});audit.push({action:"option.add",actor,at});}return options.get(id).value;},
     sessions,
     reviews,
     overlays,
