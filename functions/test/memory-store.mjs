@@ -1,3 +1,4 @@
+import { projectContract } from "../src/contract-publication.mjs";
 import { withFamilyContracts } from "../src/family-projection.mjs";
 import { ApiError, kinds } from "../src/core.mjs";
 import { reviseReview, decideReview, reviewRevision } from "../src/review-lifecycle.mjs";
@@ -45,7 +46,7 @@ export function fixtureStore(seed) {
             if (row.deleted) map.delete(row.entityId);
             else map.set(row.entityId, { ...withFamilyContracts(map.get(row.entityId),row.value), _version: row.version });
           }
-        out[k] = [...map.values()];
+        out[k] = [...map.values()].map(r=>base[k].some(e=>typeof e.contract_listing === "boolean") ? projectContract(base[k].find(e=>String(e.id)===String(r.id)),r,k) : r);
       }
       return out;
     },

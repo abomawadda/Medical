@@ -23,11 +23,11 @@ for (const [name, path, method, origin, expected] of checks) {
   });
   assert.equal(response.status, expected, name + ': unexpected HTTP status');
   assert.match(response.headers.get('cache-control') || '', /no-store/, name + ': API must not be cached');
-  if (origin !== 'https://example.invalid') assert.equal(response.headers.get('access-control-allow-origin'), allowed, name + ': CORS');
+  if (origin !== 'https://example.invalid') assert.equal(response.headers.get('access-control-allow-origin'), origin, name + ': CORS');
   if (name.startsWith('api-health')) {
     const value = await response.json();
     assert.equal(value.configured, true, 'API is not configured');
-    for (const capability of ['member-profile', 'review-revisions', ...(process.argv.includes('--require-content') ? ['directory-content-v1'] : []), ...(process.argv.includes('--require-family') ? ['family-directory-v1'] : []), ...(process.argv.includes('--require-staff') ? ['staff-directory','provider-images','provider-illustrations','directory-state-v1'] : [])])
+    for (const capability of ['member-profile', 'review-revisions', ...(process.argv.includes('--require-contracts') ? ['contract-directory-v1'] : []), ...(process.argv.includes('--require-content') ? ['directory-content-v1'] : []), ...(process.argv.includes('--require-family') ? ['family-directory-v1'] : []), ...(process.argv.includes('--require-staff') ? ['staff-directory','provider-images','provider-illustrations','directory-state-v1'] : [])])
       assert.ok(value.capabilities?.includes(capability), 'Missing API capability: ' + capability);
   } else await response.arrayBuffer();
   report.checks.push({ name, status: response.status, milliseconds: Math.round(performance.now() - start) });

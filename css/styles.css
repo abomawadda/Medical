@@ -1177,3 +1177,19 @@ html { overflow-anchor:none; scroll-behavior:auto; }
 .update-label.suspended{background:#fff0db;color:#744900}.update-label.resumed{background:#e2f4eb;color:#25634a}
 .updates-empty{padding:20px;border:1px dashed var(--border);border-radius:16px;color:var(--muted)}
 .instructions-list{display:grid;gap:14px}.instruction-card summary{cursor:pointer;display:grid;gap:8px}.instruction-card li{margin-bottom:10px}
+
+/* Compact entry: the president credit follows the submit button. */
+.login-card .login-president {text-align:center;margin:10px 0 0;padding-top:8px;border-top:1px solid var(--border);gap:0;font-size:.78rem;line-height:1.45}
+.login-view .app-footer {margin-top:0;padding:3px 0;font-size:.72rem}
+@media(max-width:560px) {
+ .login-view .app-header {padding-top:8px;padding-bottom:8px}
+ .login-card {padding:12px 16px;margin:2px auto}
+ .login-card .brand-pair {margin-bottom:4px}
+ .login-card .brand-pair img {width:44px;height:44px}
+ .login-card h1 {font-size:1.16rem;margin:4px 0}
+ .login-card .login-tagline {font-size:.72rem;margin-bottom:4px}
+ .login-card .creator-credit {margin:2px 0;font-size:.7rem}
+ .login-card .form-stack {gap:7px}
+ .login-card .form-field {gap:2px}
+ .login-card .login-president {margin-top:7px;padding-top:5px}
+}

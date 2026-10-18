@@ -1,4 +1,4 @@
-import { withFamilyContracts } from "./family-projection.mjs";
+import { mergeCatalog } from "./catalog-projection.mjs";
 import { createHash } from "node:crypto";
 import {
   initializeApp,
@@ -13,20 +13,7 @@ import { createAdminIdentityVerifier, legacyAdminState } from "./admin-identity.
 import { reviseReview, decideReview, reviewRevision } from "./review-lifecycle.mjs";
 
 const key = (value) => createHash("sha256").update(value).digest("hex");
-export function mergeCatalog(seed, overlays) {
-  const result = {};
-  for (const kind of kinds) {
-    const entries = new Map(
-      (seed[kind] || []).map((e) => [String(e.id), { ...e, _version: 0 }]),
-    );
-    for (const row of overlays.filter((o) => o.kind === kind)) {
-      if (row.deleted) entries.delete(row.entityId);
-      else entries.set(row.entityId, { ...withFamilyContracts(entries.get(row.entityId),row.value), _version: row.version });
-    }
-    result[kind] = [...entries.values()];
-  }
-  return result;
-}
+export { mergeCatalog } from "./catalog-projection.mjs";
 
 export function firebaseAdapters({
   medicalProjectId,

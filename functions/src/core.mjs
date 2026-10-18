@@ -65,7 +65,7 @@ export function memberCatalog(catalog, at=Date.now()) {
   const hospitals = catalog.hospitals || [];
   const parent = (r) => hospitals.find(h => r.contract_entity_id === h.id || (r.hospital && [h.name,h.short_name].includes(r.hospital)));
   return Object.fromEntries(kinds.map(kind => [kind, (catalog[kind] || [])
-    .filter(r => r.directory_visibility !== "hidden" && !(kind === "records" && parent(r)?.directory_visibility === "hidden") && (kind !== "medical_guidelines" || publishedDocument(r,at)))
+    .filter(r => r.contract_listing !== false && r.directory_visibility !== "hidden" && !(kind === "records" && (parent(r)?.directory_visibility === "hidden" || parent(r)?.contract_listing === false || (r.contract_type === "hospital" && !parent(r)))) && (kind !== "medical_guidelines" || publishedDocument(r,at)))
     .map(r => ({...r, service_status: r.service_status === "suspended" || (kind === "records" && parent(r)?.service_status === "suspended") ? "suspended" : "active"}))]));
 }
 
@@ -471,7 +471,7 @@ export function createService({
       const catalog = user.role === "admin" ? all : memberCatalog(all,now());
       const allowed = targets(catalog);
       const stats = Object.fromEntries(Object.entries(await store.getStats()).filter(([id]) => allowed.has(id)));
-      return {catalog, stats, directoryState: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
+      return {catalog, stats, directoryState: true, contractDirectory: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
     },
     async memberProfile(token) {
       const s = await authorize(token, "member");
@@ -576,6 +576,7 @@ export function createService({
         { ...body.entity, id: previous?.id || id },
         previous,
       );
+      entity.admin_reviewed_at=new Date(now()).toISOString();
       entity.directory_update={type:previous ? 'updated' : 'added',at:new Date(now()).toISOString()};
       await store.mutateEntity(
         kind,

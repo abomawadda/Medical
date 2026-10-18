@@ -198,7 +198,14 @@ try {
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
   assert.equal(await p.locator(".app-footer small").innerText(),"نبض النقابة - رعاية أقرب لك ولأسرتك");
-  assert.equal(await p.locator(".login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
+  assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
+  assert.equal(await p.locator('.login-card .login-links').count(),0);
+  assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
+  for (const height of [740,844]) {
+    await p.setViewportSize({width:390,height});
+    const bounds=await p.locator('.login-card .login-president').boundingBox();
+    assert.ok(bounds.y+bounds.height<=height, "Login and president credit fit on the mobile screen");
+  }
   assert.ok(!(await p.locator("body").innerText()).includes("اختر التذكّر"));
   assert.ok(!(await p.locator("body").innerText()).includes("رعايتك أقرب ·"));
   await p.getByText("الشبكة الطبية للموظفين والأسر والمعاشات",{exact:true}).waitFor();
@@ -488,12 +495,20 @@ try {
   await a.locator("dialog").waitFor({state:"hidden"});
   await p.goto(origin+"/#home");await p.reload();
   await p.locator(".update-card").getByRole("heading",{name:"إعلان اختبار الشبكة",exact:true}).waitFor();
+  assert.equal(await p.locator('.update-card').filter({hasText:"طبيب اختبار مضاف"}).count(),0);
+  assert.equal(await p.locator('.update-card:not(:has(.update-label.news))').count(),0);
+  await a.getByRole("button",{name:"جودة بيانات الدليل",exact:true}).click();
+  assert.equal(await a.locator('.quality-item').filter({hasText:"طبيب اختبار مضاف"}).count(),0);
+  await a.getByLabel("البحث في جميع السجلات بما فيها المحدّثة",{exact:true}).fill("طبيب اختبار مضاف");
+  await a.getByLabel("نوع الملاحظة",{exact:true}).focus();
+  await a.locator('.quality-item').filter({hasText:"طبيب اختبار مضاف"}).first().waitFor();
+  await a.getByRole("button",{name:"إغلاق النافذة",exact:true}).click();
   await p.goto(origin + "/#entity=" + encodeURIComponent("doctor:" + addedProvider.provider_id));
   await p.reload(); // An entity created in another session requires a fresh catalog.
-  await p.getByRole("heading",{name:"طبيب اختبار مضاف",exact:true}).waitFor();
-  await p.locator(".anime-doctor_female").waitFor();
-  assert.equal(await p.getByAltText("صورة طبيب اختبار مضاف").count(),0);
-  for (const [type,n] of [["mobile","01013588730"],["landline","0502332691"],["shortcode","19989"]]) assert.equal(await p.locator(`[data-contact-type="${type}"] a[href^="tel:"]`).first().getAttribute("href"),"tel:" + n);
+  await p.locator('#main[data-catalog-ready="true"]').waitFor();
+  assert.equal(await p.getByRole("heading",{name:"طبيب اختبار مضاف",exact:true}).count(),0);
+  assert.equal(addedProvider.contract_listing,false);
+  assert.equal(await a.getByRole("row").filter({hasText:"طبيب اختبار مضاف"}).count(),0);
   await a.locator("#search-input").fill("طبيب اختبار مضاف");
   await a
     .getByRole("row")
@@ -572,7 +587,7 @@ try {
   await g.goto(origin + "/#services");
   await g.getByRole("button",{name:"الأسنان",exact:true}).click();
   await g.locator('[data-target="specialized_centers:staff_2745"]').waitFor();
-  await g.locator('[data-target="specialized_centers:spec_center_5"]').waitFor();
+  assert.equal(await g.locator('[data-target="specialized_centers:spec_center_5"]').count(),0); // Not supplied in an approved contract workbook.
   await g.goto(origin+"/#emergency");
   await g.locator('a[href="tel:16133"]').waitFor();
   await g.locator('a[href="tel:19104"]').waitFor();

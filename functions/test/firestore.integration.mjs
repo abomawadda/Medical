@@ -64,7 +64,7 @@ const seed = {
   hospitals:[{id:"family_shared",name:"مستشفى اختبار مشترك",network_members:["employee","family","retiree"],contract_relationships:[{id:"family_contract",source_ref:"family-20261018",route:"family_network",network_members:["family","retiree"],contact_groups:{mobile:[],landline:["0502000001"],shortcode:[]}}]}],
   records: [
     {
-      id: 1,
+      id: 1, contract_listing:true, contract_entity:"تعاقد اختبار", contract_entity_id:"direct_we",
       provider_id: "p1",
       name: "طبيب اختبار",
       specialty: "باطنة",
@@ -194,7 +194,7 @@ await assert.rejects(()=>adapters.store.mutateEntities([
   {kind:"records",id:"1",value:{...saved,directory_visibility:"hidden"},expectedVersion:1},
   {kind:"records",id:"second",value:{...seed.records[0],id:"second",directory_visibility:"hidden"},expectedVersion:1},
 ],"local-test",Date.now()),e=>e.status===409);
-assert.equal((await service.catalog(member)).catalog.records.length,2);
+assert.equal((await service.catalog(member)).catalog.records.length,1); // Unsourced administrative additions remain private.
 await service.setEntityState(admin,"records","1",{field:"directory_visibility",value:"hidden",scope:"provider",versions:{"1":1,second:2}});
 assert.equal((await service.catalog(member)).catalog.records.length,0);
 assert.equal((await service.catalog(admin)).catalog.records.length,2);

@@ -273,6 +273,7 @@
     state.catalog = cleanDisplay(result.catalog);
     state.directoryState = result.directoryState === true;
     state.familyDirectory = result.familyDirectory === true;
+    state.contractDirectory = result.contractDirectory === true;
     state.stats = result.stats || {};
     state.remote = true;
     connection();
@@ -713,11 +714,6 @@
   }
   function recentUpdates(main) {
     const rows=[];
-    for(const kind of kinds.filter(k=>!["medical_guidelines","emergency_services"].includes(k))) for(const r of state.catalog[kind]) {
-      if(!r.directory_update?.at || r.directory_visibility === "hidden" || (state.network && !r.network_members?.includes(state.network))) continue;
-      const type=r.directory_update.type;
-      rows.push({id:kind+":"+r.id,title:r.display_name || r.name,at:r.directory_update.at,type,target:kind === "records" ? "doctor:"+r.provider_id : kind+":"+r.id,subtitle:r.markaz || r.city || r.hospital || ""});
-    }
     for(const r of state.catalog.medical_guidelines.filter(r=>r.document_type === "news" && publishedContent(r))) rows.push({id:r.id,title:r.title,at:r.directory_update?.at || r.verified_at,type:"news",document:r,subtitle:r.summary});
     const recent=rows.filter(r=>Number.isFinite(Date.parse(r.at))).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at)).slice(0,6);
     main.append(el("section",{class:"recent-updates","aria-label":"آخر تحديثات الشبكة"},
@@ -726,7 +722,7 @@
         el("span",{class:"update-label "+r.type},{added:"إضافة جديدة",updated:"تحديث بيانات",suspended:"موقوف مؤقتًا",resumed:"استئناف الخدمة",news:"خبر الشبكة"}[r.type] || "تحديث الشبكة"),
         el("h3",{},r.title),el("p",{class:"muted"},r.subtitle),el("time",{datetime:r.at},new Intl.DateTimeFormat("ar-EG",{timeZone:"Africa/Cairo",dateStyle:"medium"}).format(new Date(r.at))),
         button(r.document ? "قراءة الإعلان" : "عرض التفاصيل",()=>r.document ? dialog(r.title,contentCard(r.document)) : (location.hash="entity="+encodeURIComponent(r.target)),"text-button"))))
-      : el("p",{class:"updates-empty"},"ستظهر هنا الإضافات والأخبار الجديدة عند نشرها.")));
+      : el("p",{class:"updates-empty"},"ستظهر هنا الأخبار والإعلانات التي تنشرها النقابة.")));
   }
   function renderHome(main) {
     if (companionPreview) {renderCompanionHome(main);recentUpdates(main);return;}
@@ -1215,7 +1211,7 @@
     );
     box.append(
       memberForm(),
-      el("div",{class:"login-links"},button("دخول المدير",adminDialog,"text-button"),el("a",{href:"tel:123"},"الإسعاف 123")));
+      el("div",{class:"login-president"},el("span",{},"رئيس النقابة"),el("strong",{},"الأستاذ/ محمود صالح")));
     if(state.restoring) {
       box.setAttribute("aria-busy","true");
       box.querySelector("button[type=submit]").disabled=true;
@@ -1458,8 +1454,9 @@
         button("تسجيل الخروج", logout, "button outline"),
       ),
     );
+    if(!state.contractDirectory) main.append(el("p",{class:"notice warning"},"حجب الجهات غير الواردة بالمصادر ينتظر نشر تحديث Firebase بالإعداد المحفوظ."));
     if(!state.familyDirectory) main.append(el("p",{class:"notice warning"},"دليل الأسر الجديد ينتظر نشر تحديث Firebase؛ تبويب الأسر يعرض البيانات المنشورة سابقًا فقط."));
-    main.append(el("div",{class:"admin-metrics"}, [["إجمالي السجلات",kinds.flatMap(k=>state.catalog[k]).length],["مخفية",kinds.flatMap(k=>state.catalog[k]).filter(r=>r.directory_visibility === "hidden").length],["موقوفة مؤقتًا",kinds.flatMap(k=>state.catalog[k]).filter(r=>r.service_status === "suspended").length]].map(([label,count])=>el("article",{},el("strong",{},count),el("span",{},label)))));
+    main.append(el("div",{class:"admin-metrics"}, [["إجمالي السجلات",kinds.flatMap(k=>state.catalog[k]).length],["مخفية",kinds.flatMap(k=>state.catalog[k]).filter(r=>r.directory_visibility === "hidden" || r.contract_listing === false).length],["موقوفة مؤقتًا",kinds.flatMap(k=>state.catalog[k]).filter(r=>r.service_status === "suspended").length]].map(([label,count])=>el("article",{},el("strong",{},count),el("span",{},label)))));
     const kindSelect = selectField(
       "نوع السجلات",
       "admin-kind",
@@ -1476,9 +1473,9 @@
     main.querySelector(".admin-filterbar").append(statusSelect);
     if(state.adminKind === "records") main.append(el("p",{class:"muted"},"كل صف يمثل مقرًا. عند تغيير الحالة يمكنك اختيار جميع مقار الطبيب أو هذا المقر فقط."));
     const rows = state.catalog[state.adminKind].filter((r) =>
-      matchesText([r.name, r.title, r.hospital, r.address]) && (!state.adminState || (state.adminState === "suspended" ? r.service_status === "suspended" : (r.directory_visibility || "visible") === state.adminState)),
+      (!r.admin_reviewed_at || !!state.query.trim()) && matchesText([r.name, r.title, r.hospital, r.address]) && (!state.adminState || (state.adminState === "suspended" ? r.service_status === "suspended" : (r.directory_visibility === "hidden" || r.contract_listing === false ? "hidden" : "visible") === state.adminState)),
     );
-    main.append(el("p", { class: "muted" }, `${rows.length} سجلًا`));
+    main.append(el("p", { class: "muted" }, `${rows.length} سجلًا · السجلات التي حدّثتها تظهر عند البحث عنها.`));
     const body = el(
       "tbody",
       {},
@@ -1486,7 +1483,7 @@
         el(
           "tr",
           {},
-          el("td", {}, el("strong",{},r.name || r.title),el("div",{class:"admin-state"},r.directory_visibility === "hidden" ? el("span",{class:"service-status"},"مخفية عن الأعضاء") : el("span",{class:"muted"},"ظاهرة في الدليل"), statusBadge(r))),
+          el("td", {}, el("strong",{},r.name || r.title),el("div",{class:"admin-state"},(r.directory_visibility === "hidden" || r.contract_listing === false) ? el("span",{class:"service-status"},r.contract_listing === false ? "محجوبة: يلزم مصدر تعاقد معتمد" : "مخفية عن الأعضاء") : el("span",{class:"muted"},"ظاهرة في الدليل"), statusBadge(r))),
           el("td", {}, r.markaz || r.hospital || r.category || ""),
           el(
             "td",
@@ -1600,6 +1597,8 @@
         { required: true, maxlength: 250 },
       ),
     );
+    if (!["medical_guidelines","emergency_services"].includes(kind) && (!original || r.contract_listing === false))
+      form.prepend(el("p",{class:"notice warning"},"الجهات غير الواردة في ملفات التعاقد المعتمدة تبقى محجوبة عن الأعضاء. حفظ البيانات أو الضغط على إظهار لا يضيف اعتماد تعاقد؛ يلزم إدراج الجهة في ملف تعاقد معتمد."));
     const textFields =
       kind === "records"
         ? [
@@ -1902,20 +1901,26 @@
   }
   function qualityDialog() {
     if (session()?.role !== "admin") return;
-    const report = window.MedicalQuality.audit(state.catalog);
-    let kind = "", code = "", limit = 30;
+    let kind = "", code = "", query = "", limit = 30;
     const box = el("div", { class: "form-stack" });
     dialog("جودة بيانات الدليل", box);
     const draw = () => {
-      const rows = report.issues.filter((i) => (!kind || i.kind === kind) && (!code || i.code === code));
+      const report = window.MedicalQuality.audit(state.catalog);
+      const rows = report.issues.filter((i) => {
+        const r=state.catalog[i.kind]?.[i.rowIndex];
+        return (!kind || i.kind === kind) && (!code || i.code === code) && (query.trim() ? normalize([i.name,r?.id,r?.address].join(" ")).includes(normalize(query.trim())) : !r?.admin_reviewed_at);
+      });
+      const searchField=field("البحث في جميع السجلات بما فيها المحدّثة","quality-search","search",query);
+      searchField.querySelector("input").addEventListener("change",e=>{query=e.target.value;limit=30;draw();box.querySelector("#quality-search")?.focus();});
       const kindField = selectField("القسم المراد مراجعته", "quality-kind", [["", "كل الأقسام"], ...Object.keys(report.counts).map((k) => [k, labels[k]])], kind);
       const codeField = selectField("نوع الملاحظة", "quality-code", [["", "كل الملاحظات"], ...Object.keys(report.byCode).map((c) => [c, qualityLabel(c)])], code);
       kindField.querySelector("select").addEventListener("change", (e) => { kind = e.target.value; limit = 30; draw(); });
       codeField.querySelector("select").addEventListener("change", (e) => { code = e.target.value; limit = 30; draw(); });
-      box.replaceChildren(
+      replaceNodes(box,
         el("p", {class:"muted"}, `فُحص ${report.total} سجلًا؛ ${report.affected} منها يحتاج مراجعة. هذا فحص اكتمال واتساق، ولا يثبت صحة التعاقد أو عمل الهاتف.`),
         el("p", {}, "لا تُحذف التكرارات تلقائيًا. قد يكون للطبيب أكثر من فرع، وقد تشترك الجهات في رقم استقبال. تُراجع المعلومات التي مضى على تحققها 180 يومًا."),
-        kindField, codeField,
+        kindField, codeField, searchField,
+        el("p",{class:"muted"},"تخرج السجلات التي حفظت تعديلها من قائمة المراجعة الافتراضية؛ للعودة إليها ابحث باسمها. تظل الملاحظات غير المستكملة محفوظة في التقرير."),
         button("تنزيل تقرير الجودة", () => downloadJSON(report, "medical-catalog-quality.json"), "button outline"),
         el("p", {role:"status"}, `${rows.length} ملاحظة مطابقة للمرشحات`),
         ...rows.slice(0, limit).map((issue) => {

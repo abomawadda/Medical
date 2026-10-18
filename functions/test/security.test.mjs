@@ -674,6 +674,7 @@ test('directory update dates and types come from the server; hidden entries neve
   await f.service.putEntity(a,'hospitals','new_hospital',{entity:{name:'مستشفى اختبار جديد',directory_update:{type:'suspended',at:'2099-01-01'}},expected_version:0});
   let row=(await f.service.catalog(m)).catalog.hospitals.find(r=>r.id==='new_hospital');
   assert.deepEqual(row.directory_update,{type:'added',at:'2023-11-14T22:13:20.000Z'});
+  assert.equal(row.admin_reviewed_at,'2023-11-14T22:13:20.000Z');
   await f.service.setEntityState(a,'hospitals','new_hospital',{field:'service_status',value:'suspended',scope:'entity',versions:{new_hospital:1}});
   row=(await f.service.catalog(m)).catalog.hospitals.find(r=>r.id==='new_hospital');assert.equal(row.directory_update.type,'suspended');
   await f.service.setEntityState(a,'hospitals','new_hospital',{field:'directory_visibility',value:'hidden',scope:'entity',versions:{new_hospital:2}});
