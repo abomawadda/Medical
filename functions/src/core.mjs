@@ -57,11 +57,15 @@ function safeEqual(a, b) {
 }
 
 // Project at the server boundary: hidden entries never reach member browsers.
-export function memberCatalog(catalog) {
+export function publishedDocument(r, at=Date.now()) {
+  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(at);
+  return r.publication_status === 'published' && !!r.issuing_authority && !!(r.source_reference || r.source_url) && !!r.verified_at && (!r.effective_from || r.effective_from <= today) && (!r.expires_at || r.expires_at >= today);
+}
+export function memberCatalog(catalog, at=Date.now()) {
   const hospitals = catalog.hospitals || [];
   const parent = (r) => hospitals.find(h => r.contract_entity_id === h.id || (r.hospital && [h.name,h.short_name].includes(r.hospital)));
   return Object.fromEntries(kinds.map(kind => [kind, (catalog[kind] || [])
-    .filter(r => r.directory_visibility !== "hidden" && !(kind === "records" && parent(r)?.directory_visibility === "hidden"))
+    .filter(r => r.directory_visibility !== "hidden" && !(kind === "records" && parent(r)?.directory_visibility === "hidden") && (kind !== "medical_guidelines" || publishedDocument(r,at)))
     .map(r => ({...r, service_status: r.service_status === "suspended" || (kind === "records" && parent(r)?.service_status === "suspended") ? "suspended" : "active"}))]));
 }
 
@@ -170,6 +174,7 @@ const fields = {
     "steps",
     "source_url",
     "verified_at",
+    "document_type", "publication_status", "issuing_authority", "source_reference", "effective_from", "expires_at",
   ],
   emergency_services: [
     "id",
@@ -274,6 +279,14 @@ export function validateEntity(kind, input, previous) {
       (!out.source_url || !(out.verified_at || out.verification_date))
     )
       fail(400, "VERIFICATION_REQUIRED", "الاعتماد يحتاج مصدرًا وتاريخ تحقق.");
+  }
+  if(kind === "medical_guidelines") {
+    out.document_type ||= 'instruction';
+    out.publication_status ||= 'draft';
+    if(!['instruction','news'].includes(out.document_type) || !['draft','published'].includes(out.publication_status)) fail(400,'INVALID_ENTITY','نوع المحتوى أو حالة النشر غير صالحة.');
+    for(const key of ['verified_at','effective_from','expires_at']) if(out[key] && (!/^\d{4}-\d{2}-\d{2}$/.test(out[key]) || !Number.isFinite(Date.parse(out[key])) || new Date(out[key]).toISOString().slice(0,10)!==out[key])) fail(400,'INVALID_ENTITY','راجع تواريخ المحتوى.');
+    if(out.effective_from && out.expires_at && out.expires_at < out.effective_from) fail(400,'INVALID_ENTITY','نهاية السريان تسبق بدايته.');
+    if(out.publication_status === 'published' && (!out.issuing_authority || !(out.source_reference || out.source_url) || !out.verified_at)) fail(400,'PUBLICATION_SOURCE_REQUIRED','النشر يحتاج الجهة المصدرة ومرجعًا وتاريخ مراجعة.');
   }
   if (kind === "records") {
     out.provider_id = previous?.provider_id || `provider_${randomUUID()}`;
@@ -455,7 +468,7 @@ export function createService({
     async catalog(token) {
       const user = await authorize(token);
       const all = await store.catalog();
-      const catalog = user.role === "admin" ? all : memberCatalog(all);
+      const catalog = user.role === "admin" ? all : memberCatalog(all,now());
       const allowed = targets(catalog);
       const stats = Object.fromEntries(Object.entries(await store.getStats()).filter(([id]) => allowed.has(id)));
       return {catalog, stats, directoryState: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
@@ -477,7 +490,7 @@ export function createService({
       // Only this authenticated member can write the content of their review.
       const s = await authorize(token, "member");
       await rate(ip, "review", 20);
-      const target = targets(memberCatalog(await store.catalog())).get(body.target_id);
+      const target = targets(memberCatalog(await store.catalog(),now())).get(body.target_id);
       const branch = String(body.branch_id ?? "");
       if (!target || !target.branches.includes(branch))
         fail(400, "INVALID_TARGET", "مقر الزيارة غير متاح في الدليل.");
@@ -542,7 +555,7 @@ export function createService({
           Object.keys(body.versions).length !== selected.length || selected.some(r=>!Number.isInteger(body.versions[String(r.id)]) || body.versions[String(r.id)] !== (r._version || 0)))
         fail(409,"VERSION_CONFLICT","تغيرت مقار الجهة؛ حدّث الدليل وأعد المحاولة.");
       await store.mutateEntities(selected.map(r=>{
-        const entity={...r,[field]:value}; delete entity._version;
+        const entity={...r,[field]:value,directory_update:{type:field === 'service_status' ? (value === 'suspended' ? 'suspended' : 'resumed') : 'updated',at:new Date(now()).toISOString()}}; delete entity._version;
         return {kind,id:String(r.id),value:entity,expectedVersion:r._version || 0};
       }),s.sourceId,now());
       return {success:true,updated:selected.length};
@@ -563,6 +576,7 @@ export function createService({
         { ...body.entity, id: previous?.id || id },
         previous,
       );
+      entity.directory_update={type:previous ? 'updated' : 'added',at:new Date(now()).toISOString()};
       await store.mutateEntity(
         kind,
         id,

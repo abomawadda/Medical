@@ -218,6 +218,16 @@ assert.equal(retained.contract_relationships[0].contact_groups.landline[0],"0502
 assert.ok(!(await service.catalog(member)).catalog.hospitals.some(h=>h.id==="family_shared"));
 await service.deleteEntity(admin,"hospitals","family_shared",{expected_version:1});
 assert.ok(!(await service.catalog(admin)).catalog.hospitals.some(h=>h.id==="family_shared"));
+// Publication survives real SDK writes, while drafts and expired documents remain private.
+const draft={title:"تعليمات اختبار",summary:"نص محلي مصطنع",document_type:"instruction",publication_status:"draft"};
+await service.putEntity(admin,"medical_guidelines","guide_fixture",{entity:draft,expected_version:0});
+assert.ok(!(await service.catalog(member)).catalog.medical_guidelines.some(r=>r.id === "guide_fixture"));
+const publication={...draft,publication_status:"published",issuing_authority:"جهة اختبار",source_reference:"مرجع اختبار",verified_at:"2026-10-18"};
+await service.putEntity(admin,"medical_guidelines","guide_fixture",{entity:publication,expected_version:1});
+const published=(await service.catalog(member)).catalog.medical_guidelines.find(r=>r.id === "guide_fixture");
+assert.equal(published.directory_update.type,"updated");assert.ok(published.directory_update.at);
+await service.putEntity(admin,"medical_guidelines","guide_fixture",{entity:{...publication,expires_at:"2020-01-01"},expected_version:2});
+assert.ok(!(await service.catalog(member)).catalog.medical_guidelines.some(r=>r.id === "guide_fixture"));
 await service.logout(member);
 await assert.rejects(
   () => service.ownReviews(member),

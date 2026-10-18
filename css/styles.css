@@ -1164,3 +1164,13 @@ html { overflow-anchor:none; scroll-behavior:auto; }
 .network-tab.active {background:var(--primary);color:white;box-shadow:0 5px 16px #55278520}
 .entry-placeholder {text-align:center;padding:30px 18px;color:var(--primary)}
 @media(max-width:480px) {.network-tab {font-size:.73rem;padding:8px 6px;gap:5px}.network-tabs {gap:3px;padding:4px}}
+
+.active-filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 20px;padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--card)}
+.filter-chip{padding:5px 10px;border-radius:10px;background:var(--primary-soft);font-size:.8rem}
+.recent-updates{margin:24px 0}.updates-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.update-card{padding:18px;border:1px solid var(--border);border-radius:18px;background:var(--card);display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.update-card h3,.update-card p{margin:0}.update-card time{font-size:.75rem;color:var(--muted)}
+.update-label{font-size:.75rem;font-weight:800;padding:4px 10px;border-radius:8px;background:var(--primary-soft);color:var(--primary)}
+.update-label.suspended{background:#fff0db;color:#744900}.update-label.resumed{background:#e2f4eb;color:#25634a}
+.updates-empty{padding:20px;border:1px dashed var(--border);border-radius:16px;color:var(--muted)}
+.instructions-list{display:grid;gap:14px}.instruction-card summary{cursor:pointer;display:grid;gap:8px}.instruction-card li{margin-bottom:10px}

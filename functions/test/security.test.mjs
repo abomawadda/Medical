@@ -651,3 +651,31 @@ test("all current doctor branches change atomically; stale versions cannot parti
   await f.service.setEntityState(a,"records","1",{...body,value:"visible",versions:{"1":1,other:2}});
   assert.equal((await f.service.catalog(m)).catalog.records.length,2);
 });
+
+test('instruction publication requires an authority, reference and valid dates; drafts and inactive documents stay out of member catalogs', async()=>{
+  const f=setup(),a=await admin(f),m=await member(f);
+  const entity={title:'إجراء اختبار',summary:'نص اختبار',document_type:'instruction',publication_status:'published'};
+  await assert.rejects(()=>f.service.putEntity(a,'medical_guidelines','guide_test',{entity,expected_version:0}),e=>e.code==='PUBLICATION_SOURCE_REQUIRED');
+  await f.service.putEntity(a,'medical_guidelines','guide_test',{entity:{...entity,publication_status:'draft'},expected_version:0});
+  assert.equal((await f.service.catalog(m)).catalog.medical_guidelines.length,0);
+  assert.equal((await f.service.catalog(a)).catalog.medical_guidelines.length,1);
+  const source={issuing_authority:'جهة اختبار',source_reference:'مرجع اختبار',verified_at:'2023-11-14'};
+  for(const dates of [{effective_from:'2023-02-30'},{effective_from:'2023-12-01',expires_at:'2023-11-01'}]) await assert.rejects(()=>f.service.putEntity(a,'medical_guidelines','guide_test',{entity:{...entity,...source,...dates},expected_version:1}),e=>e.code==='INVALID_ENTITY');
+  await f.service.putEntity(a,'medical_guidelines','guide_test',{entity:{...entity,...source,effective_from:'2023-11-16'},expected_version:1});
+  assert.equal((await f.service.catalog(m)).catalog.medical_guidelines.length,0);
+  f.advance(24*60*60*1000);
+  const nextMember=await member(f),nextAdmin=await admin(f);
+  assert.equal((await f.service.catalog(nextMember)).catalog.medical_guidelines.length,1);
+  await f.service.putEntity(nextAdmin,'medical_guidelines','guide_test',{entity:{...entity,...source,expires_at:'2023-11-14'},expected_version:2});
+  assert.equal((await f.service.catalog(nextMember)).catalog.medical_guidelines.length,0);
+});
+test('directory update dates and types come from the server; hidden entries never appear in member updates', async()=>{
+  const f=setup(),a=await admin(f),m=await member(f);
+  await f.service.putEntity(a,'hospitals','new_hospital',{entity:{name:'مستشفى اختبار جديد',directory_update:{type:'suspended',at:'2099-01-01'}},expected_version:0});
+  let row=(await f.service.catalog(m)).catalog.hospitals.find(r=>r.id==='new_hospital');
+  assert.deepEqual(row.directory_update,{type:'added',at:'2023-11-14T22:13:20.000Z'});
+  await f.service.setEntityState(a,'hospitals','new_hospital',{field:'service_status',value:'suspended',scope:'entity',versions:{new_hospital:1}});
+  row=(await f.service.catalog(m)).catalog.hospitals.find(r=>r.id==='new_hospital');assert.equal(row.directory_update.type,'suspended');
+  await f.service.setEntityState(a,'hospitals','new_hospital',{field:'directory_visibility',value:'hidden',scope:'entity',versions:{new_hospital:2}});
+  assert.ok(!(await f.service.catalog(m)).catalog.hospitals.some(r=>r.id==='new_hospital'));
+});

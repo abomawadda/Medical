@@ -40,7 +40,7 @@
     ["doctors", "♧", "الأطباء"],
     ["services", "✚", "الخدمات"],
     ["districts", "⌖", "المراكز"],
-    ["favorites", "♡", "المفضلة"],
+    ["guidelines", "≡", "التعليمات"],
     ["emergency", "✦", "الطوارئ"],
   ];
   const state = {
@@ -634,6 +634,7 @@
           state.network = "";
           state.contractType = "";
           state.query = "";
+          state.serviceKind = "";
           $("#search-input").value = "";
           renderFilters();
           renderMain();
@@ -658,7 +659,7 @@
       event.preventDefault();
       state.query = search.querySelector("input").value.trim();
       $("#search-input").value = state.query;
-      go("doctors");
+      go("doctors",{query:state.query});
     });
     main.append(el("section", {class:"companion-welcome"},
       el("div", {class:"eyebrow"}, "نبض النقابة · معك خطوة بخطوة"),
@@ -697,8 +698,38 @@
     }
     return nav;
   }
+  function publishedContent(r) {
+    const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Cairo",year:"numeric",month:"2-digit",day:"2-digit"}).format();
+    return r.publication_status === "published" && r.issuing_authority && (r.source_reference || r.source_url) && r.verified_at && (!r.effective_from || r.effective_from <= today) && (!r.expires_at || r.expires_at >= today) && r.directory_visibility !== "hidden";
+  }
+  function contentCard(r) {
+    return el("details",{class:"card instruction-card","data-document":r.id},
+      el("summary",{},el("span",{class:"card-eyebrow"},r.document_type === "news" ? "أخبار الشبكة" : "تعليمات الخدمة"),el("strong",{},r.title)),
+      el("p",{},r.summary),el("ol",{},(r.steps || []).map(t=>el("li",{},t))),
+      el("p",{class:"muted"},[r.issuing_authority,r.source_reference,r.verified_at ? "مراجعة: "+r.verified_at : ""].filter(Boolean).join(" · ")),
+      r.effective_from || r.expires_at ? el("p",{class:"muted"},[r.effective_from ? "ساري من "+r.effective_from : "",r.expires_at ? "حتى "+r.expires_at : ""].filter(Boolean).join(" · ")) : null,
+      r.source_url ? link("المصدر",r.source_url,"text-button") : null,
+      isAdmin() ? button("تحرير المحتوى",()=>editDialog("medical_guidelines",r),"text-button") : null);
+  }
+  function recentUpdates(main) {
+    const rows=[];
+    for(const kind of kinds.filter(k=>!["medical_guidelines","emergency_services"].includes(k))) for(const r of state.catalog[kind]) {
+      if(!r.directory_update?.at || r.directory_visibility === "hidden" || (state.network && !r.network_members?.includes(state.network))) continue;
+      const type=r.directory_update.type;
+      rows.push({id:kind+":"+r.id,title:r.display_name || r.name,at:r.directory_update.at,type,target:kind === "records" ? "doctor:"+r.provider_id : kind+":"+r.id,subtitle:r.markaz || r.city || r.hospital || ""});
+    }
+    for(const r of state.catalog.medical_guidelines.filter(r=>r.document_type === "news" && publishedContent(r))) rows.push({id:r.id,title:r.title,at:r.directory_update?.at || r.verified_at,type:"news",document:r,subtitle:r.summary});
+    const recent=rows.filter(r=>Number.isFinite(Date.parse(r.at))).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at)).slice(0,6);
+    main.append(el("section",{class:"recent-updates","aria-label":"آخر تحديثات الشبكة"},
+      el("div",{class:"section-heading"},el("h2",{},"آخر تحديثات الشبكة"),button("تعليمات الخدمة",()=>go("guidelines"),"text-button")),
+      recent.length ? el("div",{class:"updates-grid"},recent.map(r=>el("article",{class:"update-card","data-update":r.id},
+        el("span",{class:"update-label "+r.type},{added:"إضافة جديدة",updated:"تحديث بيانات",suspended:"موقوف مؤقتًا",resumed:"استئناف الخدمة",news:"خبر الشبكة"}[r.type] || "تحديث الشبكة"),
+        el("h3",{},r.title),el("p",{class:"muted"},r.subtitle),el("time",{datetime:r.at},new Intl.DateTimeFormat("ar-EG",{timeZone:"Africa/Cairo",dateStyle:"medium"}).format(new Date(r.at))),
+        button(r.document ? "قراءة الإعلان" : "عرض التفاصيل",()=>r.document ? dialog(r.title,contentCard(r.document)) : (location.hash="entity="+encodeURIComponent(r.target)),"text-button"))))
+      : el("p",{class:"updates-empty"},"ستظهر هنا الإضافات والأخبار الجديدة عند نشرها.")));
+  }
   function renderHome(main) {
-    if (companionPreview) return renderCompanionHome(main);
+    if (companionPreview) {renderCompanionHome(main);recentUpdates(main);return;}
     const networkRecords=state.catalog.records.filter(r=>!state.network || (r.network_members || []).includes(state.network));
     const networkProviders=providers().filter(p=>p.branches.some(r=>!state.network || (r.network_members || []).includes(state.network)));
     main.append(
@@ -738,6 +769,7 @@
         ),
       ),
     );
+    recentUpdates(main);
     main.append(
       el(
         "div",
@@ -752,32 +784,28 @@
         "معامل التحاليل",
         "⚗",
         () => {
-          state.serviceKind = "labs";
-          go("services");
+          go("services",{serviceKind:"labs"});
         },
       ],
       [
         "الأشعة",
         "◉",
         () => {
-          state.serviceKind = "radiology";
-          go("services");
+          go("services",{serviceKind:"radiology"});
         },
       ],
       [
         "الصيدليات",
         "✚",
         () => {
-          state.serviceKind = "pharmacies";
-          go("services");
+          go("services",{serviceKind:"pharmacies"});
         },
       ],
       [
         "المراكز المتخصصة",
         "◇",
         () => {
-          state.serviceKind = "specialized_centers";
-          go("services");
+          go("services",{serviceKind:"specialized_centers"});
         },
       ],
       ["مراكز الدقهلية", "⌖", () => go("districts")],
@@ -812,8 +840,7 @@
             {
               class: "category",
               onClick: () => {
-                state.specialty = s;
-                go("doctors");
+                go("doctors",{specialty:s});
               },
             },
             el("strong", {}, s),
@@ -859,6 +886,8 @@
       catch {return main.append(empty("تعذر عرض بيانات الجهة."));}
     }
     if (!["admin","account","guidelines","emergency","profile"].includes(state.tab)) main.append(networkTabs());
+    const activeFilters=[["البحث",state.query],["المركز",state.markaz],["التخصص",state.specialty],["المستشفى",state.hospital],["الخدمة",labels[state.serviceKind]],["مسار التعاقد",state.contractType ? {direct_we:"مباشر",hospital:"عبر مستشفى",family_network:"الأسر والمعاشات"}[state.contractType] : ""]].filter(([,v])=>v);
+    if(activeFilters.length) main.append(el("section",{class:"active-filters","aria-label":"البحث والتصفية النشطة"},activeFilters.map(([k,v])=>el("span",{class:"filter-chip"},k+": "+v)),button("مسح البحث والتصفية",()=>{resetSearch();renderFilters();renderMain();},"text-button")));
     if (state.tab === "home") return renderHome(main);
     if (state.tab === "admin") return renderAdmin(main);
     if (state.tab === "account") return renderAccount(main);
@@ -869,7 +898,7 @@
         const facilities = ["hospitals","labs","radiology","pharmacies","specialized_centers"].flatMap(k => state.catalog[k].filter(r => (r.markaz || r.city) === name && (!state.network || r.network_members?.includes(state.network))));
         const b = button("", () => {
           state.markaz=name; state.hospital=""; state.specialty=""; state.contractType=""; state.coverage=""; state.query="";
-          $("#search-input").value=""; go("district-network"); renderFilters();
+          $("#search-input").value=""; go("district-network",{markaz:name});
         }, "district-card");
         b.append(el("span",{class:"district-icon","aria-hidden":"true"},"⌖"), el("strong",{},name),
           el("small",{},`${new Set(records.map(r=>r.provider_id)).size} طبيب وقسم · ${facilities.length} جهة`));
@@ -878,28 +907,11 @@
       return;
     }
     if (state.tab === "guidelines") {
-      main.append(
-        heading(
-          "التعليمات والإجراءات",
-          "راجع الشروط الحالية مع مسؤول الرعاية قبل الاعتماد عليها.",
-        ),
-      );
-      for (const r of state.catalog.medical_guidelines.filter((r) =>
-        matchesText([r.title, r.summary]),
-      ))
-        main.append(
-          el(
-            "details",
-            { class: "card" },
-            el("summary", {}, el("strong", {}, r.title)),
-            el("p", {}, r.summary),
-            el(
-              "ol",
-              {},
-              (r.steps || []).map((s) => el("li", {}, s)),
-            ),
-          ),
-        );
+      main.append(heading("تعليمات الحصول على الخدمة","تعليمات الشركة وإجراءات الرعاية الطبية المنشورة"));
+      const docs=state.catalog.medical_guidelines.filter(r=>r.document_type !== "news" && publishedContent(r) && matchesText([r.title,r.summary,...(r.steps || [])]));
+      if(docs.length) main.append(el("div",{class:"instructions-list"},docs.map(contentCard)));
+      else main.append(empty("لا توجد تعليمات منشورة مطابقة حاليًا."));
+      if(isAdmin()) main.append(el("p",{class:"notice"},"المحتوى القديم غير المعتمد والمسودات تظهر في إدارة التعليمات فقط حتى استكمال المصدر والنشر."),button("إدارة التعليمات",()=>{state.adminKind="medical_guidelines";go("admin");},"button outline"));
       return;
     }
     if (state.tab === "emergency") {
@@ -946,9 +958,7 @@
               t,
               () => {
                 if (["dental","hospitals"].includes(k)) return go(k);
-                state.serviceKind = k;
-                if (state.tab !== "services") return go("services");
-                renderMain();
+                go("services",{serviceKind:k});
               },
               "button " + ((state.tab === "dental" ? k === "dental" : state.serviceKind === k) ? "primary" : "outline"),
             ),
@@ -1020,8 +1030,16 @@
         ),
       );
   }
-  function go(tab) {
-    location.hash = tab;
+  let pendingNavigation=null;
+  function resetSearch() {
+    for(const key of ["query","markaz","specialty","hospital","coverage","contractType","serviceKind","adminState"]) state[key]="";
+    state.limit=24;
+    $("#search-input").value="";
+  }
+  function go(tab,filters={}) {
+    pendingNavigation={tab,filters};
+    if(location.hash === "#"+tab) route();
+    else location.hash=tab;
   }
   function route() {
     startOfPage();
@@ -1039,6 +1057,7 @@
         return;
       }
     }
+    const previousTab=state.tab;
     state.tab = [
       ...nav.map((n) => n[0]),
       "district-network",
@@ -1047,15 +1066,14 @@
       "admin",
       "guidelines",
       "account",
+      "favorites",
     ].includes(hash)
       ? hash
       : "home";
-    if (!["doctors", "favorites", "dental", "district-network"].includes(state.tab)) {
-      state.specialty = "";
-      state.hospital = "";
-    }
-    if (!["doctors", "services", "hospitals", "dental", "district-network"].includes(state.tab))
-      state.coverage = "";
+    if(state.tab !== previousTab || pendingNavigation?.tab === state.tab) {resetSearch();$("#filter-panel").open=false;}
+    if(pendingNavigation?.tab === state.tab) Object.assign(state,pendingNavigation.filters);
+    pendingNavigation=null;
+    $("#search-input").value=state.query;
     state.limit = 24;
     $("#main-nav")
       .querySelectorAll("a")
@@ -1431,6 +1449,8 @@
           () => editDialog(state.adminKind),
           "button primary",
         ),
+        button("إضافة تعليمات",()=>editDialog("medical_guidelines"),"button outline"),
+        button("إضافة خبر",()=>editDialog("medical_guidelines",null,"news"),"button outline"),
         button("مراجعة التقييمات", adminReviewDialog, "button outline"),
         button("جودة بيانات الدليل", qualityDialog, "button outline"),
         button("مراجعة المواقع والمواعيد", researchDialog, "button outline"),
@@ -1566,8 +1586,8 @@
     },"button primary");
     content.append(save);
   }
-  function editDialog(kind, original) {
-    const r = original || {};
+  function editDialog(kind, original,documentType) {
+    const r = original || (documentType ? {document_type:documentType} : {});
     const id = r.id || "entry_" + crypto.randomUUID().replaceAll("-", "");
     const form = el(
       "form",
@@ -1608,21 +1628,41 @@
                 ["address", "العنوان"],
                 ["working_hours", "المواعيد"],
               ];
-    for (const [key, label] of textFields)
+    const choices={
+      specialty:[...new Set(state.catalog.records.map(x=>x.specialty).filter(Boolean))],
+      hospital:[...new Set(["عيادة مستقلة",...state.catalog.hospitals.map(x=>x.short_name || x.name),...state.catalog.records.map(x=>x.hospital)].filter(Boolean))],
+      markaz:[...new Set([...dakahliaCenters,...kinds.flatMap(k=>state.catalog[k]).map(x=>x.markaz || x.city)].filter(Boolean))],
+    };
+    for (const [key, label] of textFields) {
+      if(choices[key]) {
+        const values=[...new Set([...choices[key],r[key]].filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ar"));
+        const wrapper=selectField(label,key,[["","اختر "+label],...values.map(v=>[v,v])],r[key] || "");
+        wrapper.querySelector("select").required=key !== "markaz" || kind !== "emergency_services";
+        form.append(wrapper);
+      } else form.append(field(label,key,["notes","summary","description","steps"].includes(key) ? "textarea" : "text",Array.isArray(r[key]) ? r[key].join("\n") : r[key] || "",{required:key === "summary",maxlength:3000}));
+    }
+    if(kind === "medical_guidelines") {
       form.append(
-        field(
-          label,
-          key,
-          ["notes", "summary", "description", "steps"].includes(key)
-            ? "textarea"
-            : "text",
-          Array.isArray(r[key]) ? r[key].join("\n") : r[key] || "",
-          {
-            required: ["specialty", "hospital", "summary"].includes(key),
-            maxlength: 3000,
-          },
-        ),
-      );
+        selectField("نوع المحتوى","document_type",[["instruction","تعليمات الحصول على الخدمة"],["news","خبر أو إعلان للشبكة"]],r.document_type || "instruction"),
+        selectField("حالة النشر","publication_status",[["draft","مسودة — للإدارة فقط"],["published","منشور للأعضاء"]],r.publication_status || "draft"),
+        selectField("تصنيف المحتوى","category",[["general","تعليمات عامة"],["approvals","الموافقات"],["referrals","التحويلات"],["medications","الأدوية"],["emergency","الطوارئ"],["benefits","المزايا والخدمات"],["network","أخبار وتعاقدات الشبكة"],...r.category && !["general","approvals","referrals","medications","emergency","benefits","network"].includes(r.category) ? [[r.category,r.category]] : []],r.category || "general"),
+        field("الجهة المصدرة","issuing_authority","text",r.issuing_authority || "",{maxlength:250}),
+        field("مرجع التعليمات أو الإعلان","source_reference","text",r.source_reference || "",{maxlength:500}),
+        field("تاريخ مراجعة المحتوى","verified_at","date",r.verified_at || ""),
+        field("ساري من (اختياري)","effective_from","date",r.effective_from || ""),
+        field("ساري حتى (اختياري)","expires_at","date",r.expires_at || ""),
+        el("p",{class:"notice"},"المسودة لا تظهر للأعضاء. النشر يتطلب جهة مصدرة ومرجعًا أو رابط مصدر وتاريخ مراجعة؛ لا تكتب نسب تحمل أو إجراءات غير معتمدة."));
+    }
+    if(!["medical_guidelines","emergency_services"].includes(kind)) {
+      const n=r.network_members || [];
+      form.append(selectField("المستفيدون","beneficiary_group",[["","اختر المستفيدين"],["employee","الموظفون"],["family","الأسر والمعاشات"],["all","الموظفون والأسر والمعاشات"]],n.includes("employee") && n.some(x=>x !== "employee") ? "all" : n.includes("family") || n.includes("retiree") ? "family" : n.includes("employee") ? "employee" : ""),
+        selectField("مسار التعاقد","contract_type",[["","اختر مسار التعاقد"],["direct_we","تعاقد مباشر من الشركة"],["hospital","عبر مستشفى"],["family_network","شبكة الأسر والمعاشات"]],r.contract_type || ""));
+      for(const key of ["beneficiary_group","contract_type"]) form.querySelector('[name="'+key+'"]').required=true;
+      if(kind !== "records") {
+        const categories=[...new Set([labels[kind],...state.catalog[kind].map(e=>e.category),...(kind === "specialized_centers" ? ["مركز أسنان","علاج طبيعي","بصريات"] : [])].filter(Boolean))];
+        form.append(selectField("نوع الجهة","category",categories.map(v=>[v,v]),r.category || labels[kind]));
+      }
+    }
     if (!["medical_guidelines","emergency_services"].includes(kind)) {
       const contacts = CONTACTS.forEntity(r);
       form.append(el("p",{class:"muted"},"أضف كل فئة هاتف منفصلة؛ رقم واحد في كل سطر. لا نكمل الأرقام الناقصة بالتخمين."));
@@ -1695,6 +1735,20 @@
       );
     form.save = async (data) => {
       const entity = { ...r, ...data, id };
+      if(kind === "medical_guidelines") {
+        const health=await API.health();
+        if(!health.capabilities?.includes("directory-content-v1")) throw new Error("حفظ التعليمات والأخبار يحتاج نشر تحديث Firebase أولًا. لم يُنشر المحتوى.");
+      } else if(kind !== "emergency_services") {
+        entity.network_members=data.beneficiary_group === "all" ? ["employee","family","retiree"] : data.beneficiary_group === "family" ? ["family","retiree"] : ["employee"];
+        entity.city=data.markaz;
+        entity.country_code="EG";entity.governorate="الدقهلية";entity.governorate_code="EG-DK";
+        const hospital=state.catalog.hospitals.find(h=>[h.name,h.short_name].includes(data.hospital));
+        if(kind === "records" && (data.hospital !== r.hospital || data.contract_type !== r.contract_type || !original)) {
+          entity.contract_entity_id=data.contract_type === "hospital" && hospital ? hospital.id : data.contract_type;
+          entity.contract_entity=data.contract_type === "hospital" ? data.hospital : data.contract_type === "family_network" ? "شبكة الأسر والمعاشات" : "تعاقد مباشر من الشركة";
+        }
+      }
+      delete entity.beneficiary_group;
       if (!["medical_guidelines","emergency_services"].includes(kind)) {
         const canonical = [];
         for (const type of ["mobile","landline","shortcode"]) {
@@ -1908,6 +1962,7 @@
       ),
     ),
   );
+  $("#main-nav").querySelectorAll("a").forEach(a=>a.addEventListener("click",event=>{event.preventDefault();go(a.getAttribute("href").slice(1));}));
   $("#member-button").addEventListener("click", memberDialog);
   $("#dialog-close").addEventListener("click", closeDialog);
   $("#theme-toggle").addEventListener("click", () => {
@@ -1922,7 +1977,7 @@
     state.query = event.target.value;
     state.limit = 24;
     if (["home","profile"].includes(state.tab)) {
-      go("doctors");
+      go("doctors",{query:state.query});
     } else renderMain();
   });
   $("#clear-search").addEventListener("click", () => {

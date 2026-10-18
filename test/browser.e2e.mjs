@@ -453,8 +453,11 @@ try {
   await a.getByRole("button", {name:"إغلاق النافذة"}).click();
   await a.getByRole("button", { name: "إضافة سجل", exact: true }).click();
   await a.getByLabel("الاسم", { exact: true }).fill("طبيب اختبار مضاف");
-  await a.getByLabel("التخصص", { exact: true }).fill("اختبار");
-  await a.getByLabel("المستشفى", { exact: true }).fill("مستشفى اختبار");
+  await a.getByLabel("التخصص", { exact: true }).selectOption({index:1});
+  await a.getByLabel("المركز / المدينة", {exact:true}).selectOption("المنصورة");
+  await a.getByLabel("المستشفى", { exact: true }).selectOption("عيادة مستقلة");
+  await a.getByLabel("المستفيدون",{exact:true}).selectOption("employee");
+  await a.getByLabel("مسار التعاقد",{exact:true}).selectOption("direct_we");
   await a.getByLabel("المحمول", {exact:true}).fill("0502332691");
   await a.getByRole("button", { name: "حفظ التغييرات" }).click();
   await a.getByText("راجع أرقام الاتصال: أدخل كل رقم كاملًا داخل فئته الصحيحة.",{exact:true}).waitFor();
@@ -471,6 +474,19 @@ try {
   assert.equal(addedProvider.image_verified,true);
   assert.equal(addedProvider.avatar_type,"doctor_female");
   assert.deepEqual(addedProvider.contact_groups,{mobile:["01013588730"],landline:["0502332691"],shortcode:["19989"]});
+  await a.getByRole("button",{name:"إضافة خبر",exact:true}).click();
+  await a.getByLabel("عنوان النشرة",{exact:true}).fill("إعلان اختبار الشبكة");
+  await a.getByLabel("الموجز",{exact:true}).fill("خبر اختبار محلي بمرجع مصطنع");
+  await a.getByLabel("حالة النشر",{exact:true}).selectOption("published");
+  await a.getByRole("button",{name:"حفظ التغييرات",exact:true}).click();
+  await a.getByText("النشر يحتاج الجهة المصدرة ومرجعًا وتاريخ مراجعة.",{exact:true}).waitFor();
+  await a.getByLabel("الجهة المصدرة",{exact:true}).fill("جهة الاختبار");
+  await a.getByLabel("مرجع التعليمات أو الإعلان",{exact:true}).fill("مرجع اختبار 1");
+  await a.getByLabel("تاريخ مراجعة المحتوى",{exact:true}).fill(new Date().toISOString().slice(0,10));
+  await a.getByRole("button",{name:"حفظ التغييرات",exact:true}).click();
+  await a.locator("dialog").waitFor({state:"hidden"});
+  await p.goto(origin+"/#home");await p.reload();
+  await p.locator(".update-card").getByRole("heading",{name:"إعلان اختبار الشبكة",exact:true}).waitFor();
   await p.goto(origin + "/#entity=" + encodeURIComponent("doctor:" + addedProvider.provider_id));
   await p.reload(); // An entity created in another session requires a fresh catalog.
   await p.getByRole("heading",{name:"طبيب اختبار مضاف",exact:true}).waitFor();
@@ -522,6 +538,27 @@ try {
   assert.equal(await g.locator('.facility-card').getByText("153 شارع قناة السويس",{exact:true}).count(),0);
   await g.goto(origin+"/#services");
   await g.locator(".network-tabs").getByRole("button",{name:"كل الشبكات",exact:true}).click();
+  // Section navigation clears hidden search, district and service filters.
+  await g.goto(origin+"/#doctors");
+  await g.locator("#search-input").fill("عبارة اختبار لا تطابق أحدًا");
+  await g.locator("#filter-panel summary").click();
+  await g.getByLabel("المركز / المدينة",{exact:true}).selectOption("طلخا");
+  await g.locator("#main-nav").getByRole("link",{name:"الخدمات",exact:true}).click();
+  await g.getByRole("heading",{name:"الخدمات الطبية",exact:true}).waitFor();
+  assert.equal(await g.locator("#search-input").inputValue(),"");
+  assert.equal(await g.getByLabel("المركز / المدينة",{exact:true}).inputValue(),"");
+  assert.ok((await g.locator(".facility-card").count())>0);
+  await g.getByRole("button",{name:"الصيدليات",exact:true}).click();
+  await g.locator('[data-target^="pharmacies:"]').first().waitFor();
+  await g.locator("#main-nav").getByRole("link",{name:"الأطباء",exact:true}).click();
+  await g.getByRole("heading",{name:"الأطباء والعيادات",exact:true}).waitFor();
+  assert.ok((await g.locator(".doctor-card").count())>0);
+  await g.locator("#main-nav").getByRole("link",{name:"الخدمات",exact:true}).click();
+  await g.locator('[data-target^="labs:"]').first().waitFor();
+  assert.equal(await g.locator('.active-filters').count(),0);
+  await g.locator("#main-nav").getByRole("link",{name:"التعليمات",exact:true}).click();
+  await g.getByRole("heading",{name:"تعليمات الحصول على الخدمة",exact:true}).waitFor();
+  assert.equal(await g.locator(".instruction-card").count(),0); // legacy texts are unapproved
   await g.goto(origin + "/#districts");
   await g.locator(".district-card").first().waitFor();
   assert.equal(await g.locator(".district-card").count(),17);
