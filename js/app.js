@@ -861,132 +861,81 @@
         button(r.document ? "قراءة الإعلان" : "عرض التفاصيل",()=>r.document ? dialog(r.title,contentCard(r.document)) : (location.hash="entity="+encodeURIComponent(r.target)),"text-button"))))
       : el("p",{class:"updates-empty"},"ستظهر هنا الأخبار والإعلانات التي تنشرها النقابة.")));
   }
+  function careIcon(kind) {
+    const paths = {
+      doctors:["M6 3v6a6 6 0 0 0 12 0V3M3 3h6m6 0h6M12 15v2a4 4 0 0 0 8 0v-2","M20 11a2 2 0 1 0 0 4 2 2 0 0 0 0-4"],
+      hospitals:["M4 21V7h16v14M2 21h20M9 21v-5h6v5M9 3h6m-3-3v6M7 11h2m6 0h2"],
+      labs:["M9 2h6m-5 0v7L4 19a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3L14 9V2M7 15h10"],
+      radiology:["M5 2h14v20H5ZM9 7l3 2 3-2M8 11l4 2 4-2M8 15l4 2 4-2M12 5v14"],
+      pharmacies:["M9 3h6v6h6v6h-6v6H9v-6H3V9h6Z"],
+      centers:["M3 21V6h18v15M1 21h22M9 21v-5h6v5M7 10h2m6 0h2M7 13h2m6 0h2M9 2h6"],
+      districts:["M12 22s8-8 8-13a8 8 0 0 0-16 0c0 5 8 13 8 13Z","M12 6a3 3 0 1 0 0 6 3 3 0 0 0 0-6"],
+      dental:["M12 4C5-1 1 5 4 12c1 2 1 9 4 10 2 0 1-7 4-7s2 7 4 7c3-1 3-8 4-10 3-7-1-13-8-8Z"],
+      guidelines:["M6 3h13v18H5V4M8 8h8M8 12h8M8 16h5"],
+      emergency:["M12 21 3 12C-3 5 6-1 12 6c6-7 15-1 9 6Z","M5 11h4l2-4 3 9 2-5h4"],
+    };
+    const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+    for(const [key,value] of Object.entries({viewBox:"0 0 24 24",fill:"none",stroke:"currentColor","stroke-width":"1.6","stroke-linecap":"round","stroke-linejoin":"round","aria-hidden":"true"}))svg.setAttribute(key,value);
+    for(const d of paths[kind] || paths.emergency){const path=document.createElementNS(svg.namespaceURI,"path");path.setAttribute("d",d);svg.append(path);}
+    return svg;
+  }
+  function showAbout() {
+    dialog("عن تطبيق رعايتي والخصوصية",el("section",{class:"about-care"},
+      el("p",{class:"about-intro"},"شبكتك الطبية.. بين يديك"),
+      el("p",{},"دليل للخدمات الطبية للموظفين والأُسَر والمعاشات بالدقهلية، مقدم من النقابة العامة بالدقهلية، بتنفيذ محمود العراقي."),
+      el("h3",{},"بيانات الدخول"),
+      el("p",{},"نستخدم كود العامل ورقم الموبايل المسجل وآخر أربعة أرقام من الرقم القومي للتحقق من العضوية. لا يحفظ التطبيق هذه المدخلات في تخزين المتصفح."),
+      el("p",{},"عند اختيار تذكّر الدخول، تبقى جلسة دخولك على الجهاز لمدة تصل إلى 30 يومًا. يمكنك إنهاؤها من زر تسجيل الخروج."),
+      el("h3",{},"تقييمك وملاحظاتك"),
+      el("p",{},"تظهر درجات التقييم العامة بعد مراجعة الإدارة. ملاحظاتك النصية متاحة لك وللإدارة فقط، ويمكنك تعديل تجربتك من حسابك."),
+      el("h3",{},"طبيعة الخدمة"),
+      el("p",{},"التطبيق دليل للبحث والتواصل، ولا يقدم تشخيصًا أو حجز مواعيد، ولا يغيّر شروط التغطية الطبية المعتمدة من جهة العمل."),
+      el("a",{class:"button outline",href:"https://wa.me/201550100025?text="+encodeURIComponent("لدي استفسار عن تطبيق رعايتي والخصوصية."),target:"_blank",rel:"noopener noreferrer"},"تواصل للاستفسار أو ملاحظات الخصوصية")));
+  }
+  document.querySelector("#about-app").onclick=showAbout;
   function renderHome(main) {
     if (companionPreview) {renderCompanionHome(main);recentUpdates(main);return;}
     const networkRecords=state.catalog.records.filter(r=>!state.network || (r.network_members || []).includes(state.network));
     const networkProviders=providers().filter(p=>p.branches.some(r=>!state.network || (r.network_members || []).includes(state.network)));
-    main.append(
-      el(
-        "section",
-        { class: "hero hero-compact" },
-        el(
-          "div",
-          {},
-          el("div", { class: "eyebrow" }, "رعايتك تبدأ بمعلومة واضحة"),
-          el("h1", {}, "دليلك إلى الرعاية الطبية", el("br"), "في الدقهلية"),
-          el(
-            "p",
-            {},
-            "ابحث عن الطبيب أو الجهة، اختر مقر العمل المناسب، وتواصل مباشرة. شارك زملاءك تقييم تجربتك بعد الزيارة.",
-          ),
-          el(
-            "div",
-            { class: "actions-row" },
-            button("ابحث عن طبيب", () => go("doctors"), "button"),
-            el("a", { href: "tel:123", class: "button" }, "الإسعاف 123"),
-          ),
-        ),
-        el(
-          "div",
-          { class: "hero-stat" },
-          [
-            ["طبيب وقسم", networkProviders.length],
-            [
-              "تخصصًا",
-              new Set(networkRecords.map((r) => r.specialty)).size,
-            ],
-            ["مستشفيات", state.catalog.hospitals.filter(r=>!state.network || (r.network_members || []).includes(state.network)).length],
-          ].map(([t, n]) =>
-            el("div", {}, el("strong", {}, n), el("small", {}, t)),
-          ),
-        ),
-      ),
-    );
-    recentUpdates(main);
-    main.append(
-      el(
-        "div",
-        { class: "section-heading" },
-        el("h2", {}, "ما الخدمة التي تبحث عنها؟"),
-      ),
-    );
-    const cats = [
-      ["الأطباء والعيادات", "♧", () => go("doctors")],
-      ["المستشفيات", "▥", () => go("hospitals")],
-      [
-        "معامل التحاليل",
-        "⚗",
-        () => {
-          go("services",{serviceKind:"labs"});
-        },
-      ],
-      [
-        "الأشعة",
-        "◉",
-        () => {
-          go("services",{serviceKind:"radiology"});
-        },
-      ],
-      [
-        "الصيدليات",
-        "✚",
-        () => {
-          go("services",{serviceKind:"pharmacies"});
-        },
-      ],
-      [
-        "المراكز المتخصصة",
-        "◇",
-        () => {
-          go("services",{serviceKind:"specialized_centers"});
-        },
-      ],
-      ["مراكز الدقهلية", "⌖", () => go("districts")],
-      ["الأسنان", "◇", () => go("dental")],
-      ["التعليمات", "≡", () => go("guidelines")],
-      ["الطوارئ", "✦", () => go("emergency")],
+    const search=el("form",{class:"care-home-search",role:"search"},
+      el("label",{for:"care-home-query",class:"sr-only"},"ابحث عن طبيب أو جهة أو تخصص"),
+      el("input",{id:"care-home-query",name:"query",type:"search",maxlength:120,placeholder:"اسم الطبيب، الجهة أو التخصص…",value:state.query}),
+      el("button",{type:"submit",class:"button primary"},"ابحث"));
+    search.onsubmit=event=>{event.preventDefault();const query=search.querySelector("input").value.trim();$("#search-input").value=query;go("search",{query});};
+    main.append(el("section",{class:"hero care-home","aria-label":"دليلك الشخصي للرعاية"},
+      el("div",{class:"care-home-content"},
+        el("div",{class:"care-brandline"},el("img",{src:"img/rayati-icon-512.webp",alt:"",width:38,height:38}),el("span",{},"رعايتي · رعاية تجمعنا")),
+        el("p",{class:"care-greeting"},"مرحبًا، "+session().name),
+        el("h1",{},"رعايتك أقرب،",el("br"),"لك ولأسرتك"),
+        el("p",{class:"care-home-description"},"طبيب، مستشفى أو خدمة طبية.. اختر وجهتك وتواصل بسهولة."),search,
+        el("div",{class:"care-districts","aria-label":"وصول سريع إلى شبكة المركز"},el("span",{},"شبكتك في:"),
+          ["المنصورة","طلخا","ميت غمر","السنبلاوين"].map(markaz=>button(markaz,()=>go("district-network",{markaz}),"care-district")))),
+      el("div",{class:"care-home-visual","aria-hidden":"true"},
+        el("div",{class:"care-orbit"},el("img",{src:"img/rayati-icon-512.webp",alt:"",width:180,height:180})),
+        el("span",{class:"care-orbit-label"},"الموظفون · الأُسَر والمعاشات"),el("small",{},"شبكتك الطبية.. بين يديك"))));
+    main.append(el("section",{class:"care-metrics","aria-label":"ملخص الجهات الظاهرة في الشبكة"},
+      [[networkProviders.length,"طبيب وقسم", "doctors"], [new Set(networkRecords.map(r=>r.specialty)).size,"تخصصًا", "guidelines"], [state.catalog.hospitals.filter(r=>!state.network || r.network_members?.includes(state.network)).length,"مستشفيات", "hospitals"]].map(([count,label,icon])=>el("div",{},careIcon(icon),el("span",{},el("strong",{},count),el("small",{},label))))));
+    main.append(el("div",{class:"section-heading care-section-heading"},el("div",{},el("p",{class:"eyebrow"},"ابدأ من هنا"),el("h2",{},"ما الخدمة التي تبحث عنها؟")),button("مراكز الدقهلية",()=>go("districts"),"text-button")));
+    const categories=[
+      ["الأطباء والعيادات","doctors","التخصصات ومقار الكشف",()=>go("doctors")],
+      ["المستشفيات","hospitals","جهات الرعاية والتعاقد",()=>go("hospitals")],
+      ["معامل التحاليل","labs","التحاليل والفحوص المعملية",()=>go("services",{serviceKind:"labs"})],
+      ["الأشعة","radiology","مراكز الأشعة والفحوص",()=>go("services",{serviceKind:"radiology"})],
+      ["الصيدليات","pharmacies","الفروع وأرقام التواصل",()=>go("services",{serviceKind:"pharmacies"})],
+      ["المراكز المتخصصة","centers","خدمات طبية متكاملة",()=>go("services",{serviceKind:"specialized_centers"})],
+      ["مراكز الدقهلية","districts","شبكتك حسب المركز",()=>go("districts")],
+      ["الأسنان","dental","العيادات والمراكز",()=>go("dental")],
+      ["التعليمات","guidelines","إجراءات الحصول على الخدمة",()=>go("guidelines")],
+      ["الطوارئ","emergency","خطوط الرعاية والإسعاف",()=>go("emergency")],
     ];
-    main.append(
-      el(
-        "div",
-        { class: "category-grid" },
-        cats.map(([name, symbol, action]) =>
-          el(
-            "button",
-            { class: "category", onClick: action },
-            el("span", { class: "symbol", "aria-hidden": "true" }, symbol),
-            el("strong", {}, name),
-          ),
-        ),
-      ),
-    );
-    main.append(
-      el("div", { class: "section-heading" }, el("h2", {}, "التخصصات الطبية")),
-    );
-    main.append(
-      el(
-        "div",
-        { class: "category-grid" },
-        [...new Set(networkRecords.map((r) => r.specialty))].map((s) =>
-          el(
-            "button",
-            {
-              class: "category",
-              onClick: () => {
-                go("doctors",{specialty:s});
-              },
-            },
-            el("strong", {}, s),
-            el(
-              "small",
-              {},
-              networkProviders.filter((p) => p.specialty === s).length +
-                " طبيب وقسم",
-            ),
-          ),
-        ),
-      ),
-    );
+    main.append(el("div",{class:"category-grid care-services"},categories.map(([name,icon,description,action])=>el("button",{type:"button",class:"category service-tile",onClick:action},el("span",{class:"service-symbol"},careIcon(icon)),el("strong",{},name),el("small",{},description),el("span",{class:"service-arrow","aria-hidden":"true"},"←")))));
+    recentUpdates(main);
+    main.append(el("div",{class:"section-heading"},el("h2",{},"التخصصات الطبية")));
+    main.append(el("div",{class:"category-grid care-specialties"},[...new Set(networkRecords.map(r=>r.specialty))].map(s=>el("button",{type:"button",class:"category specialty-tile",onClick:()=>go("doctors",{specialty:s})},el("strong",{},s),el("small",{},networkProviders.filter(p=>p.specialty === s).length+" طبيب وقسم")))));
+    main.append(el("section",{class:"care-support-panel"},
+      el("div",{},el("span",{class:"eyebrow"},"للتواصل مع الرعاية"),el("h2",{},"رقمك أقرب مما تتوقع")),
+      el("a",{href:"tel:16133"},el("span",{},"الموظفون"),el("strong",{dir:"ltr"},"16133")),
+      el("a",{href:"tel:19104"},el("span",{},"الأُسَر والمعاشات"),el("strong",{dir:"ltr"},"19104"))));
   }
   function renderMain() {
     updateHeader();
@@ -998,7 +947,7 @@
     document.documentElement.classList.toggle("admin-view",signedIn && state.tab === "admin");
     const desktopAdmin=$(".desktop-admin-link");if(desktopAdmin)desktopAdmin.hidden=!isAdmin();
     previewNotice.hidden = !isAdmin();
-    $(".search-panel").hidden = !signedIn || (companionPreview && ["home", "account"].includes(state.tab));
+    $(".search-panel").hidden = !signedIn || state.tab === "home" || (companionPreview && state.tab === "account");
     $("#main-nav").hidden = !signedIn;
     if (!signedIn) {
       document.documentElement.classList.add("login-view");
@@ -1372,7 +1321,7 @@
       "section",
       { class: "login-card" },
       el("div", {class:"brand-pair", "aria-label":"اللجنة النقابية والمصرية للاتصالات"},
-        el("img",{src:"img/nekaba-mark.png",alt:"شعار اللجنة النقابية",width:90,height:90}),
+        el("img",{src:"img/nekaba-mark-512.webp",alt:"شعار اللجنة النقابية",width:90,height:90}),
         el("span",{class:"brand-divider","aria-hidden":"true"}),
         el("img",{src:"img/we_logo.webp",alt:"شعار WE",width:130,height:80})),
       el("h1", {}, "دليل الرعاية الطبية بالدقهلية"),
@@ -1544,12 +1493,12 @@
           ["مكان العمل", profile.workplace], ["آخر دخول إلى الدليل الطبي", date(profile.lastLoginAt)],
           ["الدخول السابق إلى الدليل الطبي", date(profile.previousLoginAt)],
         ];
-        profileBox.replaceChildren(el("div",{class:"member-card-heading"},el("img",{src:"img/nekaba-mark.png",alt:"",onError:e=>e.target.hidden=true}),el("div",{},el("small",{},"تطبيق رعايتي · WE"),el("h2", {}, "بطاقتي النقابية")),el("span",{class:"member-lock"},"بيانات شخصية")),
+        profileBox.replaceChildren(el("div",{class:"member-card-heading"},el("img",{src:"img/nekaba-mark-512.webp",alt:"",onError:e=>e.target.hidden=true}),el("div",{},el("small",{},"تطبيق رعايتي · WE"),el("h2", {}, "بطاقتي النقابية")),el("span",{class:"member-lock"},"بيانات شخصية")),
           el("dl", {class:"profile-grid"}, ...fields.map(([label,value]) =>
             el("div", {}, el("dt", {}, label), el("dd", {}, value || "غير مسجل لدى النقابة")))),
           el("p", {class:"muted"}, "بياناتك للعرض لك وحدك من سجل النقابة. تحديثها يتم لدى النقابة."));
       } catch (error) {
-        profileBox.replaceChildren(el("div",{class:"member-card-heading"},el("img",{src:"img/nekaba-mark.png",alt:"",onError:e=>e.target.hidden=true}),el("div",{},el("small",{},"تطبيق رعايتي · WE"),el("h2", {}, "بطاقتي النقابية")),el("span",{class:"member-lock"},"بيانات شخصية")),
+        profileBox.replaceChildren(el("div",{class:"member-card-heading"},el("img",{src:"img/nekaba-mark-512.webp",alt:"",onError:e=>e.target.hidden=true}),el("div",{},el("small",{},"تطبيق رعايتي · WE"),el("h2", {}, "بطاقتي النقابية")),el("span",{class:"member-lock"},"بيانات شخصية")),
           el("p", {class:"notice warning"}, error.code === "NOT_FOUND"
             ? "تعذر عرض بياناتك حاليًا. يمكنك المتابعة والمحاولة لاحقًا."
             : error.message));

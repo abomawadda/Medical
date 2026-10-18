@@ -197,7 +197,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.4.2");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.5.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -210,6 +210,9 @@ try {
   assert.ok(!(await p.locator("body").innerText()).includes("رعايتك أقرب ·"));
   await p.getByText("الشبكة الطبية للموظفين والأسر والمعاشات",{exact:true}).waitFor();
   await p.getByText("أدخل بياناتك للدخول",{exact:true}).waitFor();
+  await p.getByRole("button",{name:"عن التطبيق والخصوصية",exact:true}).click();
+  await p.getByRole("heading",{name:"عن تطبيق رعايتي والخصوصية",exact:true}).waitFor();
+  await p.getByRole("button",{name:"إغلاق النافذة",exact:true}).click();
   // The actual header action must open administrator credentials from the member gate.
   await p.locator(".admin-link").click();
   await p.getByRole("heading",{name:"دخول المدير",exact:true}).waitFor();
@@ -226,8 +229,8 @@ try {
 
   assert.equal((await (await p.request.get(origin + "/manifest.json")).json()).short_name,"تطبيق رعايتي");
   const installManifest=await (await p.request.get(origin+"/manifest.json")).json();
-  assert.ok(installManifest.icons.every(icon=>icon.src === "img/rayati-app.png"));
-  assert.equal(installManifest.icons[0].sizes,"1254x1254");
+  assert.ok(installManifest.icons.every(icon=>["img/rayati-icon-512.webp","img/rayati-icon-192.png"].includes(icon.src)));
+  assert.equal(installManifest.icons[0].sizes,"512x512");
   assert.equal(await p.locator(".startup-card,.splash-screen,.loading-overlay").count(),0);
 
   assert.equal(await p.locator(".card").count(), 0);
@@ -353,7 +356,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.4.2');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.5.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -747,7 +750,12 @@ try {
   await g.locator(".network-tabs").getByRole("button",{name:"كل الشبكات",exact:true}).click();
   // Home searches all authorized provider categories, not just physicians.
   await g.goto(origin+"/#home");
-  await g.locator("#search-input").fill("داوي");
+  await g.locator(".care-districts").getByRole("button",{name:"طلخا",exact:true}).click();
+  assert.equal(new URL(g.url()).hash,"#district-network");
+  await g.locator('.active-filters').getByText('المركز: طلخا',{exact:true}).waitFor();
+  await g.locator('#main-nav').getByRole('link',{name:'الرئيسية',exact:true}).click();
+  await g.locator(".care-home-search input").fill("داوي");
+  await g.locator(".care-home-search").getByRole("button",{name:"ابحث",exact:true}).click();
   await g.getByRole("heading",{name:"نتائج البحث في الدليل",exact:true}).waitFor();
   await g.locator('[data-target="specialized_centers:family_20261018_047"]').waitFor();
   await g.locator("#search-input").fill("مركز داوى متخصص");
@@ -898,6 +906,7 @@ try {
     );
     dimensions.push({ width, scrollWidth });
     assert.ok(scrollWidth <= width);
+    if(process.env.MEDICAL_SCREENSHOT_DIR)await g.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,`rayati-home-${width}.png`),fullPage:true});
   }
   const pilotContext = await context(), pilot = await pilotContext.newPage();
   await pilot.goto(origin + "/?experience=companion");

@@ -17,8 +17,14 @@
   ],
   "icons": [
     {
-      "src": "img/rayati-app.png",
-      "sizes": "1254x1254",
+      "src": "img/rayati-icon-512.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "img/rayati-icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     }
@@ -30,8 +36,8 @@
       "url": "./index.html#emergency",
       "icons": [
         {
-          "src": "img/rayati-app.png",
-          "sizes": "1254x1254",
+          "src": "img/rayati-icon-192.png",
+          "sizes": "192x192",
           "type": "image/png"
         }
       ]
@@ -42,8 +48,8 @@
       "url": "./index.html#doctors",
       "icons": [
         {
-          "src": "img/rayati-app.png",
-          "sizes": "1254x1254",
+          "src": "img/rayati-icon-192.png",
+          "sizes": "192x192",
           "type": "image/png"
         }
       ]
@@ -54,8 +60,8 @@
       "url": "./index.html#hospitals",
       "icons": [
         {
-          "src": "img/rayati-app.png",
-          "sizes": "1254x1254",
+          "src": "img/rayati-icon-192.png",
+          "sizes": "192x192",
           "type": "image/png"
         }
       ]
@@ -66,8 +72,8 @@
       "url": "./index.html#favorites",
       "icons": [
         {
-          "src": "img/rayati-app.png",
-          "sizes": "1254x1254",
+          "src": "img/rayati-icon-192.png",
+          "sizes": "192x192",
           "type": "image/png"
         }
       ]
