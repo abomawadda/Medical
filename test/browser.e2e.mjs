@@ -260,6 +260,16 @@ try {
     ["api", "token", "expiresAt"].sort(),
   );
   assert.ok(saved.expiresAt > Date.now() + 29 * 86400000);
+  // Full profile names, not the two-word session label, drive compound-aware greetings.
+  const namesContext=await context(true,"block",await memberContext.storageState());
+  const named=await namesContext.newPage();
+  await named.route("https://medical.example.invalid/v1/profile",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({profile:{name:"أحمد محمد أبو النجا السيد"}})}));
+  await named.goto(origin+"/#home");
+  await named.waitForFunction(()=>document.querySelector('#member-button')?.textContent === "مرحبًا، أحمد محمد أبو النجا");
+  assert.deepEqual(await named.locator('.greeting-name-part').allTextContents(),["أحمد","محمد","أبو النجا"]);
+  for(const width of [320,390]){await named.setViewportSize({width,height:844});assert.ok(await named.evaluate(()=>document.documentElement.scrollWidth)<=width);}
+  assert.ok(!(await named.evaluate(()=>JSON.stringify(localStorage))).includes("أبو النجا"));
+  await namesContext.close();
   await p.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
   await p.reload();
   await p.locator('#main[data-catalog-ready="true"]').waitFor();

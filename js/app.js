@@ -62,6 +62,8 @@
     adminState: "",
     adminWorklist:"pending",
     options:{},
+    greetingName:"",
+    identityEpoch:0,
     remote: false,
   };
   const $ = (s) => document.querySelector(s);
@@ -238,16 +240,15 @@
   }
   function session() {
     const user = API.session();
-    return user ? {...user, name: display(user.name) || (user.role === "admin" ? "مدير المنظومة" : "عضو النقابة")} : null;
+    return user ? {...user, name: state.greetingName || window.MedicalNames.greeting(display(user.name)) || (user.role === "admin" ? "مدير المنظومة" : "عضو النقابة")} : null;
   }
   function updateHeader() {
     connection();
     const u = session();
     $(".admin-link").hidden = u?.role === "member";
     $("#filter-panel > small").hidden = !isAdmin();
-    $("#member-button").textContent = u
-      ? (u.role === "member" ? "مرحبًا، " : "") + u.name
-      : "دخول الأعضاء";
+    const greeting=u ? window.MedicalNames.parts(u.name).flatMap((part,index)=>[index ? " " : "",el("span",{class:"greeting-name-part"},part)]) : [];
+    $("#member-button").replaceChildren(...(u ? [u.role === "member" ? "مرحبًا، " : "",...greeting] : ["دخول الأعضاء"]).map(value=>typeof value === "string" ? document.createTextNode(value) : value));
   }
   function connection() {
     const n = $("#connection-status");
@@ -267,6 +268,7 @@
       connection();
       return;
     }
+    const epoch=state.identityEpoch;
     const result = await API.catalog();
     if (
       !result.catalog ||
@@ -279,6 +281,15 @@
     state.contractDirectory = result.contractDirectory === true;
     state.adminWorkspace = result.adminWorkspace === true;
     if(isAdmin() && state.adminWorkspace)state.options=(await API.adminOptions()).options || {};
+    if(!state.greetingName && (!isAdmin() || state.adminWorkspace)) {
+      try {
+        const response=isAdmin() ? await API.adminProfile() : await API.profile();
+        if(epoch === state.identityEpoch && session()) {
+          state.greetingName=window.MedicalNames.greeting(display(response.profile?.name));
+          updateHeader();
+        }
+      } catch { /* Profile availability must not prevent directory access. */ }
+    }
     state.stats = result.stats || {};
     state.remote = true;
     connection();
@@ -1234,6 +1245,7 @@
       ),
     );
     form.save = async (data) => {
+      state.greetingName="";state.identityEpoch++;
       await API.login("member", { ...data, remember: data.remember === "on" });
       form.reset();
       closeDialog();
@@ -1311,6 +1323,7 @@
         el("p", { class: "notice warning" }, "خدمة دخول المدير قيد التجهيز."),
       );
     form.save = async (data) => {
+      state.greetingName="";state.identityEpoch++;
       await API.login("admin", data);
       form.reset();
       closeDialog();
@@ -2059,6 +2072,7 @@
     if (session()) refresh().catch((e) => toast(e.message));
   }
   window.addEventListener("medical-session-invalidated", () => {
+    state.greetingName="";state.identityEpoch++;
     state.catalog = Object.fromEntries(kinds.map((k) => [k, []]));
     state.stats = {};
     state.remote = false;

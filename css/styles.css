@@ -1242,3 +1242,7 @@ html { overflow-anchor:none; scroll-behavior:auto; }
  .admin-view .admin-records table {width:100%;min-width:850px}
  .workspace-view dialog {width:min(780px,calc(100% - 48px))}
 }
+
+.greeting-name-part {display:inline-block;white-space:nowrap}
+#member-button {white-space:normal;line-height:1.55;max-width:28ch}
+@media(max-width:560px){.header-actions,.app-header .brand,.app-header .brand>span {min-width:0}.app-header .brand {flex-shrink:1}#member-button {max-width:40vw}}
