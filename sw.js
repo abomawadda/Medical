@@ -1,9 +1,9 @@
-const CACHE_NAME = "we-medical-v4-07512a784ea7d367";
+const CACHE_NAME = "we-medical-v4-b397f0338c5398ab";
 const PRECACHE = [
   "./",
   "./index.html",
   "./manifest.json?v=20261018-content",
-  "./css/styles.css?v=20261018-content",
+  "./css/styles.css?v=20261018-footer",
   "./js/config.js?v=20261017-live",
   "./css/fonts.css",
   "./js/storage.js",
