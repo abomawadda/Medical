@@ -1,6 +1,13 @@
 /* Medical v4: public directory, server-verified member reviews, separate administration. */
 (() => {
   "use strict";
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+  let scrollFrame;
+  function startOfPage() {
+    cancelAnimationFrame(scrollFrame);
+    scrollFrame = requestAnimationFrame(() => window.scrollTo({top:0,left:0,behavior:"instant"}));
+  }
+  const isAdmin = () => session()?.role === "admin";
   const companionPreview = new URL(location.href).searchParams.get("experience") === "companion";
   document.documentElement.classList.toggle("companion-preview", companionPreview);
   const API = window.MedicalAPI,
@@ -193,13 +200,17 @@
     return API.session();
   }
   function updateHeader() {
+    connection();
     const u = session();
+    $(".admin-link").hidden = u?.role === "member";
     $("#member-button").textContent = u
       ? (u.role === "member" ? "مرحبًا، " : "") + u.name
       : "دخول الأعضاء";
   }
   function connection() {
     const n = $("#connection-status");
+    n.hidden = !isAdmin();
+    if (!isAdmin()) { n.textContent = ""; return; }
     n.classList.toggle("offline", !navigator.onLine);
     n.textContent = !navigator.onLine
       ? "أنت دون اتصال · تأكيد الدخول والتقييم يحتاجان الإنترنت."
@@ -242,6 +253,7 @@
           image_source_url: r.image_source_url,
           image_verified: r.image_verified,
           image_kind: r.image_kind,
+          avatar_type: r.avatar_type,
           branches: [],
         });
       map.get(r.provider_id).branches.push(r);
@@ -289,21 +301,12 @@
       );
   }
   function rating(target) {
-    const s = state.stats[target];
-    return s?.count
-      ? el(
-          "div",
-          { class: "rating" },
-          el("strong", {}, "★ " + Number(s.average).toFixed(1)),
-          el("span", { class: "muted" }, `${s.count} تقييم منشور`),
-        )
-      : el(
-          "p",
-          { class: "muted" },
-          API.configured && !state.remote
-            ? "التقييمات تحتاج اتصالًا بالخدمة المركزية"
-            : "لا توجد تقييمات منشورة بعد",
-        );
+    const stats = state.stats[target];
+    const count = Number(stats?.count);
+    const average = stats?.average == null || stats.average === "" ? NaN : Number(stats.average);
+    if (Number.isInteger(count) && count > 0 && Number.isFinite(average) && average >= 1 && average <= 5)
+      return el("div", {class:"rating"}, el("strong",{},"★ " + average.toFixed(1)), el("span",{class:"muted"},`${count} تقييم منشور`));
+    return el("p",{class:"rating-empty"},"لا يوجد تقييم متاح بعد · شارك تجربتك");
   }
   function favorite(target) {
     const b = button(
@@ -330,25 +333,20 @@
     return b;
   }
   function coverage(entity) {
-    const confirmed = entity.coverage_verified === true;
-    return el(
-      "div",
-      { class: "coverage" + (confirmed ? "" : " unknown") },
-      confirmed
-        ? entity.coverage_label ||
-            {
-              both: "العاملون وأسرهم",
-              employee_only: "العاملون فقط",
-              family_globemed: "أسر جلوب ميد",
-            }[entity.coverage_scope] ||
-            "راجع شروط الجهة"
-        : entity.source_ref === "staff-20261018" ? "مدرج بشبكة الموظفين · أكّد تغطية الخدمة" : "التغطية تحتاج تأكيدًا من الجهة",
-    );
+    const networks = entity.network_members || [];
+    const names = {employee:"الموظفون",family:"الأسر",retiree:"المعاشات"};
+    let label = networks.filter((n) => names[n]).map((n) => names[n]).join(" · ");
+    if (!label && entity.source_ref === "staff-20261018") label = "شبكة الموظفين";
+    if (!label && entity.coverage_verified === true) label = {both:"الموظفون والأسر",employee_only:"الموظفون",family_globemed:"الأسر"}[entity.coverage_scope];
+    if (!label && isAdmin()) label = "تصنيف الشبكة يحتاج مراجعة الإدارة";
+    return label ? el("div",{class:"network-badge"},label) : null;
   }
   function providerAvatar(entity, type) {
-    const placeholder = el("span", {class:"avatar-placeholder"}, el("span", {"aria-hidden":"true"}, type === "doctor" ? "♧" : "✚"), el("small", {}, "صورة غير مضافة"));
+    const defaultType = type === "doctor" ? (/دكتورة|د\.ة/.test(entity.name || "") ? "doctor_female" : "doctor_male") : type === "pharmacy" ? "pharmacy" : "clinic";
+    const illustration = ["doctor_male","doctor_female","clinic","pharmacy"].includes(entity.avatar_type) ? entity.avatar_type : defaultType;
+    const placeholder = el("span", {class:"anime-avatar anime-" + illustration,role:"img","aria-label":"رسم تعبيري " + ({doctor_male:"لطبيب",doctor_female:"لطبيبة",clinic:"لمركز طبي",pharmacy:"لصيدلية"}[illustration]),title:"رسم تعبيري، وليس صورة شخصية"});
     const avatar = el("div", {class:"provider-avatar" + (entity.image_kind === "logo" ? " provider-logo" : "") + (String(entity.image_url || "").includes("el-ezaby.png") ? " provider-logo-light" : "")}, placeholder);
-    const url = entity.image_verified === true && safeUrl(entity.image_url);
+    const url = !entity.avatar_type && entity.image_verified === true && entity.image_kind !== "logo" && safeUrl(entity.image_url);
     if (url && safeUrl(entity.image_source_url)) {
       const img = el("img", {src:url, alt:(entity.image_kind === "logo" ? "شعار " : "صورة ") + (entity.display_name || entity.name), loading:"lazy", decoding:"async", referrerpolicy:"no-referrer", onError:() => { img.remove(); placeholder.hidden = false; }});
       placeholder.hidden = true;
@@ -367,10 +365,10 @@
       el("span", {class:"contact-label"}, {mobile:"محمول",landline:"أرضي",shortcode:"مختصر"}[kind] + (reception ? " · استقبال المستشفى" : "")),
       el("div", {class:"phone-list"}, groups[kind].map((n) => {
         const evidence = (branch.contact_evidence || []).find((e) => e.number === n);
-        return el("span", {class:"phone-entry"}, el("a", {class:"phone-chip",href:"tel:" + n,dir:"ltr","aria-label":`${kind === "mobile" ? "محمول" : kind === "landline" ? "أرضي" : "رقم مختصر"} ${n}`}, n), evidence ? link("المصدر",evidence.source_url,"phone-source") : null);
+        return el("span", {class:"phone-entry"}, el("a", {class:"phone-chip",href:"tel:" + n,dir:"ltr","aria-label":`${kind === "mobile" ? "محمول" : kind === "landline" ? "أرضي" : "رقم مختصر"} ${n}`}, n), isAdmin() && evidence ? link("المصدر",evidence.source_url,"phone-source") : null);
       }))));
     return el("div", {class:"contact-groups"}, rows.length ? rows : el("p", {class:"muted"}, "رقم الاتصال غير متاح"),
-      branch.contact_review_required || groups.invalid.length ? el("small", {class:"muted"}, "بعض الأرقام تحتاج مراجعة؛ أُخفيت الأرقام غير سليمة الصيغة.") : null);
+      isAdmin() && (branch.contact_review_required || groups.invalid.length) ? el("small", {class:"muted"}, "بعض الأرقام تحتاج مراجعة؛ أُخفيت الأرقام غير سليمة الصيغة.") : null);
   }
   function actionLinks(branch) {
     return [
@@ -401,79 +399,50 @@
       el("dl", {class:"visit-checklist"},
         el("div", {}, el("dt", {}, "العنوان"), el("dd", {}, branch.address || "تأكد من العنوان عند الاتصال")),
         el("div", {}, el("dt", {}, "المواعيد"), el("dd", {}, branch.schedule || branch.working_hours || "تحتاج تأكيدًا عند الاتصال")),
-        el("div", {}, el("dt", {}, "التغطية"), el("dd", {}, coverage(branch))),
-        el("div", {}, el("dt", {}, "تاريخ التحقق"), el("dd", {}, branch.verified_at || "غير مسجل في الدليل"))),
-      branch.source_url ? link("مصدر المعلومة", branch.source_url, "text-button") : null,
-      el("p", {class:"notice"}, "تأكد من توفر الخدمة والتغطية والإجراءات المطلوبة مع الجهة ومسؤول الرعاية. الاتصال المباشر لا يُعد حجزًا مؤكدًا."));
+        el("div", {}, el("dt", {}, "الشبكة"), el("dd", {}, coverage(branch) || "راجع جهة التعاقد")),
+        isAdmin() ? el("div", {}, el("dt", {}, "تاريخ التحقق"), el("dd", {}, branch.verified_at || "غير مسجل في الدليل")) : null),
+      isAdmin() && branch.source_url ? link("مصدر المعلومة", branch.source_url, "text-button") : null,
+      el("p", {class:"notice"}, "اتصل بالمقر لمعرفة المواعيد وإجراء الزيارة."));
   }
   function doctorCard(p) {
     const target = "doctor:" + p.id;
     let branch = p.matched[0];
-    const details = el("div", { class: "branch-details" });
-    const actions = el("div", { class: "card-actions" });
+    const details = el("div",{class:"branch-details"});
+    const actions = el("div",{class:"card-actions"});
+    const options = el("div",{class:"branch-options",role:"group","aria-label":"مقار وتعاقدات " + p.name});
+    const buttons = [];
     const renderBranch = () => {
+      for (const [b, button] of buttons) {
+        const active = String(b.id) === String(branch.id);
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed",String(active));
+      }
       details.replaceChildren(
-        detail("▥", branch.hospital),
-        branch.contract_type === "direct_we" ? detail("↔", "تعاقد مباشر من الشركة WE") : detail("↔", "تعاقد عبر المستشفى · أكد إجراء التحويل قبل الزيارة"),
-        detail("⌖", branch.address),
-        detail("◷", branch.schedule || "المواعيد تحتاج تأكيدًا"),
+        el("p",{class:"branch-hospital"},branch.hospital || "العيادة"),
+        detail("⌖",branch.address || "العنوان غير متاح"),
+        detail("◷",branch.schedule || "اتصل لمعرفة المواعيد"),
         coverage(branch),
-        companionPreview ? beforeVisit(branch) : null,
-      );
-      actions.replaceChildren(
-        ...actionLinks(branch),
-        button(
-          "قيّم الزيارة",
-          () => reviewDialog(target, p.name, String(branch.id)),
-          "button outline",
-        ),
-      );
+        companionPreview ? beforeVisit(branch) : null);
+      actions.replaceChildren(...actionLinks(branch), button("قيّم الزيارة",()=>reviewDialog(target,p.name,String(branch.id)),"button primary"));
     };
-    const card = el(
-      "article",
-      { class: "card", "data-target": target },
-      el(
-        "div",
-        { class: "card-top" },
-        providerAvatar(p, p.is_department ? "facility" : "doctor"),
-        el(
-          "div",
-          { class: "card-info" },
-          el("h3", {}, p.name),
-          el("p", {}, p.specialty),
-          p.image_verified ? link("مصدر الصورة",p.image_source_url,"image-source") : null,
-        ),
-        favorite(target),
-      ),
-    );
+    const card = el("article",{class:"card doctor-card","data-target":target},
+      el("div",{class:"card-top"},providerAvatar(p,p.is_department ? "clinic" : "doctor"),
+        el("div",{class:"card-info"},el("span",{class:"card-eyebrow"},p.is_department ? "قسم طبي" : "رعاية متخصصة"),el("h3",{},p.name),el("p",{class:"card-specialty"},p.specialty),
+          isAdmin() && p.image_verified ? link("مصدر الصورة",p.image_source_url,"image-source") : null),favorite(target)));
+    if (p.branches.length > 1) card.append(el("p",{class:"multi-location"},`متاح في ${p.branches.length} مقار · لكل مقر تفاصيله`));
     if (p.matched.length > 1) {
-      const label = el("label", { class: "sr-only" }, "اختر مقر العمل");
-      const select = el(
-        "select",
-        {
-          class: "branch-select",
-          "aria-label": "اختر مقر عمل " + p.name,
-          onChange: (e) => {
-            branch = p.matched.find((b) => String(b.id) === e.target.value);
-            renderBranch();
-          },
-        },
-        p.matched.map((b) =>
-          el(
-            "option",
-            { value: b.id },
-            `${b.hospital} · ${b.markaz || b.city}`,
-          ),
-        ),
-      );
-      card.append(label, select);
+      card.append(el("p",{class:"branch-instruction"},"اختر المستشفى أو العيادة لعرض تفاصيلها"));
+      for (const b of p.matched) {
+        const option = button("",()=>{branch=b;renderBranch();},"branch-option");
+        option.dataset.branch = String(b.id);
+        option.append(el("strong",{},b.hospital || "العيادة"),el("small",{},[b.clinic_type,b.markaz || b.city].filter(Boolean).join(" · ")));
+        buttons.push([b,option]);
+        options.append(option);
+      }
+      card.append(options);
     }
-    card.append(
-      details,
-      rating(target),
-      actions,
-      button("مشاركة الجهة", () => share(target, p.name), "text-button"),
-    );
+    if (p.branches.length > p.matched.length) card.append(button(`عرض كل المقار (${p.branches.length})`,()=>{location.hash="entity="+encodeURIComponent(target);},"text-button"));
+    card.append(details,rating(target),actions,button("مشاركة الجهة",()=>share(target,p.name),"text-button card-share"));
     renderBranch();
     return card;
   }
@@ -481,24 +450,24 @@
     const target = kind + ":" + r.id;
     return el(
       "article",
-      { class: "card", "data-target": target },
+      { class: "card facility-card", "data-target": target },
       el(
         "div",
         { class: "card-top" },
-        providerAvatar(r, "facility"),
+        providerAvatar(r, kind === "pharmacies" ? "pharmacy" : "clinic"),
         el(
           "div",
           { class: "card-info" },
           el("h3", {}, r.name),
           el("p", {}, (r.category && r.source_ref ? r.category : labels[kind]) + " · " + (r.markaz || r.city || "")),
-          r.image_verified ? link(r.image_kind === "logo" ? "شعار الجهة · المصدر" : "مصدر الصورة",r.image_source_url,"image-source") : null,
+          isAdmin() && r.image_verified ? link(r.image_kind === "logo" ? "شعار الجهة · المصدر" : "مصدر الصورة",r.image_source_url,"image-source") : null,
         ),
         favorite(target),
       ),
       detail("⌖", r.address),
-      r.source_ref ? detail("↔", "مدرج بقائمة تعاقدات الموظفين") : null,
-      r.data_notes ? el("p", {class:"data-note"}, r.data_notes) : null,
-      detail("◷", r.working_hours || "المواعيد تحتاج تأكيدًا"),
+      detail("↔",r.contract_type === "direct_we" || r.contract_entity_id === "direct_we" ? "تعاقد مباشر مع الشركة" : r.contract_entity),
+      isAdmin() && r.data_notes ? el("p", {class:"data-note"}, r.data_notes) : null,
+      detail("◷", r.working_hours || "اتصل لمعرفة المواعيد"),
       coverage(r),
       companionPreview ? beforeVisit(r) : null,
       rating(target),
@@ -602,7 +571,7 @@
         el("option", { value: "employee_only" }, "تغطية العاملين المؤكدة"),
         el("option", { value: "family_globemed" }, "تغطية الأسر المؤكدة"),
       );
-      container.append(el("label", {}, "التغطية المؤكدة", select));
+      if (isAdmin()) container.append(el("label", {}, "التغطية المؤكدة", select));
     }
     container.append(
       button(
@@ -799,16 +768,17 @@
   function renderMain() {
     updateHeader();
     const main = $("#main");
+    main.dataset.catalogReady = String(!!session() && state.remote);
     main.replaceChildren();
     const signedIn = !!session();
-    previewNotice.hidden = !signedIn;
+    previewNotice.hidden = !isAdmin();
     $(".search-panel").hidden = !signedIn || (companionPreview && ["home", "account"].includes(state.tab));
     $("#main-nav").hidden = !signedIn;
     if (!signedIn) return renderLogin(main);
     if (!state.remote) {
       main.append(
         heading("تحميل الدليل الطبي"),
-        el("p", { class: "muted" }, "يتم تحميل الجهات بعد تأكيد الدخول."),
+        el("p", { class: "muted" }, "لحظات ونجهز لك الدليل…"),
         button(
           "إعادة المحاولة",
           () => refresh().catch((e) => toast(e.message)),
@@ -986,6 +956,7 @@
     location.hash = tab;
   }
   function route() {
+    startOfPage();
     if (!session()) {
       renderMain();
       return;
@@ -1032,6 +1003,7 @@
       return;
     }
     const main = $("#main");
+    main.dataset.catalogReady = "true";
     state.tab = "doctors";
     renderFilters();
     main.replaceChildren(heading("الجهة الطبية"));
@@ -1063,7 +1035,7 @@
         ? el(
             "p",
             { class: "notice warning" },
-            "خدمة التحقق قيد التجهيز. لا تُرسل بياناتك حتى يتم تفعيل الاتصال المركزي.",
+            "تسجيل الدخول غير متاح حاليًا. يرجى المحاولة لاحقًا.",
           )
         : null,
       field("كود الموظف", "employee_code", "text", "", {
@@ -1133,7 +1105,7 @@
         el(
           "p",
           { class: "notice", role: "status" },
-          "جارٍ التحقق من جلسة الدخول المحفوظة…",
+          "جارٍ تسجيل دخولك…",
         ),
       );
     else
@@ -1155,7 +1127,8 @@
       return;
     }
     renderMain();
-    $("#employee_code")?.focus();
+    $("#main").focus({preventScroll:true});
+    startOfPage();
   }
   function adminDialog() {
     const form = el(
@@ -1284,7 +1257,7 @@
       } catch (error) {
         profileBox.replaceChildren(el("h2", {}, "بطاقتي النقابية"),
           el("p", {class:"notice warning"}, error.code === "NOT_FOUND"
-            ? "بطاقة بياناتك تنتظر نشر تحديث الخدمة المركزية. دخولك وتقييماتك متاحان."
+            ? "تعذر عرض بياناتك حاليًا. يمكنك المتابعة والمحاولة لاحقًا."
             : error.message));
       }
     };
@@ -1316,6 +1289,7 @@
       s
     ] || s;
   function reviewItem(r) {
+    const score = r.rating != null && Number.isFinite(Number(r.rating)) && Number(r.rating) >= 1 && Number(r.rating) <= 5 ? `${Number(r.rating)}/5` : "دون تقييم رقمي";
     return el(
       "article",
       { class: "review" },
@@ -1323,7 +1297,7 @@
       el(
         "div",
         { class: "muted" },
-        `${r.author_name || ""} · ${r.rating}/5 · ${statusText(r.status)}`,
+        `${r.author_name || ""} · ${score} · ${statusText(r.status)}`,
       ),
       el("p", {}, r.comment),
     );
@@ -1568,6 +1542,7 @@
       );
     if (kind !== "medical_guidelines")
       form.append(
+        selectField("الرسم التعبيري","avatar_type",[["","تلقائي حسب نوع الجهة"],["doctor_male","رسم طبيب"],["doctor_female","رسم طبيبة"],["clinic","رسم مركز طبي"],["pharmacy","رسم صيدلية"]],r.avatar_type || ""),
         field("رابط الخريطة (https)", "maps_url", "url", r.maps_url || ""),
         field("رابط صورة الطبيب أو الجهة (https)", "image_url", "url", r.image_url || "", {maxlength:2000}),
         field("مصدر الصورة وحق استخدامها (https)", "image_source_url", "url", r.image_source_url || "", {maxlength:2000}),
@@ -1587,9 +1562,10 @@
         else { entity.phone = canonical.join(" - "); entity.hotline = CONTACTS.parse(data.contact_shortcode || "").shortcode[0] || ""; }
       }
       if (kind !== "medical_guidelines") entity.image_verified = data.image_verified === "on";
-      if (entity.image_url) {
+      if (entity.image_url || (entity.avatar_type && entity.avatar_type !== r.avatar_type)) {
         const health = await API.health();
         if (!health.capabilities?.includes("provider-images")) throw new Error("حفظ الصور يحتاج تحديث الخدمة المركزية أولًا؛ لم تُحفظ التغييرات.");
+        if (entity.avatar_type && entity.avatar_type !== r.avatar_type && !health.capabilities?.includes("provider-illustrations")) throw new Error("حفظ اختيار الرسم يحتاج تحديث خدمة الإدارة أولًا؛ لم تُحفظ التغييرات.");
       }
       delete entity._version;
       if (kind === "records") {
@@ -1798,6 +1774,7 @@
   });
   document.documentElement.dataset.theme = prefs.getTheme();
   $("#search-input").addEventListener("input", (event) => {
+    startOfPage();
     state.query = event.target.value;
     state.limit = 24;
     if (state.tab === "home") {
@@ -1808,7 +1785,8 @@
     state.query = "";
     $("#search-input").value = "";
     renderMain();
-    $("#search-input").focus();
+    $("#search-input").focus({preventScroll:true});
+    startOfPage();
   });
   window.addEventListener("hashchange", route);
   window.addEventListener("online", () => {
@@ -1843,11 +1821,9 @@
     if (!session()) resume();
   });
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden && !session()) route();
+    if (!document.hidden && !session() && !$(".login-card")) route();
   });
-  setInterval(() => {
-    if (!session()) route();
-  }, 60000);
+  setInterval(() => { API.session(); }, 60000);
   resume();
   if ("serviceWorker" in navigator) {
     const controlled = !!navigator.serviceWorker.controller;

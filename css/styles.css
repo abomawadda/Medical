@@ -962,8 +962,40 @@ h3,
 .filter-panel { margin-top:.8rem; padding:.6rem .8rem; border:1px solid var(--border); border-radius:1rem; }
 .filter-panel summary { color:var(--primary); cursor:pointer; font-size:.85rem; min-height:36px; }
 .filter-panel[open] summary { margin-bottom:.8rem; }
+
+/* Illustrations are generic characters. The original atlas is displayed unchanged. */
+html { overflow-anchor:none; scroll-behavior:auto; }
+.card { overflow-anchor:none; border-radius:1.5rem; padding:1.25rem; gap:1rem; border-color:var(--border); box-shadow:0 8px 28px #46235b09; }
+.doctor-card .card-top,.facility-card .card-top { align-items:center; }
+.provider-avatar { width:104px; height:104px; flex:0 0 104px; border-radius:1.3rem; background:linear-gradient(135deg,#f4eefb,#e6ddf6); }
+.anime-avatar { display:block; width:100%; height:100%; background-image:url('../img/provider-anime.png'); background-repeat:no-repeat; background-size:200% 200%; }
+.anime-doctor_male { background-position:left top; }
+.anime-doctor_female { background-position:right top; }
+.anime-clinic { background-position:left bottom; }
+.anime-pharmacy { background-position:right bottom; }
+.card-eyebrow { font-size:.66rem; color:var(--muted); }
+.card-info h3 { margin:.2rem 0; font-size:1.12rem; line-height:1.6; }
+.card-info .card-specialty { font-size:.82rem; color:var(--primary); font-weight:700; }
+.multi-location { margin:0; padding:.5rem .75rem; border-radius:.7rem; background:var(--primary-soft); color:var(--primary); font-size:.8rem; font-weight:700; }
+.branch-instruction { margin:0; color:var(--muted); font-size:.77rem; }
+.branch-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.6rem; }
+.branch-option { display:flex; flex-direction:column; align-items:flex-start; text-align:start; gap:.2rem; padding:.7rem; border:1px solid var(--border); border-radius:.85rem; background:var(--card); color:var(--text); min-height:64px; cursor:pointer; }
+.branch-option strong { font-size:.78rem; }
+.branch-option small { color:var(--muted); font-size:.67rem; }
+.branch-option.active { border:2px solid var(--primary); background:var(--primary-soft); padding:calc(.7rem - 1px); }
+.branch-option:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+.branch-hospital { margin:0 0 .7rem; font-weight:800; font-size:.9rem; }
+.branch-details { padding:1rem; border:1px solid var(--border); border-radius:1rem; }
+.network-badge { align-self:flex-start; width:fit-content; display:inline-flex; align-items:center; margin-top:.4rem; padding:.2rem .65rem; border-radius:2rem; background:#e5f4ee; color:#25634b; font-size:.72rem; font-weight:700; }
+.rating-empty { margin:0; color:var(--muted); font-size:.78rem; }
+.card-share { align-self:center; font-size:.75rem; }
+.card-actions { padding-top:.5rem; }
+.contact-groups { padding-bottom:.5rem; }
+[data-theme="dark"] .provider-avatar { background:linear-gradient(135deg,#51406c,#352741); }
+[data-theme="dark"] .network-badge { background:#203e33; color:#a8e0c2; }
+@media (max-width:380px) { .provider-avatar { width:84px; height:84px; flex-basis:84px; } .branch-options { grid-template-columns:1fr; } .card { padding:1rem; } }
 .avatar-placeholder { display:flex; flex-direction:column; align-items:center; text-align:center; font-size:1.6rem; }
 .avatar-placeholder small { font-size:.58rem; line-height:1.4; padding:0 .2rem; }
 .data-note { font-size:.78rem; color:var(--muted); padding:.65rem; border-inline-start:3px solid var(--border); }
 [data-theme="dark"] .login-card { background:linear-gradient(145deg,#30233f,#241d33); border-color:#534163; }
-@media (max-width:420px) { .brand-pair { gap:1rem; } .brand-pair img { width:75px; height:75px; } .provider-avatar { width:60px; height:60px; flex-basis:60px; } .phone-chip { padding:.35rem .55rem; font-size:.9rem; } }
+@media (max-width:420px) { .brand-pair { gap:1rem; } .brand-pair img { width:75px; height:75px; } .provider-avatar { width:88px; height:88px; flex-basis:88px; } .phone-chip { padding:.35rem .55rem; font-size:.9rem; } }

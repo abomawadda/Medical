@@ -36,6 +36,8 @@ test("provider images need an HTTPS source and explicit administrator confirmati
   assert.throws(()=>validateEntity("hospitals",base),e=>e.code === "IMAGE_SOURCE_REQUIRED");
   assert.throws(()=>validateEntity("hospitals",{...base,image_source_url:"javascript:alert(1)",image_verified:true}),e=>e.code === "INVALID_URL");
   assert.equal(validateEntity("hospitals",{...base,image_source_url:"https://example.invalid/permission",image_verified:true}).image_verified,true);
+  assert.equal(validateEntity("records",{id:"r",name:"طبيبة اختبار",specialty:"اختبار",hospital:"اختبار",avatar_type:"doctor_female"}).avatar_type,"doctor_female");
+  assert.throws(()=>validateEntity("hospitals",{id:"h",name:"مركز اختبار",avatar_type:"untrusted-style"}),e=>e.code === "INVALID_ENTITY");
 });
 
 test("staff import preserves original identities, all historical review targets and local rollout boundaries", async () => {

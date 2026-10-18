@@ -237,6 +237,8 @@ export function validateEntity(kind, input, previous) {
       fail(400, "INVALID_ENTITY", "يرجى استكمال الحقول المطلوبة.");
   }
   if (Object.hasOwn(input,"image_kind")) out.image_kind = clean(input.image_kind);
+  if (Object.hasOwn(input,"avatar_type")) out.avatar_type = clean(input.avatar_type);
+  if (out.avatar_type && !["doctor_male","doctor_female","clinic","pharmacy"].includes(out.avatar_type)) fail(400,"INVALID_ENTITY","نوع الرسم التعبيري غير صالح.");
   if (out.image_kind && !["logo","portrait","facility"].includes(out.image_kind)) fail(400,"INVALID_ENTITY","نوع الصورة غير صالح.");
   for (const key of ["maps_url", "source_url", "image_url", "image_source_url"]) {
     if (!out[key]) continue;

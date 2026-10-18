@@ -185,9 +185,7 @@ async function memberLogin(page, remember = false) {
   if (remember)
     await page.getByRole("checkbox", { name: /تذكّر دخولي/ }).check();
   await page.getByRole("button", { name: "تحقق وادخل" }).click();
-  await page
-    .getByText("متصل · بيانات الدليل والتقييمات من الخدمة المركزية.")
-    .waitFor();
+  await page.locator('#main[data-catalog-ready="true"]').waitFor();
 }
 try {
   const memberContext = await context(),
@@ -218,6 +216,9 @@ try {
     .getByText(/تعذر التحقق/)
     .waitFor();
   await memberLogin(p, true);
+  assert.ok(await p.locator("#connection-status").isHidden());
+  assert.equal(await p.locator("#connection-status").textContent(), "");
+  assert.ok(!(await p.locator("body").innerText()).includes("الخدمة المركزية"));
   assert.equal(await p.locator("#member-button").textContent(), "مرحبًا، عضو الاختبار");
   const saved = await p.evaluate(() =>
     JSON.parse(localStorage.getItem("medical_remembered_session_v1")),
@@ -227,10 +228,10 @@ try {
     ["api", "token", "expiresAt"].sort(),
   );
   assert.ok(saved.expiresAt > Date.now() + 29 * 86400000);
+  await p.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
   await p.reload();
-  await p
-    .getByText("متصل · بيانات الدليل والتقييمات من الخدمة المركزية.")
-    .waitFor();
+  await p.locator('#main[data-catalog-ready="true"]').waitFor();
+  await p.waitForFunction(()=>window.scrollY === 0);
   assert.equal(await p.locator(".login-card").count(), 0);
   await p.evaluate(() => {
     const saved = JSON.parse(
@@ -267,8 +268,12 @@ try {
     (t) => (location.hash = "entity=" + encodeURIComponent(t)),
     target,
   );
-  await p.locator(".branch-select").waitFor();
-  await p.locator(".branch-select").selectOption(String(branches[1].id));
+  await p.locator(".branch-options").waitFor();
+  assert.equal(await p.locator(".branch-select").count(),0);
+  await p.locator('[data-branch="' + branches[1].id + '"]').click();
+  assert.equal(await p.locator('[data-branch="' + branches[1].id + '"]').getAttribute("aria-pressed"),"true");
+  assert.ok(await p.locator(".multi-location").isVisible());
+  assert.ok(!(await p.locator(".card").innerText()).includes("التغطية تحتاج"));
   assert.equal(
     await p.locator('a[href^="tel:"]').first().getAttribute("href"),
     "tel:" + branches[1].phones[0].tel,
@@ -294,6 +299,7 @@ try {
     .fill("fixture-password");
   await a.getByRole("button", { name: "دخول الإدارة" }).click();
   await a.getByRole("heading", { name: "لوحة إدارة الدليل" }).waitFor();
+  assert.ok(await a.locator("#connection-status").isVisible());
   await a.getByRole("button", { name: "جودة بيانات الدليل", exact: true }).click();
   await a.getByRole("heading", { name: "جودة بيانات الدليل", exact: true }).waitFor();
   await a.getByLabel("نوع الملاحظة", {exact:true}).selectOption("missing_source");
@@ -393,15 +399,18 @@ try {
   await a.getByLabel("رابط صورة الطبيب أو الجهة (https)", {exact:true}).fill("https://images.example.invalid/provider.png");
   await a.getByLabel("مصدر الصورة وحق استخدامها (https)", {exact:true}).fill("https://example.invalid/provider");
   await a.getByRole("checkbox", {name:/تأكدت من هوية صاحب الصورة/}).check();
+  await a.getByLabel("الرسم التعبيري",{exact:true}).selectOption("doctor_female");
   await a.getByRole("button", { name: "حفظ التغييرات" }).click();
   await a.locator("dialog").waitFor({ state: "hidden" });
   const addedProvider=(await store.catalog()).records.find(x=>x.name === "طبيب اختبار مضاف");
   assert.equal(addedProvider.image_verified,true);
+  assert.equal(addedProvider.avatar_type,"doctor_female");
   assert.deepEqual(addedProvider.contact_groups,{mobile:["01013588730"],landline:["0502332691"],shortcode:["19989"]});
   await p.goto(origin + "/#entity=" + encodeURIComponent("doctor:" + addedProvider.provider_id));
   await p.reload(); // An entity created in another session requires a fresh catalog.
   await p.getByRole("heading",{name:"طبيب اختبار مضاف",exact:true}).waitFor();
-  await p.getByAltText("صورة طبيب اختبار مضاف").waitFor();
+  await p.locator(".anime-doctor_female").waitFor();
+  assert.equal(await p.getByAltText("صورة طبيب اختبار مضاف").count(),0);
   for (const [type,n] of [["mobile","01013588730"],["landline","0502332691"],["shortcode","19989"]]) assert.equal(await p.locator(`[data-contact-type="${type}"] a[href^="tel:"]`).first().getAttribute("href"),"tel:" + n);
   await a.locator("#search-input").fill("طبيب اختبار مضاف");
   await a
@@ -443,7 +452,28 @@ try {
   assert.equal(await g.locator('[data-contact-type="shortcode"] a[href^="tel:"]').getAttribute("href"),"tel:19989");
   assert.equal(await g.locator('[data-contact-type="mobile"] a[href^="tel:"]').getAttribute("href"),"tel:01012221036");
   assert.equal(await g.locator('[data-contact-type="landline"]').count(),0);
-  await g.getByAltText("شعار مركز تكنوسكان").waitFor();
+  await g.locator(".anime-clinic").waitFor();
+  await guestContext.route("https://medical.example.invalid/v1/catalog", async (route) => {
+    const result=await fetch(origin + "/v1/catalog", {headers:{Origin:origin,Authorization:route.request().headers().authorization}});
+    const body=await result.json();
+    body.stats["radiology:staff_761"]={count:1,average:null};
+    await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(body)});
+  });
+  await g.reload();
+  await g.getByText("لا يوجد تقييم متاح بعد · شارك تجربتك",{exact:true}).waitFor();
+  assert.ok(!/null|NaN/.test(await g.locator(".card").innerText()));
+  assert.equal(await g.locator(".image-source,.phone-source,.data-note").count(),0);
+  await guestContext.unroute("https://medical.example.invalid/v1/catalog");
+  await g.goto(origin + "/#doctors");
+  await g.locator(".card").first().waitFor();
+  await g.evaluate((name) => {
+    window.scrollTo(0,document.body.scrollHeight);
+    const input=document.querySelector("#search-input");
+    input.value=name;
+    input.dispatchEvent(new Event("input",{bubbles:true}));
+  },branches[0].name);
+  await g.waitForFunction(()=>window.scrollY === 0);
+  await g.locator("#clear-search").click();
   if (process.env.MEDICAL_SCREENSHOT_DIR) await g.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"staff-provider-mobile.png"),fullPage:true});
   await g.goto(origin + "/#entity=" + encodeURIComponent(target));
   await g.getByText("1 تقييم منشور", { exact: true }).waitFor();
@@ -481,7 +511,7 @@ try {
   await pilot.locator(".card").first().waitFor();
   await pilot.locator(".before-visit summary").first().click();
   assert.ok(await pilot.getByText("راجع تفاصيل هذا المقر قبل الزيارة.", {exact:true}).first().isVisible());
-  await pilot.locator(".branch-select").first().selectOption(String(branches[1].id));
+  await pilot.locator('[data-branch="' + branches[1].id + '"]').first().click();
   await pilot.locator(".before-visit summary").first().click();
   assert.ok((await pilot.locator(".before-visit").first().textContent()).includes(branches[1].address));
   assert.equal(await pilot.locator('a[href^="tel:"]').first().getAttribute("href"), "tel:" + branches[1].phones[0].tel);
@@ -511,7 +541,9 @@ try {
     await pilot.setViewportSize({width,height:844});
     assert.ok(await pilot.evaluate(() => document.documentElement.scrollWidth) <= width, "Preview home overflow at " + width);
   }
-  await pilot.getByRole("link", {name:"العودة للتصميم الحالي",exact:true}).click();
+  assert.ok(await pilot.locator(".preview-notice").isHidden());
+  await pilot.goto(origin + "/#home");
+  await pilot.locator(".hero").waitFor();
   assert.equal(await pilot.locator(".companion-welcome").count(),0);
   assert.ok(!pilot.url().includes("experience=companion"));
   const fonts = await g.evaluate(async () => {
@@ -625,9 +657,7 @@ try {
   await w.locator(".login-card form").waitFor();
   assert.equal(await w.evaluate(() => window.MEDICAL_CONFIG.apiBaseUrl), servedConfig);
   assert.equal(await w.locator(".card").count(), 0);
-  assert.ok(
-    (await w.locator("#connection-status").textContent()).includes("دون اتصال"),
-  );
+  assert.ok(await w.locator("#connection-status").isHidden());
   await w.evaluate(() => document.fonts.ready);
   assert.ok(await w.evaluate(() => document.fonts.check("16px Cairo", "دليل")));
   assert.deepEqual(errors, []);
