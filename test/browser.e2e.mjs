@@ -197,7 +197,8 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer").innerText(),"نبض النقابة - رعاية أقرب لك ولأسرتك");
+  assert.equal(await p.locator(".app-footer small").innerText(),"نبض النقابة - رعاية أقرب لك ولأسرتك");
+  assert.equal(await p.locator(".login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.ok(!(await p.locator("body").innerText()).includes("اختر التذكّر"));
   assert.ok(!(await p.locator("body").innerText()).includes("رعايتك أقرب ·"));
   await p.getByText("الشبكة الطبية للموظفين والأسر والمعاشات",{exact:true}).waitFor();
