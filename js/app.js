@@ -764,7 +764,7 @@
       go("search",{query:state.query});
     });
     main.append(el("section", {class:"companion-welcome"},
-      el("div", {class:"eyebrow"}, "نبض النقابة · معك خطوة بخطوة"),
+      el("div", {class:"eyebrow"}, "تطبيق رعايتي · معك خطوة بخطوة"),
       el("h1", {}, "مرحبًا، " + user.name),
       el("p", {}, "معلومة واضحة، وجهة مناسبة، وخطوة تالية أسهل."), search,
       el("div", {class:"companion-hero-footer"},
@@ -1277,7 +1277,7 @@
     const facts=RESEARCH.doctor(p);
     const external=el("section",{class:"external-reputation reputation-panel",id:"profile-reputation"},
       el("div",{class:"section-heading"},el("div",{},el("span",{class:"card-eyebrow"},"تجارب ومصادر مستقلة"),el("h2",{},"آراء المرضى"))),
-      el("div",{class:"reputation-local"},el("h3",{},"تقييم أعضاء نبض النقابة"),rating(target)));
+      el("div",{class:"reputation-local"},el("h3",{},"تقييم أعضاء تطبيق رعايتي"),rating(target)));
     if(facts) {
       const snapshot=facts.average ? el("div",{class:"external-score"},el("strong",{},`★ ${facts.average.toFixed(1)}/5`),el("span",{},`${facts.count} تقييمًا على ${facts.source}`)) : null;
       external.append(el("article",{class:"external-source"},el("h3",{},facts.source),snapshot,
@@ -1346,7 +1346,7 @@
       await refresh();
       toast(
         API.persistenceNotice ||
-          "مرحبًا، " + session().name + ". سعداء بوجودك في نبض النقابة.",
+          "مرحبًا، " + session().name + ". سعداء بوجودك في تطبيق رعايتي.",
       );
     };
     formAction(form, "تحقق وادخل");
@@ -1531,12 +1531,12 @@
           ["مكان العمل", profile.workplace], ["آخر دخول إلى الدليل الطبي", date(profile.lastLoginAt)],
           ["الدخول السابق إلى الدليل الطبي", date(profile.previousLoginAt)],
         ];
-        profileBox.replaceChildren(el("div",{class:"member-card-heading"},el("img",{src:"img/nekaba-mark.png",alt:"",onError:e=>e.target.hidden=true}),el("div",{},el("small",{},"نبض النقابة · WE"),el("h2", {}, "بطاقتي النقابية")),el("span",{class:"member-lock"},"بيانات شخصية")),
+        profileBox.replaceChildren(el("div",{class:"member-card-heading"},el("img",{src:"img/nekaba-mark.png",alt:"",onError:e=>e.target.hidden=true}),el("div",{},el("small",{},"تطبيق رعايتي · WE"),el("h2", {}, "بطاقتي النقابية")),el("span",{class:"member-lock"},"بيانات شخصية")),
           el("dl", {class:"profile-grid"}, ...fields.map(([label,value]) =>
             el("div", {}, el("dt", {}, label), el("dd", {}, value || "غير مسجل لدى النقابة")))),
           el("p", {class:"muted"}, "بياناتك للعرض لك وحدك من سجل النقابة. تحديثها يتم لدى النقابة."));
       } catch (error) {
-        profileBox.replaceChildren(el("div",{class:"member-card-heading"},el("img",{src:"img/nekaba-mark.png",alt:"",onError:e=>e.target.hidden=true}),el("div",{},el("small",{},"نبض النقابة · WE"),el("h2", {}, "بطاقتي النقابية")),el("span",{class:"member-lock"},"بيانات شخصية")),
+        profileBox.replaceChildren(el("div",{class:"member-card-heading"},el("img",{src:"img/nekaba-mark.png",alt:"",onError:e=>e.target.hidden=true}),el("div",{},el("small",{},"تطبيق رعايتي · WE"),el("h2", {}, "بطاقتي النقابية")),el("span",{class:"member-lock"},"بيانات شخصية")),
           el("p", {class:"notice warning"}, error.code === "NOT_FOUND"
             ? "تعذر عرض بياناتك حاليًا. يمكنك المتابعة والمحاولة لاحقًا."
             : error.message));
@@ -1606,7 +1606,7 @@
     const parentHidden=r=>{const parent=parentOf(r);return parent && (parent.directory_visibility === "hidden" || parent.contract_listing === false);};
     const hidden=r=>r.directory_visibility === "hidden" || r.contract_listing === false || parentHidden(r) || (!!r.title && !publishedContent(r));
     const filter=(kind,status="")=>{state.adminKind=kind;state.adminState=status;state.limit=24;state.query="";$("#search-input").value="";renderMain();};
-    main.append(el("section",{class:"admin-intro"},el("div",{},el("span",{class:"eyebrow"},"مساحة العمل الإدارية"),heading("مركز إدارة نبض النقابة","الجهات والتعاقدات والمحتوى في مساحة عمل واحدة.")),el("div",{class:"actions-row"},button("إضافة سجل",()=>editDialog(state.adminKind === "all" ? "records" : state.adminKind),"button primary"),button("حساب المدير",()=>go("account"),"button outline"))));
+    main.append(el("section",{class:"admin-intro"},el("div",{},el("span",{class:"eyebrow"},"مساحة العمل الإدارية"),heading("مركز إدارة تطبيق رعايتي","الجهات والتعاقدات والمحتوى في مساحة عمل واحدة.")),el("div",{class:"actions-row"},button("إضافة سجل",()=>editDialog(state.adminKind === "all" ? "records" : state.adminKind),"button primary"),button("حساب المدير",()=>go("account"),"button outline"))));
     if(!state.adminWorkspace)main.append(el("p",{class:"notice warning"},"صلاحية اعتماد الجهات والقوائم المشتركة وبطاقة المدير تحتاج نشر تحديث Firebase مرة واحدة بالإعداد المحفوظ."));
     if(!state.adminBatch || !state.structuredBranches || !state.adminBatchData)main.append(el('p',{class:'notice warning'},'الفروع المتعددة والمعالجة الجماعية جاهزتان في الواجهة وتحتاجان نشر تحديث Firebase لتفعيل الحفظ.'));
     main.append(el("section",{class:"admin-metrics","aria-label":"ملخص الإدارة"},[

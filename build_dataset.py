@@ -1868,7 +1868,7 @@ def build_data():
 
     bundle = {
         'metadata': {
-            'title': 'نبض النقابة — الرعاية الطبية WE بالدقهلية',
+            'title': 'تطبيق رعايتي — الرعاية الطبية WE بالدقهلية',
             'author': 'الأستاذ / محمود العراقي',
             'version': '4.0.0',
             'total_records': len(records),

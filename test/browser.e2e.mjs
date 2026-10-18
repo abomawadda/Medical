@@ -197,7 +197,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"نبض النقابة - رعاية أقرب لك ولأسرتك · الإصدار 4.4.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.4.1");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -224,9 +224,9 @@ try {
   const entrance = await p.getByRole("button",{name:"تحقق وادخل",exact:true}).boundingBox();
   assert.ok(entrance.y + entrance.height < 844,"Member entry should be reachable without scrolling on a 390x844 screen");
 
-  assert.equal((await (await p.request.get(origin + "/manifest.json")).json()).short_name,"نبض النقابة");
+  assert.equal((await (await p.request.get(origin + "/manifest.json")).json()).short_name,"تطبيق رعايتي");
   const installManifest=await (await p.request.get(origin+"/manifest.json")).json();
-  assert.ok(installManifest.icons.every(icon=>icon.src === "img/app-icon-family.png"));
+  assert.ok(installManifest.icons.every(icon=>icon.src === "img/rayati-app.png"));
   assert.equal(installManifest.icons[0].sizes,"1254x1254");
   assert.equal(await p.locator(".startup-card,.splash-screen,.loading-overlay").count(),0);
 
@@ -353,7 +353,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.4.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.4.1');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -385,13 +385,13 @@ try {
     .getByLabel("كلمة مرور الحساب", { exact: true })
     .fill("fixture-password");
   await a.getByRole("button", { name: "دخول الإدارة" }).click();
-  await a.getByRole("heading", { name: "مركز إدارة نبض النقابة" }).waitFor();
+  await a.getByRole("heading", { name: "مركز إدارة تطبيق رعايتي" }).waitFor();
   assert.ok(await a.locator("#connection-status").isVisible());
   await a.locator("#member-button").click();
   await a.getByRole("heading",{name:"حساب مدير المنظومة",exact:true}).waitFor();
   await a.getByText("الصلاحية",{exact:true}).waitFor();
   await a.getByRole("button",{name:"فتح لوحة الإدارة",exact:true}).click();
-  await a.getByRole("heading",{name:"مركز إدارة نبض النقابة",exact:true}).waitFor();
+  await a.getByRole("heading",{name:"مركز إدارة تطبيق رعايتي",exact:true}).waitFor();
   await a.getByRole('button',{name:'الفروع والتكرار',exact:true}).click();
   await a.getByRole('heading',{name:'مراجعة الفروع والتكرار',exact:true}).waitFor();
   assert.ok(await a.locator('.duplicate-candidate').count()>0);
@@ -516,7 +516,7 @@ try {
   await a.goto(origin+"/#emergency");
   await a.getByText("رقم منشور بالدليل · راجع حداثة البيانات",{exact:true}).first().waitFor();
   await a.goto(origin+"/#admin");
-  await a.getByRole("heading",{name:"مركز إدارة نبض النقابة",exact:true}).waitFor();
+  await a.getByRole("heading",{name:"مركز إدارة تطبيق رعايتي",exact:true}).waitFor();
   await a.getByRole("button", { name: "جودة بيانات الدليل", exact: true }).click();
   await a.getByRole("heading", { name: "جودة بيانات الدليل", exact: true }).waitFor();
   await a.getByLabel("نوع الملاحظة", {exact:true}).selectOption("missing_source");
@@ -609,7 +609,7 @@ try {
   await a.getByRole("button",{name:"حفظ العنصر",exact:true}).click();
   await a.locator('.inline-option:not([hidden])').waitFor({state:"hidden"});
   await a.getByRole("button",{name:"إغلاق النافذة",exact:true}).click();
-  await a.reload();await a.getByRole("heading",{name:"مركز إدارة نبض النقابة",exact:true}).waitFor();
+  await a.reload();await a.getByRole("heading",{name:"مركز إدارة تطبيق رعايتي",exact:true}).waitFor();
   await a.getByRole("button",{name:"إضافة سجل",exact:true}).click();
   assert.ok((await a.getByLabel("التخصص",{exact:true}).locator("option").allTextContents()).includes("تخصص اختبار محفوظ"));
   await a.getByLabel("الاسم", { exact: true }).fill("طبيب اختبار مضاف");

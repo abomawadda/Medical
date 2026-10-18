@@ -1,7 +1,7 @@
 {
-  "name": "تطبيق رعايتي — الرعاية الطبية والخدمات النقابية",
+  "name": "تطبيق رعايتي — دليل الرعاية الطبية بالدقهلية",
   "short_name": "تطبيق رعايتي",
-  "description": "تطبيق رعايتي: دليل الرعاية الطبية لأعضاء نقابة المصرية للاتصالات في الدقهلية",
+  "description": "تطبيق رعايتي: دليل الرعاية الطبية للموظفين والأُسَر والمعاشات بالدقهلية — شبكتك الطبية بين يديك",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -17,7 +17,7 @@
   ],
   "icons": [
     {
-      "src": "img/app-icon-family.png",
+      "src": "img/rayati-app.png",
       "sizes": "1254x1254",
       "type": "image/png",
       "purpose": "any"
@@ -30,7 +30,7 @@
       "url": "./index.html#emergency",
       "icons": [
         {
-          "src": "img/app-icon-family.png",
+          "src": "img/rayati-app.png",
           "sizes": "1254x1254",
           "type": "image/png"
         }
@@ -42,7 +42,7 @@
       "url": "./index.html#doctors",
       "icons": [
         {
-          "src": "img/app-icon-family.png",
+          "src": "img/rayati-app.png",
           "sizes": "1254x1254",
           "type": "image/png"
         }
@@ -54,7 +54,7 @@
       "url": "./index.html#hospitals",
       "icons": [
         {
-          "src": "img/app-icon-family.png",
+          "src": "img/rayati-app.png",
           "sizes": "1254x1254",
           "type": "image/png"
         }
@@ -66,7 +66,7 @@
       "url": "./index.html#favorites",
       "icons": [
         {
-          "src": "img/app-icon-family.png",
+          "src": "img/rayati-app.png",
           "sizes": "1254x1254",
           "type": "image/png"
         }
