@@ -21,3 +21,7 @@ dist/
 node_modules/
 functions/seed/
 .firebase/
+
+# Short-lived GitHub OIDC credential files and public operational reports
+gha-creds-*.json
+medical-health.json

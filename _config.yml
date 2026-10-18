@@ -17,3 +17,6 @@ exclude:
   - vercel.json
   - README.md
   - GEMINI.md
+
+  - APP_AGREEMENT_AR.md
+  - AGENTS.md

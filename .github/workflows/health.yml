@@ -1,0 +1,26 @@
+name: Check Medical API
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 */6 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: medical-api-health
+  cancel-in-progress: true
+jobs:
+  health:
+    if: github.repository_id == '1421107833'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/check-live.mjs --report
+      - uses: actions/upload-artifact@v4
+        with:
+          name: medical-api-health
+          path: medical-health.json
+          retention-days: 7

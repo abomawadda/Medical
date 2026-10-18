@@ -1,0 +1,95 @@
+name: Deploy Medical Firebase
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - functions/**
+      - firebase/**
+      - firebase.json
+      - data.json
+      - scripts/assert-medical-project.mjs
+      - scripts/prepare-seed.mjs
+      - scripts/deploy-medical.sh
+      - scripts/check-live.mjs
+      - .github/workflows/firebase.yml
+permissions:
+  contents: read
+concurrency:
+  group: medical-firebase-production
+  cancel-in-progress: false
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.config.outputs.ready }}
+    steps:
+      - id: config
+        env:
+          PROVIDER: ${{ vars.MEDICAL_WIF_PROVIDER }}
+          DEPLOYER: ${{ vars.MEDICAL_DEPLOY_SERVICE_ACCOUNT }}
+          ADMIN_ID: ${{ secrets.MEDICAL_ADMIN_ACCOUNT_ID }}
+          SOURCE_API_KEY: ${{ vars.MYNEKABA_WEB_API_KEY }}
+        run: |
+          node <<'JS'
+          const fs = require('node:fs');
+          const configured = ['PROVIDER','DEPLOYER','ADMIN_ID','SOURCE_API_KEY'].every((k) => Boolean(process.env[k]));
+          if (!configured) {
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'ready=false\n');
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, 'Firebase automation is prepared but inactive. Configure the repository settings (three variables and the administrator-ID secret) and the Medical-only Google Workload Identity Federation connection. See docs/AUTOMATED_DEPLOYMENT_AR.md. No deployment was attempted.\n');
+            process.exit(0);
+          }
+          if (!/^projects\/1013831084756\/locations\/global\/workloadIdentityPools\/[a-z0-9-]+\/providers\/[a-z0-9-]+$/.test(process.env.PROVIDER) ||
+              !/^[a-z][a-z0-9-]+@we-medical-dakahlia\.iam\.gserviceaccount\.com$/.test(process.env.DEPLOYER) ||
+              !/^[a-zA-Z0-9_-]{1,128}$/.test(process.env.ADMIN_ID) ||
+              !/^AIza[a-zA-Z0-9_-]{35}$/.test(process.env.SOURCE_API_KEY)) {
+            throw new Error('Deployment configuration does not match the approved Medical project or expected value formats.');
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'ready=true\n');
+          JS
+  deploy:
+    needs: readiness
+    if: needs.readiness.outputs.ready == 'true' && github.ref == 'refs/heads/main' && github.repository_id == '1421107833'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GCLOUD_PROJECT: we-medical-dakahlia
+      MEDICAL_DEPLOY_PROJECT: we-medical-dakahlia
+      MYNEKABA_PROJECT_ID: nekaba2026
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - run: npm ci --prefix functions
+      - run: npm test
+      - run: node scripts/prepare-seed.mjs
+      - run: npm run build
+      - run: npm run check
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: we-medical-dakahlia
+          workload_identity_provider: ${{ vars.MEDICAL_WIF_PROVIDER }}
+          service_account: ${{ vars.MEDICAL_DEPLOY_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - name: Prepare private deployment configuration
+        env:
+          ADMIN_ID: ${{ secrets.MEDICAL_ADMIN_ACCOUNT_ID }}
+          SOURCE_API_KEY: ${{ vars.MYNEKABA_WEB_API_KEY }}
+        run: bash scripts/deploy-medical.sh "$ADMIN_ID" "$SOURCE_API_KEY" --prepare-only
+      - name: Deploy Medical only
+        run: npx --yes firebase-tools@15.34.0 deploy --project we-medical-dakahlia --only functions:medical,firestore:rules --non-interactive
+      - name: Verify published API
+        run: node scripts/check-live.mjs --report
+      - uses: actions/upload-artifact@v4
+        with:
+          name: medical-api-health
+          path: medical-health.json
+          retention-days: 14

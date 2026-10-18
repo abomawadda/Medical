@@ -1,6 +1,8 @@
 /* Medical v4: public directory, server-verified member reviews, separate administration. */
 (() => {
   "use strict";
+  const companionPreview = new URL(location.href).searchParams.get("experience") === "companion";
+  document.documentElement.classList.toggle("companion-preview", companionPreview);
   const API = window.MedicalAPI,
     prefs = window.MedicalStorage;
   const kinds = [
@@ -77,6 +79,15 @@
   }
   const button = (text, action, classes = "button") =>
     el("button", { type: "button", class: classes, onClick: action }, text);
+  const previewNotice = el("aside", {class:"preview-notice"},
+    el("span", {}, "معاينة تجربة رفيق الموظف"));
+  if (companionPreview) {
+    const current = new URL(location.href);
+    current.searchParams.delete("experience");
+    previewNotice.append(el("a", {href:current.href}, "العودة للتصميم الحالي"));
+    previewNotice.hidden = true;
+    document.querySelector("#connection-status").after(previewNotice);
+  }
   const empty = (text) => el("div", { class: "empty" }, text);
   const detail = (symbol, text) =>
     text
@@ -367,6 +378,18 @@
         .catch(() => toast("تعذر نسخ الرابط."));
     else dialog("رابط الجهة", el("p", {}, url.href));
   }
+  function beforeVisit(branch) {
+    return el("details", {class:"before-visit"},
+      el("summary", {}, "قبل ما تتحرك"),
+      el("p", {class:"muted"}, "راجع تفاصيل هذا المقر قبل الزيارة."),
+      el("dl", {class:"visit-checklist"},
+        el("div", {}, el("dt", {}, "العنوان"), el("dd", {}, branch.address || "تأكد من العنوان عند الاتصال")),
+        el("div", {}, el("dt", {}, "المواعيد"), el("dd", {}, branch.schedule || branch.working_hours || "تحتاج تأكيدًا عند الاتصال")),
+        el("div", {}, el("dt", {}, "التغطية"), el("dd", {}, coverage(branch))),
+        el("div", {}, el("dt", {}, "تاريخ التحقق"), el("dd", {}, branch.verified_at || "غير مسجل في الدليل"))),
+      branch.source_url ? link("مصدر المعلومة", branch.source_url, "text-button") : null,
+      el("p", {class:"notice"}, "تأكد من توفر الخدمة والتغطية والإجراءات المطلوبة مع الجهة ومسؤول الرعاية. الاتصال المباشر لا يُعد حجزًا مؤكدًا."));
+  }
   function doctorCard(p) {
     const target = "doctor:" + p.id;
     let branch = p.matched[0];
@@ -378,6 +401,7 @@
         detail("⌖", branch.address),
         detail("◷", branch.schedule || "المواعيد تحتاج تأكيدًا"),
         coverage(branch),
+        companionPreview ? beforeVisit(branch) : null,
       );
       actions.replaceChildren(
         ...actionLinks(branch),
@@ -463,6 +487,7 @@
       detail("⌖", r.address),
       detail("◷", r.working_hours || "المواعيد تحتاج تأكيدًا"),
       coverage(r),
+      companionPreview ? beforeVisit(r) : null,
       rating(target),
       el(
         "div",
@@ -574,7 +599,54 @@
       ),
     );
   }
+  function renderCompanionHome(main) {
+    const user = session();
+    const find = (tab) => {
+      state.query = "";
+      $("#search-input").value = "";
+      go(tab);
+    };
+    const search = el("form", {class:"companion-search",role:"search"},
+      el("label", {for:"companion-query"}, "ابحث عن طبيب أو جهة أو تخصص"),
+      el("div", {},
+        el("input", {id:"companion-query",name:"query",type:"search",maxlength:120,placeholder:"اسم الطبيب، التخصص أو المنطقة…",value:state.query}),
+        el("button", {type:"submit",class:"button primary"}, "ابحث الآن")));
+    search.addEventListener("submit", (event) => {
+      event.preventDefault();
+      state.query = search.querySelector("input").value.trim();
+      $("#search-input").value = state.query;
+      go("doctors");
+    });
+    main.append(el("section", {class:"companion-welcome"},
+      el("div", {class:"eyebrow"}, "دليل WE الطبي · معك خطوة بخطوة"),
+      el("h1", {}, "مرحبًا، " + user.name),
+      el("p", {}, "معلومة واضحة، وجهة مناسبة، وخطوة تالية أسهل."), search,
+      el("div", {class:"companion-hero-footer"},
+        el("span", {}, "الجهات والتقييمات من الدليل النقابي"),
+        el("a", {href:"tel:123",class:"emergency-shortcut"}, "الإسعاف 123"))));
+    const shortcuts = [
+      ["الخدمات الطبية", "تحاليل وأشعة وصيدليات ومراكز", "✚", () => find("services")],
+      ["جهاتي المفضلة", "الجهات التي حفظتها على جهازك", "♡", () => find("favorites")],
+      [user.role === "member" ? "بطاقتي وتقييماتي" : "إدارة الدليل", "بياناتك وإجراءاتك في مكان واحد", "◎", () => go(user.role === "member" ? "account" : "admin")],
+      ["التعليمات والإجراءات", "راجع الخطوات مع مسؤول الرعاية", "≡", () => find("guidelines")],
+    ];
+    main.append(el("section", {class:"companion-shortcuts","aria-label":"اختصارات خدمتك"},
+      ...shortcuts.map(([name,description,symbol,action]) => el("button", {type:"button",class:"companion-shortcut",onClick:action},
+        el("span", {class:"shortcut-symbol","aria-hidden":"true"}, symbol),
+        el("span", {}, el("strong", {}, name), el("small", {}, description)),
+        el("span", {"aria-hidden":"true"}, "←")))));
+    main.append(el("section", {class:"companion-next"},
+      el("div", {}, el("p", {class:"eyebrow"}, "زيارتك تبدأ قبل الوصول"), el("h2", {}, "قبل ما تتحرك"),
+        el("p", {class:"muted"}, "اختر المقر، راجع العنوان والمواعيد، وتأكد من التغطية مباشرةً. ستجد ملخص التجهيز داخل بطاقة الجهة.")),
+      button("استعرض الجهات الطبية", () => find("doctors"), "button primary")));
+    main.append(el("section", {class:"companion-guide"}, el("h2", {}, "ثلاث خطوات لزيارة أوضح"),
+      el("ol", {},
+        el("li", {}, el("strong", {}, "اختر الجهة والمقر"), el("p", {}, "ابحث حسب حاجتك وموقع الجهة، ثم اختر مقر الخدمة المناسب.")),
+        el("li", {}, el("strong", {}, "تأكد قبل الزيارة"), el("p", {}, "اتصل للتأكد من المواعيد والخدمة والتغطية والإجراءات.")),
+        el("li", {}, el("strong", {}, "شارك تجربتك بعد الزيارة"), el("p", {}, "قيّم التجربة، وتابع حالتها من صفحتك. ملاحظاتك خاصة بك وبالإدارة.")))));
+  }
   function renderHome(main) {
+    if (companionPreview) return renderCompanionHome(main);
     main.append(
       el(
         "section",
@@ -705,7 +777,8 @@
     const main = $("#main");
     main.replaceChildren();
     const signedIn = !!session();
-    $(".search-panel").hidden = !signedIn;
+    previewNotice.hidden = !signedIn;
+    $(".search-panel").hidden = !signedIn || (companionPreview && ["home", "account"].includes(state.tab));
     $("#main-nav").hidden = !signedIn;
     if (!signedIn) return renderLogin(main);
     if (!state.remote) {
@@ -1155,6 +1228,9 @@
       button("تسجيل الخروج", logout, "button outline"),
     );
     if (u.role !== "member") return;
+    if (companionPreview) main.append(el("div", {class:"companion-account-actions"},
+      button("العودة للرئيسية", () => go("home"), "button primary"),
+      button("جهاتي المفضلة", () => go("favorites"), "button outline")));
     const profileBox = el("section", { class: "member-profile", "aria-label": "بيانات العضو" },
       el("h2", {}, "بطاقتي النقابية"), el("p", { class: "muted" }, "جارٍ تحميل بياناتك…"));
     main.append(profileBox);

@@ -402,6 +402,54 @@ try {
     dimensions.push({ width, scrollWidth });
     assert.ok(scrollWidth <= width);
   }
+  const pilotContext = await context(), pilot = await pilotContext.newPage();
+  await pilot.goto(origin + "/?experience=companion");
+  await pilot.locator(".login-card form").waitFor();
+  assert.equal(await pilot.locator(".companion-welcome").count(), 0);
+  await memberLogin(pilot);
+  await pilot.goto(origin + "/?experience=companion");
+  await pilot.getByRole("heading", {name:"مرحبًا، عضو الاختبار",exact:true}).waitFor();
+  await pilot.getByRole("button", {name:/بطاقتي وتقييماتي/}).click();
+  await pilot.getByText("UNION-123", {exact:true}).waitFor();
+  await pilot.getByRole("button", {name:"العودة للرئيسية",exact:true}).click();
+  await pilot.getByLabel("ابحث عن طبيب أو جهة أو تخصص", {exact:true}).fill(branches[0].name);
+  await pilot.getByRole("button", {name:"ابحث الآن",exact:true}).click();
+  await pilot.locator(".card").first().waitFor();
+  await pilot.locator(".before-visit summary").first().click();
+  assert.ok(await pilot.getByText("راجع تفاصيل هذا المقر قبل الزيارة.", {exact:true}).first().isVisible());
+  await pilot.locator(".branch-select").first().selectOption(String(branches[1].id));
+  await pilot.locator(".before-visit summary").first().click();
+  assert.ok((await pilot.locator(".before-visit").first().textContent()).includes(branches[1].address));
+  assert.equal(await pilot.locator('a[href^="tel:"]').first().getAttribute("href"), "tel:" + branches[1].phones[0].tel);
+  await pilot.goto(origin + "/?experience=companion#entity=" + encodeURIComponent(target));
+  await pilot.locator(".card").first().waitFor();
+  const pilotWidths=[];
+  for (const width of [320,390,768,1440]) {
+    await pilot.setViewportSize({width,height:844});
+    const measured=await pilot.evaluate(() => document.documentElement.scrollWidth);
+    assert.ok(measured <= width, "Preview entity overflow at " + width);
+    pilotWidths.push({width,scrollWidth:measured});
+  }
+  if (process.env.MEDICAL_SCREENSHOT_DIR) {
+    await pilot.setViewportSize({width:390,height:844});
+    await pilot.locator(".before-visit summary").first().click();
+    await pilot.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"companion-entity-mobile.png"),fullPage:true});
+    await pilot.goto(origin + "/?experience=companion#account");
+    await pilot.getByText("UNION-123", {exact:true}).waitFor();
+    await pilot.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"companion-account-mobile.png"),fullPage:true});
+    await pilot.goto(origin + "/?experience=companion#home");
+    await pilot.locator(".companion-welcome").waitFor();
+    await pilot.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"companion-home-mobile.png"),fullPage:true});
+  }
+  await pilot.goto(origin + "/?experience=companion#home");
+  await pilot.locator(".companion-welcome").waitFor();
+  for (const width of [320,390,768,1440]) {
+    await pilot.setViewportSize({width,height:844});
+    assert.ok(await pilot.evaluate(() => document.documentElement.scrollWidth) <= width, "Preview home overflow at " + width);
+  }
+  await pilot.getByRole("link", {name:"العودة للتصميم الحالي",exact:true}).click();
+  assert.equal(await pilot.locator(".companion-welcome").count(),0);
+  assert.ok(!pilot.url().includes("experience=companion"));
   const fonts = await g.evaluate(async () => {
     await document.fonts.ready;
     return {
@@ -538,6 +586,7 @@ try {
         moderationSuccessClosesDialogAndReviewedItemsLeaveQueue: true,
         personalProfileAndAuthorOnlyReviewEditing: true,
         incompatibleBackendModerationBlocked: true,
+        optInCompanionPreviewAuthenticatedAndResponsive: true,
         moderationSavedDespiteDirectoryRefreshFailure: true,
         dimensions,
         runtimeErrors: errors,
