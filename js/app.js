@@ -5,6 +5,8 @@
   document.documentElement.classList.toggle("companion-preview", companionPreview);
   const API = window.MedicalAPI,
     prefs = window.MedicalStorage;
+  const CONTACTS = window.MedicalContacts;
+  const dakahliaCenters = ["المنصورة","طلخا","ميت غمر","السنبلاوين","بلقاس","دكرنس","شربين","أجا","المنزلة","منية النصر","ميت سلسيل","بني عبيد","نبروه","الجمالية","تمي الأمديد","محلة دمنة"];
   const kinds = [
     "records",
     "hospitals",
@@ -43,6 +45,8 @@
     specialty: "",
     hospital: "",
     coverage: "",
+    network: "",
+    contractType: "",
     serviceKind: "",
     limit: 24,
     adminKind: "records",
@@ -234,6 +238,10 @@
           name: r.display_name || r.name,
           specialty: r.specialty,
           is_department: r.is_department,
+          image_url: r.image_url,
+          image_source_url: r.image_source_url,
+          image_verified: r.image_verified,
+          image_kind: r.image_kind,
           branches: [],
         });
       map.get(r.provider_id).branches.push(r);
@@ -244,6 +252,8 @@
     return (
       (!state.markaz || (b.markaz || b.city) === state.markaz) &&
       (!state.hospital || b.hospital === state.hospital) &&
+      (!state.network || (b.network_members || []).includes(state.network)) &&
+      (!state.contractType || (b.contract_type || (b.contract_entity_id === "direct_we" ? "direct_we" : "hospital")) === state.contractType) &&
       (!state.coverage ||
         (b.coverage_verified === true &&
           (b.coverage_scope === "both" || b.coverage_scope === state.coverage)))
@@ -332,33 +342,39 @@
               family_globemed: "أسر جلوب ميد",
             }[entity.coverage_scope] ||
             "راجع شروط الجهة"
-        : "التغطية تحتاج تأكيدًا من الجهة",
+        : entity.source_ref === "staff-20261018" ? "مدرج بشبكة الموظفين · أكّد تغطية الخدمة" : "التغطية تحتاج تأكيدًا من الجهة",
     );
   }
-  function actionLinks(branch) {
-    let tel = telephone(
-      branch.phones?.find((p) => telephone(p.tel))?.tel ||
-        branch.phone_digits ||
-        branch.hotline ||
-        branch.tel,
-    );
-    let label = "اتصال";
-    if (!tel && branch.hospital) {
-      const h = state.catalog.hospitals.find(
-        (h) => h.short_name === branch.hospital || h.name === branch.hospital,
-      );
-      tel = telephone(h?.phone_digits);
-      label = "استقبال المستشفى";
+  function providerAvatar(entity, type) {
+    const placeholder = el("span", {class:"avatar-placeholder"}, el("span", {"aria-hidden":"true"}, type === "doctor" ? "♧" : "✚"), el("small", {}, "صورة غير مضافة"));
+    const avatar = el("div", {class:"provider-avatar" + (entity.image_kind === "logo" ? " provider-logo" : "") + (String(entity.image_url || "").includes("el-ezaby.png") ? " provider-logo-light" : "")}, placeholder);
+    const url = entity.image_verified === true && safeUrl(entity.image_url);
+    if (url && safeUrl(entity.image_source_url)) {
+      const img = el("img", {src:url, alt:(entity.image_kind === "logo" ? "شعار " : "صورة ") + (entity.display_name || entity.name), loading:"lazy", decoding:"async", referrerpolicy:"no-referrer", onError:() => { img.remove(); placeholder.hidden = false; }});
+      placeholder.hidden = true;
+      avatar.append(img);
     }
-    if (!tel)
-      tel = String(branch.phone || "")
-        .split(/\s*[-،,]\s*/)
-        .map(telephone)
-        .find(Boolean);
+    return avatar;
+  }
+  function contactGroups(branch, fallback = false) {
+    let groups = CONTACTS.forEntity(branch);
+    let reception = false;
+    if (!["mobile","landline","shortcode"].some((k) => groups[k].length) && fallback && branch.hospital) {
+      const hospital = state.catalog.hospitals.find((h) => h.id === branch.contract_entity_id || h.short_name === branch.hospital || h.name === branch.hospital);
+      if (hospital) { groups = CONTACTS.forEntity(hospital); reception = true; }
+    }
+    const rows = ["mobile","landline","shortcode"].filter((k) => groups[k].length).map((kind) => el("div", {class:"contact-category", "data-contact-type":kind},
+      el("span", {class:"contact-label"}, {mobile:"محمول",landline:"أرضي",shortcode:"مختصر"}[kind] + (reception ? " · استقبال المستشفى" : "")),
+      el("div", {class:"phone-list"}, groups[kind].map((n) => {
+        const evidence = (branch.contact_evidence || []).find((e) => e.number === n);
+        return el("span", {class:"phone-entry"}, el("a", {class:"phone-chip",href:"tel:" + n,dir:"ltr","aria-label":`${kind === "mobile" ? "محمول" : kind === "landline" ? "أرضي" : "رقم مختصر"} ${n}`}, n), evidence ? link("المصدر",evidence.source_url,"phone-source") : null);
+      }))));
+    return el("div", {class:"contact-groups"}, rows.length ? rows : el("p", {class:"muted"}, "رقم الاتصال غير متاح"),
+      branch.contact_review_required || groups.invalid.length ? el("small", {class:"muted"}, "بعض الأرقام تحتاج مراجعة؛ أُخفيت الأرقام غير سليمة الصيغة.") : null);
+  }
+  function actionLinks(branch) {
     return [
-      tel
-        ? el("a", { class: "button primary", href: "tel:" + tel }, label)
-        : el("span", { class: "muted" }, "رقم الاتصال غير متاح"),
+      contactGroups(branch, true),
       link(
         "الخريطة",
         branch.maps_url ||
@@ -398,6 +414,7 @@
     const renderBranch = () => {
       details.replaceChildren(
         detail("▥", branch.hospital),
+        branch.contract_type === "direct_we" ? detail("↔", "تعاقد مباشر من الشركة WE") : detail("↔", "تعاقد عبر المستشفى · أكد إجراء التحويل قبل الزيارة"),
         detail("⌖", branch.address),
         detail("◷", branch.schedule || "المواعيد تحتاج تأكيدًا"),
         coverage(branch),
@@ -418,16 +435,13 @@
       el(
         "div",
         { class: "card-top" },
-        el(
-          "div",
-          { class: "avatar", "aria-hidden": "true" },
-          p.is_department ? "✚" : "♧",
-        ),
+        providerAvatar(p, p.is_department ? "facility" : "doctor"),
         el(
           "div",
           { class: "card-info" },
           el("h3", {}, p.name),
           el("p", {}, p.specialty),
+          p.image_verified ? link("مصدر الصورة",p.image_source_url,"image-source") : null,
         ),
         favorite(target),
       ),
@@ -471,20 +485,19 @@
       el(
         "div",
         { class: "card-top" },
-        el(
-          "div",
-          { class: "avatar", "aria-hidden": "true" },
-          kind === "hospitals" ? "▥" : "✚",
-        ),
+        providerAvatar(r, "facility"),
         el(
           "div",
           { class: "card-info" },
           el("h3", {}, r.name),
-          el("p", {}, labels[kind] + " · " + (r.markaz || r.city || "")),
+          el("p", {}, (r.category && r.source_ref ? r.category : labels[kind]) + " · " + (r.markaz || r.city || "")),
+          r.image_verified ? link(r.image_kind === "logo" ? "شعار الجهة · المصدر" : "مصدر الصورة",r.image_source_url,"image-source") : null,
         ),
         favorite(target),
       ),
       detail("⌖", r.address),
+      r.source_ref ? detail("↔", "مدرج بقائمة تعاقدات الموظفين") : null,
+      r.data_notes ? el("p", {class:"data-note"}, r.data_notes) : null,
       detail("◷", r.working_hours || "المواعيد تحتاج تأكيدًا"),
       coverage(r),
       companionPreview ? beforeVisit(r) : null,
@@ -522,14 +535,15 @@
   function renderFilters() {
     const container = $("#filters");
     container.replaceChildren();
+    $("#filter-panel").hidden = ["home", "admin", "account", "guidelines"].includes(state.tab);
     if (["home", "admin", "account", "guidelines"].includes(state.tab)) return;
     const areas = [
-      ...new Set(
+      ...new Set([...dakahliaCenters,
         kinds
           .flatMap((k) => state.catalog[k])
           .map((r) => r.markaz || r.city)
           .filter(Boolean),
-      ),
+      ].flat()),
     ].sort((a, b) => a.localeCompare(b, "ar"));
     const make = (title, key, values) => {
       const select = el(
@@ -566,6 +580,14 @@
       );
     }
     if (["doctors", "services", "hospitals"].includes(state.tab)) {
+      for (const [title,key,options] of [
+        ["الشبكة","network",[["","كل الشبكات"],["employee","الموظفون"],["family","الأسر"],["retiree","المعاشات"]]],
+        ["مسار التعاقد","contractType",[["","كل المسارات"],["direct_we","تعاقد مباشر من الشركة"],["hospital","عبر مستشفى"]]],
+      ]) {
+        const filter = selectField(title,"filter-" + key,options,state[key]);
+        filter.querySelector("select").addEventListener("change",(e)=>{state[key]=e.target.value;state.limit=24;renderMain();});
+        container.append(filter);
+      }
       const select = el(
         "select",
         {
@@ -590,6 +612,8 @@
           state.specialty = "";
           state.hospital = "";
           state.coverage = "";
+          state.network = "";
+          state.contractType = "";
           state.query = "";
           $("#search-input").value = "";
           renderFilters();
@@ -618,7 +642,7 @@
       go("doctors");
     });
     main.append(el("section", {class:"companion-welcome"},
-      el("div", {class:"eyebrow"}, "دليل WE الطبي · معك خطوة بخطوة"),
+      el("div", {class:"eyebrow"}, "نبض النقابة · معك خطوة بخطوة"),
       el("h1", {}, "مرحبًا، " + user.name),
       el("p", {}, "معلومة واضحة، وجهة مناسبة، وخطوة تالية أسهل."), search,
       el("div", {class:"companion-hero-footer"},
@@ -1082,7 +1106,7 @@
       await refresh();
       toast(
         API.persistenceNotice ||
-          "مرحبًا، " + session().name + ". سعداء بوجودك في دليل WE الطبي.",
+          "مرحبًا، " + session().name + ". سعداء بوجودك في نبض النقابة.",
       );
     };
     formAction(form, "تحقق وادخل");
@@ -1094,8 +1118,15 @@
     const box = el(
       "section",
       { class: "login-card" },
+      el("div", {class:"brand-pair", "aria-label":"اللجنة النقابية والمصرية للاتصالات"},
+        el("img",{src:"img/nekaba_logo.png",alt:"شعار اللجنة النقابية",width:90,height:90}),
+        el("span",{class:"brand-divider","aria-hidden":"true"}),
+        el("img",{src:"img/we_logo.webp",alt:"شعار WE",width:130,height:80})),
       el("p", { class: "eyebrow" }, "خدمة أعضاء النقابة · المصرية للاتصالات"),
-      el("h1", {}, "مرحبًا بك في دليل WE الطبي"),
+      el("h1", {}, "مرحبًا بك في نبض النقابة"),
+      el("p", {class:"login-tagline"}, "رفيقك للرعاية والخدمات النقابية — WE"),
+      el("p", {class:"login-region"}, "رعايتك أقرب · الدقهلية وجميع مراكزها"),
+      el("p", {class:"creator-credit"}, el("strong",{},"إعداد وتنفيذ أ / محمود العراقي"),el("a",{href:"tel:01550100025",dir:"ltr"},"01550100025")),
     );
     if (state.restoring)
       box.append(
@@ -1438,7 +1469,6 @@
             ["hospital", "المستشفى"],
             ["markaz", "المركز / المدينة"],
             ["address", "العنوان"],
-            ["raw_phone", "أرقام التواصل (افصل بشرطة)"],
             ["schedule", "المواعيد"],
             ["notes", "ملاحظات"],
           ]
@@ -1458,7 +1488,6 @@
             : [
                 ["markaz", "المركز / المدينة"],
                 ["address", "العنوان"],
-                ["phone", "أرقام التواصل (افصل بشرطة)"],
                 ["working_hours", "المواعيد"],
               ];
     for (const [key, label] of textFields)
@@ -1476,6 +1505,13 @@
           },
         ),
       );
+    if (!["medical_guidelines","emergency_services"].includes(kind)) {
+      const contacts = CONTACTS.forEntity(r);
+      form.append(el("p",{class:"muted"},"أضف كل فئة هاتف منفصلة؛ رقم واحد في كل سطر. لا نكمل الأرقام الناقصة بالتخمين."));
+      for (const [type,label] of [["mobile","المحمول"],["landline","الأرضي"],["shortcode","الأرقام المختصرة"]]) {
+        form.append(field(label,"contact_"+type,"textarea",contacts[type].join("\n"),{dir:"ltr",maxlength:500}));
+      }
+    }
     form.append(
       field("رابط المصدر (https)", "source_url", "url", r.source_url || "", {
         maxlength: 2000,
@@ -1533,9 +1569,28 @@
     if (kind !== "medical_guidelines")
       form.append(
         field("رابط الخريطة (https)", "maps_url", "url", r.maps_url || ""),
+        field("رابط صورة الطبيب أو الجهة (https)", "image_url", "url", r.image_url || "", {maxlength:2000}),
+        field("مصدر الصورة وحق استخدامها (https)", "image_source_url", "url", r.image_source_url || "", {maxlength:2000}),
+        selectField("نوع الصورة","image_kind",[["portrait","صورة الطبيب أو الطبيبة"],["facility","صورة المقر أو المركز"],["logo","شعار الجهة"]],r.image_kind || (kind === "records" ? "portrait" : "facility")),
+        el("label", {class:"remember-option"}, el("input",{type:"checkbox",name:"image_verified",checked:r.image_verified === true}), " تأكدت من هوية صاحب الصورة وحق استخدامها"),
       );
     form.save = async (data) => {
       const entity = { ...r, ...data, id };
+      if (!["medical_guidelines","emergency_services"].includes(kind)) {
+        const canonical = [];
+        for (const type of ["mobile","landline","shortcode"]) {
+          const parsed = CONTACTS.parse(data["contact_" + type] || "");
+          if (parsed.invalid.length || ["mobile","landline","shortcode"].some((other) => other !== type && parsed[other].length)) throw new Error("راجع أرقام الاتصال: أدخل كل رقم كاملًا داخل فئته الصحيحة.");
+          canonical.push(...parsed[type]);
+        }
+        if (kind === "records") entity.raw_phone = canonical.join(" - ");
+        else { entity.phone = canonical.join(" - "); entity.hotline = CONTACTS.parse(data.contact_shortcode || "").shortcode[0] || ""; }
+      }
+      if (kind !== "medical_guidelines") entity.image_verified = data.image_verified === "on";
+      if (entity.image_url) {
+        const health = await API.health();
+        if (!health.capabilities?.includes("provider-images")) throw new Error("حفظ الصور يحتاج تحديث الخدمة المركزية أولًا؛ لم تُحفظ التغييرات.");
+      }
       delete entity._version;
       if (kind === "records") {
         entity.display_name = data.name;
@@ -1543,7 +1598,8 @@
       }
       if (kind === "hospitals") {
         entity.short_name = r.short_name || data.name;
-        entity.phone_digits = telephone(String(data.phone).split(" - ")[0]);
+        const savedContacts = CONTACTS.parse(entity.phone || "");
+        entity.phone_digits = savedContacts.landline[0] || savedContacts.mobile[0] || "";
       }
       if (kind === "medical_guidelines") {
         entity.title = data.name;
@@ -1704,7 +1760,7 @@
     draw();
   }
   function qualityLabel(code) {
-    return ({missing_id:"معرّف ناقص", duplicate_id:"معرّف مكرر", missing_name:"اسم ناقص", missing_specialty:"تخصص ناقص", missing_address:"عنوان ناقص", missing_area:"منطقة ناقصة", missing_contact:"رقم اتصال ناقص", unconfirmed:"بحاجة لتأكيد", missing_source:"مصدر ناقص", missing_date:"تاريخ تحقق ناقص", invalid_date:"تاريخ غير صالح", stale:"معلومة قديمة", possible_duplicate:"تكرار محتمل"})[code] || code;
+    return ({missing_id:"معرّف ناقص", duplicate_id:"معرّف مكرر", missing_name:"اسم ناقص", missing_specialty:"تخصص ناقص", missing_address:"عنوان ناقص", missing_area:"منطقة ناقصة", missing_contact:"رقم اتصال ناقص", invalid_contact:"أرقام تحتاج مراجعة", unconfirmed:"بحاجة لتأكيد", missing_source:"مصدر ناقص", missing_date:"تاريخ تحقق ناقص", invalid_date:"تاريخ غير صالح", stale:"معلومة قديمة", possible_duplicate:"تكرار محتمل"})[code] || code;
   }
   function downloadJSON(value, filename) {
     const blob = new Blob(

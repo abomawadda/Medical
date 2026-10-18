@@ -136,6 +136,12 @@ async function context(connected = true, sw = "block", storageState) {
     ...(storageState ? { storageState } : {}),
   });
   await c.route("https://europe-west1-we-medical-dakahlia.cloudfunctions.net/**", (r) => r.abort());
+  await c.route("https://abomawadda.github.io/Medical/img/providers/*", async (r) => {
+    const filename = new URL(r.request().url()).pathname.split("/").pop();
+    if (!["technoscan.png","el-ezaby.png","al-borg.png"].includes(filename)) return r.abort();
+    await r.fulfill({contentType:"image/png",body:await readFile(resolve("img/providers",filename))});
+  });
+  await c.route("https://images.example.invalid/provider.png", async (r) => r.fulfill({contentType:"image/png",body:await readFile(resolve("img/icon-96.png"))}));
   await c.route("**/js/config.js*", (r) =>
     r.fulfill({
       contentType: "text/javascript",
@@ -190,6 +196,10 @@ try {
   p.on("request", (r) => requests.push(r.url()));
   await p.goto(origin + "/#doctors");
   await p.locator(".login-card form").waitFor();
+  assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
+  assert.ok(await p.getByRole("heading",{name:"مرحبًا بك في نبض النقابة",exact:true}).isVisible());
+  assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
+  assert.equal((await (await p.request.get(origin + "/manifest.json")).json()).short_name,"نبض النقابة");
   assert.equal(await p.locator(".card").count(), 0);
   assert.ok(await p.locator("#main-nav").isHidden());
   assert.ok(!requests.some((u) => u.includes("/v1/catalog")));
@@ -374,8 +384,25 @@ try {
   await a.getByLabel("الاسم", { exact: true }).fill("طبيب اختبار مضاف");
   await a.getByLabel("التخصص", { exact: true }).fill("اختبار");
   await a.getByLabel("المستشفى", { exact: true }).fill("مستشفى اختبار");
+  await a.getByLabel("المحمول", {exact:true}).fill("0502332691");
+  await a.getByRole("button", { name: "حفظ التغييرات" }).click();
+  await a.getByText("راجع أرقام الاتصال: أدخل كل رقم كاملًا داخل فئته الصحيحة.",{exact:true}).waitFor();
+  await a.getByLabel("المحمول", {exact:true}).fill("01013588730");
+  await a.getByLabel("الأرضي", {exact:true}).fill("0502332691");
+  await a.getByLabel("الأرقام المختصرة", {exact:true}).fill("19989");
+  await a.getByLabel("رابط صورة الطبيب أو الجهة (https)", {exact:true}).fill("https://images.example.invalid/provider.png");
+  await a.getByLabel("مصدر الصورة وحق استخدامها (https)", {exact:true}).fill("https://example.invalid/provider");
+  await a.getByRole("checkbox", {name:/تأكدت من هوية صاحب الصورة/}).check();
   await a.getByRole("button", { name: "حفظ التغييرات" }).click();
   await a.locator("dialog").waitFor({ state: "hidden" });
+  const addedProvider=(await store.catalog()).records.find(x=>x.name === "طبيب اختبار مضاف");
+  assert.equal(addedProvider.image_verified,true);
+  assert.deepEqual(addedProvider.contact_groups,{mobile:["01013588730"],landline:["0502332691"],shortcode:["19989"]});
+  await p.goto(origin + "/#entity=" + encodeURIComponent("doctor:" + addedProvider.provider_id));
+  await p.reload(); // An entity created in another session requires a fresh catalog.
+  await p.getByRole("heading",{name:"طبيب اختبار مضاف",exact:true}).waitFor();
+  await p.getByAltText("صورة طبيب اختبار مضاف").waitFor();
+  for (const [type,n] of [["mobile","01013588730"],["landline","0502332691"],["shortcode","19989"]]) assert.equal(await p.locator(`[data-contact-type="${type}"] a[href^="tel:"]`).first().getAttribute("href"),"tel:" + n);
   await a.locator("#search-input").fill("طبيب اختبار مضاف");
   await a
     .getByRole("row")
@@ -402,6 +429,23 @@ try {
   await g.locator(".login-card form").waitFor();
   assert.equal(await g.locator(".card").count(), 0);
   await memberLogin(g);
+  await g.goto(origin + "/#hospitals");
+  await g.locator("#filter-panel summary").click();
+  const districtOptions = await g.getByLabel("المركز / المدينة",{exact:true}).locator("option").allTextContents();
+  for (const district of ["الجمالية","تمي الأمديد","محلة دمنة","ميت سلسيل","نبروه"]) assert.ok(districtOptions.includes(district));
+  await g.getByLabel("الشبكة",{exact:true}).selectOption("family");
+  assert.equal(await g.locator('[data-target="hospitals:hosp_hekma"]').count(),0);
+  assert.equal(await g.locator('[data-target="hospitals:hosp_sellab"]').count(),1);
+  await g.getByRole("button", {name:"مسح الفلاتر",exact:true}).click();
+  await g.locator("#filter-panel summary").click();
+  await g.goto(origin + "/#entity=" + encodeURIComponent("radiology:staff_761"));
+  await g.getByRole("heading",{name:"مركز تكنوسكان",exact:true}).waitFor();
+  assert.equal(await g.locator('[data-contact-type="shortcode"] a[href^="tel:"]').getAttribute("href"),"tel:19989");
+  assert.equal(await g.locator('[data-contact-type="mobile"] a[href^="tel:"]').getAttribute("href"),"tel:01012221036");
+  assert.equal(await g.locator('[data-contact-type="landline"]').count(),0);
+  await g.getByAltText("شعار مركز تكنوسكان").waitFor();
+  if (process.env.MEDICAL_SCREENSHOT_DIR) await g.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"staff-provider-mobile.png"),fullPage:true});
+  await g.goto(origin + "/#entity=" + encodeURIComponent(target));
   await g.getByText("1 تقييم منشور", { exact: true }).waitFor();
   assert.equal(
     await g.evaluate(() =>

@@ -28,12 +28,14 @@
         const phones = Array.isArray(r.phones)
           ? r.phones.map((p) => p.digits || p.tel || "").filter(Boolean)
           : [r.phone, r.hotline, r.number, r.tel].filter(Boolean);
-        const usable = phones.some((p) => digits(p).split(/\s*[-–،,;/]\s*/).some((part) => {
+        const parsed = globalThis.MedicalContacts?.forEntity(r);
+        const usable = parsed ? ["mobile","landline","shortcode"].some((k) => parsed[k].length) : phones.some((p) => digits(p).split(/\s*[-–،,;/]\s*/).some((part) => {
           const n = part.replace(/\D/g, "");
           // Accept short codes and local/international lengths; this does not verify ownership.
           return [3, 5, 7, 8, 9, 10, 11, 12, 13].includes(n.length);
         }));
         if (!usable) add("missing_contact", "لا يوجد رقم قابل للاتصال؛ راجع رقم الجهة أو استقبال المستشفى.");
+        if (r.contact_review_required || parsed?.invalid.length) add("invalid_contact", "توجد أرقام تحتاج مراجعة، ولا تظهر الأرقام غير سليمة الصيغة كأزرار اتصال.");
         const date = text(r.verified_at || r.verification_date);
         const validDate = /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(Date.parse(date)) && new Date(date).toISOString().slice(0, 10) === date;
         const confirmed = kind === "emergency_services" ? r.verified === true : r.coverage_verified === true && r.coverage_scope && r.coverage_scope !== "unknown";

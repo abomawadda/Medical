@@ -1,5 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import "../js/quality.js";
+import contacts from "../functions/src/contacts.cjs";
+globalThis.MedicalContacts = contacts;
 
 const args = process.argv.slice(2);
 if (args.length && !(args.length === 2 && args[0] === "--report")) throw new Error("Usage: npm run audit:catalog -- [--report /private/path/report.json]");

@@ -4,6 +4,7 @@ import {
   randomUUID,
   timingSafeEqual,
 } from "node:crypto";
+import contacts from "./contacts.cjs";
 
 export class ApiError extends Error {
   constructor(status, code, message) {
@@ -215,7 +216,7 @@ export function validateEntity(kind, input, previous) {
     typeof input !== "object"
   )
     fail(400, "INVALID_ENTITY", "نوع الجهة غير صالح.");
-  const allowed = fields[kind] || fields.facilities;
+  const allowed = [...(fields[kind] || fields.facilities), "country_code", "governorate", "governorate_code", "network_members", "network_source", "contract_type", "contract_relationships", "source_ref", "source_row", "staff_provider_code", "branch_label", "data_notes", "image_url", "image_source_url", "image_verified", "contact_evidence", "contact_review_required"];
   const out = Object.fromEntries(
     allowed
       .filter((k) => Object.hasOwn(input, k))
@@ -235,7 +236,9 @@ export function validateEntity(kind, input, previous) {
     )
       fail(400, "INVALID_ENTITY", "يرجى استكمال الحقول المطلوبة.");
   }
-  for (const key of ["maps_url", "source_url"]) {
+  if (Object.hasOwn(input,"image_kind")) out.image_kind = clean(input.image_kind);
+  if (out.image_kind && !["logo","portrait","facility"].includes(out.image_kind)) fail(400,"INVALID_ENTITY","نوع الصورة غير صالح.");
+  for (const key of ["maps_url", "source_url", "image_url", "image_source_url"]) {
     if (!out[key]) continue;
     try {
       const u = new URL(out[key]);
@@ -244,6 +247,10 @@ export function validateEntity(kind, input, previous) {
       fail(400, "INVALID_URL", "الرابط يجب أن يبدأ بـ https://.");
     }
   }
+  if (out.image_verified !== undefined && typeof out.image_verified !== "boolean") fail(400,"INVALID_ENTITY","حالة اعتماد الصورة غير صالحة.");
+  if (out.image_url && (!out.image_verified || !out.image_source_url)) fail(400,"IMAGE_SOURCE_REQUIRED","أضف مصدر الصورة وأكد هوية الجهة وحق الاستخدام أولًا.");
+  if (out.governorate_code && !/^EG-[A-Z]{1,3}$/.test(out.governorate_code)) fail(400,"INVALID_ENTITY","رمز المحافظة غير صالح.");
+  if (out.network_members && (!Array.isArray(out.network_members) || out.network_members.some((n) => !["employee","family","retiree"].includes(n)))) fail(400,"INVALID_ENTITY","فئة الشبكة غير صالحة.");
   for (const field of ["coverage_verified", "verified"]) {
     if (out[field] !== undefined && typeof out[field] !== "boolean")
       fail(400, "INVALID_ENTITY", "حالة التحقق غير صالحة.");
@@ -259,10 +266,17 @@ export function validateEntity(kind, input, previous) {
     out.raw_name ||= out.name;
     out.category = "doctors";
     // Rebuild phone actions from the number, never from caller-supplied tel/JS URLs.
-    out.phones = String(out.raw_phone || "")
-      .split(/\s*[-،,]\s*/)
-      .map((n) => ({ display: n, tel: digits(n).replace(/[^\d+]/g, "") }))
-      .filter((p) => /^\+?\d{3,15}$/.test(p.tel));
+    const parsed = contacts.forEntity(out);
+    out.phones = ["mobile","landline","shortcode"].flatMap((k) => parsed[k].map((n) => ({display:n, digits:n, tel:n, is_mobile:k === "mobile"})));
+  }
+  if (kind !== "medical_guidelines") {
+    const parsed = contacts.forEntity(out);
+    out.contact_groups = Object.fromEntries(["mobile","landline","shortcode"].map((k) => [k,parsed[k]]));
+    out.contact_review_required = parsed.invalid.length > 0;
+    // A changed contact cannot inherit publication evidence for the old number.
+    const present = new Set(Object.values(out.contact_groups).flat());
+    const previousEvidence = previous?.contact_evidence || [];
+    out.contact_evidence = previousEvidence.filter((e) => present.has(e.number));
   }
   return out;
 }

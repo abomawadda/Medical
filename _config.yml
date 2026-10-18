@@ -20,3 +20,4 @@ exclude:
 
   - APP_AGREEMENT_AR.md
   - AGENTS.md
+  - imports

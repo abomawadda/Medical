@@ -11,25 +11,26 @@
       name="description"
       content="دليل الأطباء والمستشفيات والخدمات الطبية لأعضاء النقابة بالمصرية للاتصالات في الدقهلية."
     />
-    <title>دليل WE الطبي | الدقهلية</title>
+    <title>نبض النقابة | رفيقك للرعاية والخدمات النقابية — WE</title>
     <link rel="icon" href="img/favicon-32.png" />
-    <link rel="manifest" href="manifest.json" />
+    <link rel="manifest" href="manifest.json?v=20261018-nabd" />
     <link rel="apple-touch-icon" href="img/icon-192.png" />
-    <link rel="stylesheet" href="css/styles.css?v=20261018-quality" />
+    <link rel="stylesheet" href="css/styles.css?v=20261018-nabd" />
     <link rel="stylesheet" href="css/fonts.css" />
     <script defer src="js/config.js?v=20261017-live"></script>
     <script defer src="js/storage.js"></script>
     <script defer src="js/api.js?v=20261018-companion"></script>
-    <script defer src="js/quality.js?v=20261018-quality"></script>
-    <script defer src="js/app.js?v=20261018-quality"></script>
+    <script defer src="js/quality.js?v=20261018-nabd"></script>
+    <script defer src="js/contacts.js?v=20261018-nabd"></script>
+    <script defer src="js/app.js?v=20261018-nabd"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">انتقل إلى المحتوى</a>
     <header class="app-header">
-      <a class="brand" href="#home" aria-label="دليل WE الطبي، الرئيسية">
+      <a class="brand" href="#home" aria-label="نبض النقابة، الرئيسية">
         <img src="img/we_logo.webp" alt="WE" width="44" height="44" />
         <span
-          ><strong>دليل WE الطبي</strong
+          ><strong>نبض النقابة</strong
           ><small>اللجنة النقابية · الدقهلية</small></span
         >
       </a>
@@ -65,9 +66,20 @@
             مسح
           </button>
         </div>
-        <div id="filters" class="filters"></div>
+        <details id="filter-panel" class="filter-panel">
+          <summary>تصفية النتائج · المركز والتخصص والشبكة</summary>
+          <div id="filters" class="filters"></div>
+          <small class="muted">تصنيف الشبكة للاسترشاد؛ أكّد تغطية الخدمة والتحويل ونسبة التحمل قبل الزيارة.</small>
+        </details>
       </section>
-      <main id="main" tabindex="-1"></main>
+      <main id="main" tabindex="-1">
+        <section class="startup-card" aria-label="تحميل التطبيق">
+          <div class="brand-pair"><img src="img/nekaba_logo.png" alt="اللجنة النقابية"/><img src="img/we_logo.webp" alt="WE"/></div>
+          <h1>نبض النقابة</h1>
+          <p role="status">جارٍ تجهيز التطبيق…</p>
+          <p class="creator-credit"><strong>إعداد وتنفيذ أ / محمود العراقي</strong><a href="tel:01550100025" dir="ltr">01550100025</a></p>
+        </section>
+      </main>
       <footer class="app-footer">
         <img
           src="img/nekaba_logo.png"
@@ -77,9 +89,10 @@
         />
         <p>
           دليل الرعاية الطبية للعاملين بالمصرية للاتصالات وأسرهم بالدقهلية<br /><strong
-            >إعداد وتنفيذ: الأستاذ / محمود العراقي</strong
+            >إعداد وتنفيذ أ / محمود العراقي</strong
           >
         </p>
+        <a class="creator-phone" href="tel:01550100025" dir="ltr">01550100025</a>
         <small>تأكد من المواعيد والتعاقد والتغطية مع الجهة قبل الزيارة.</small>
       </footer>
     </div>

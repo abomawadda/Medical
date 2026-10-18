@@ -20,6 +20,7 @@ import zipfile
 import json
 import re
 import xml.etree.ElementTree as ET
+from scripts.staff_catalog import merge_staff_catalog
 
 # 16 Dakahlia Centers & Markaz
 DAKHALIA_MARKAZ = [
@@ -1866,7 +1867,7 @@ def build_data():
 
     bundle = {
         'metadata': {
-            'title': 'منظومة الدليل الطبي الموحد - المصرية للاتصالات WE بالدقهلية',
+            'title': 'نبض النقابة — الرعاية الطبية WE بالدقهلية',
             'author': 'الأستاذ / محمود العراقي',
             'version': '4.0.0',
             'total_records': len(records),
@@ -1927,6 +1928,7 @@ def build_data():
     for entry in bundle['emergency_services']:
         entry['verified'] = bool(entry.get('source_url') and entry.get('verification_date'))
 
+    bundle = merge_staff_catalog(bundle)
     with open('data.json', 'w', encoding='utf-8') as f:
         json.dump(bundle, f, ensure_ascii=False, indent=2)
 

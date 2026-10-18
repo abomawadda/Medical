@@ -928,3 +928,42 @@ h3,
   overflow-wrap: anywhere;
 }
 .quality-item h3 { margin-top: 0; }
+
+/* Partner marks keep their original pixels; blending removes the white rectangles. */
+.brand-pair { display:flex; align-items:center; justify-content:center; gap:1.5rem; padding:1rem; border-radius:1.3rem; background:#e9e0f4; isolation:isolate; }
+.brand-pair img { width:88px; height:88px; object-fit:contain; mix-blend-mode:multiply; }
+.brand-pair img:last-child { object-fit:cover; clip-path:circle(45% at 50% 50%); }
+.brand-divider { width:1px; height:52px; background:#bca4d7; }
+.brand img { object-fit:cover; clip-path:circle(45% at 50% 50%); }
+.startup-card { max-width:640px; margin:2rem auto; padding:2rem; text-align:center; border-radius:1.8rem; background:#eee7f8; color:#352044; }
+.startup-card h1 { font-family:"Tajawal",sans-serif; }
+.login-card { max-width:640px; background:linear-gradient(145deg,#f4eefb,#eae6f5); border:1px solid #ded1ed; }
+.login-card .brand-pair { margin-bottom:1.4rem; }
+.login-card h1 { text-align:center; margin:.7rem 0; }
+.login-card .eyebrow, .login-region { text-align:center; }
+.login-region { margin:.3rem 0; color:var(--muted); }
+.login-tagline { text-align:center; color:var(--primary); font-weight:700; margin:.25rem 0; font-size:.85rem; }
+.creator-credit { display:flex; flex-direction:column; align-items:center; gap:.2rem; padding:.75rem 0; margin:.7rem 0 1rem; font-size:.9rem; }
+.creator-credit a, .creator-phone { color:var(--primary); font-weight:800; text-decoration:none; letter-spacing:.08em; }
+.creator-credit a { font-size:1.1rem; min-height:44px; display:inline-flex; align-items:center; }
+.contact-groups { width:100%; flex-basis:100%; display:grid; gap:.8rem; }
+.contact-category { display:grid; gap:.35rem; }
+.contact-label { color:var(--muted); font-size:.8rem; font-weight:700; }
+.phone-list { display:flex; flex-wrap:wrap; gap:.5rem; }
+.phone-entry { display:inline-flex; align-items:center; gap:.3rem; flex-wrap:wrap; }
+.phone-chip { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:.35rem .75rem; border-radius:.7rem; border:1px solid var(--border); background:var(--primary-soft); color:var(--primary); text-decoration:none; font-weight:750; letter-spacing:.04em; }
+.phone-source { font-size:.7rem; min-height:44px; display:inline-flex; align-items:center; color:var(--muted); }
+.provider-avatar { width:76px; height:76px; flex:0 0 76px; overflow:hidden; border-radius:1.1rem; background:var(--primary-soft); display:grid; place-items:center; color:var(--primary); }
+.provider-avatar img { width:100%; height:100%; object-fit:cover; }
+.provider-logo { background:#552785; }
+.provider-logo-light { background:#e7f4fa; }
+.provider-logo img { object-fit:contain; padding:.4rem; }
+.image-source { color:var(--muted); font-size:.68rem; }
+.filter-panel { margin-top:.8rem; padding:.6rem .8rem; border:1px solid var(--border); border-radius:1rem; }
+.filter-panel summary { color:var(--primary); cursor:pointer; font-size:.85rem; min-height:36px; }
+.filter-panel[open] summary { margin-bottom:.8rem; }
+.avatar-placeholder { display:flex; flex-direction:column; align-items:center; text-align:center; font-size:1.6rem; }
+.avatar-placeholder small { font-size:.58rem; line-height:1.4; padding:0 .2rem; }
+.data-note { font-size:.78rem; color:var(--muted); padding:.65rem; border-inline-start:3px solid var(--border); }
+[data-theme="dark"] .login-card { background:linear-gradient(145deg,#30233f,#241d33); border-color:#534163; }
+@media (max-width:420px) { .brand-pair { gap:1rem; } .brand-pair img { width:75px; height:75px; } .provider-avatar { width:60px; height:60px; flex-basis:60px; } .phone-chip { padding:.35rem .55rem; font-size:.9rem; } }

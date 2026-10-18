@@ -1,0 +1,4427 @@
+{
+  "schema_version": 1,
+  "summary": {
+    "source_rows": 84,
+    "imported_rows": 79,
+    "quarantined_rows": 2,
+    "outside_scope_rows": 3,
+    "invalid_phone_values": 6,
+    "corrections": 108,
+    "source_sha256": "479aa5cffcfac422f3c7add049ddab278560fbdb7523e12ae6cc8fe2191cca56",
+    "date": "2026-10-18"
+  },
+  "entries": [
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "staff_746",
+        "name": "مركز الحياة لأمراض الكلى والغسيل الكلوي - المنصورة",
+        "address": "شارع قناة السويس - برج النور",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/6GQt8DYhAB38ay3r9?g_st=aw",
+        "phone": "01013588730 - 01123927050",
+        "contact_groups": {
+          "mobile": [
+            "01013588730",
+            "01123927050"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 2,
+        "staff_provider_code": "746",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "المنصورة · شارع قناة السويس - برج النور",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_746",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 2,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "staff_747",
+        "name": "مستشفى المنصورة العسكري",
+        "address": "المنصورة",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.google.com/?cid=16409942332621051850&entry=gps&g_st=aw",
+        "phone": "0502242474",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502242474"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 3,
+        "staff_provider_code": "747",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "المنصورة · المنصورة",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_747",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 3,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_748",
+        "name": "صيدلية الطرشوبى",
+        "address": "شارع الثورة - السكة الجديدة - المنصورة",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/EMqscKbTtsffR3eh8?g_st=aw",
+        "phone": "0502223344",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502223344"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 4,
+        "staff_provider_code": "748",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "المنصورة · شارع الثورة - السكة الجديدة - المنصورة",
+        "data_notes": "الاسم الإنجليزي يخص مستشفى لا الصيدلية؛ استبعد من العرض",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_748",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 4,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_749",
+        "name": "صيدلية الطرشوبى",
+        "address": "شارع صبرى أبو علم - من شارع البحر - خلف عمر افندى",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/EHxU3G8UjZQAoXJE9",
+        "phone": "0502333743",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502333743"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 5,
+        "staff_provider_code": "749",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "المنصورة · شارع صبرى أبو علم - من شارع البحر - خلف عمر افندى",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_749",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 5,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_750",
+        "name": "صيدلية معروف",
+        "address": "أمام المستشفى العام",
+        "city": "دكرنس",
+        "markaz": "دكرنس",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/3iWiQsEGnpRRuju17?g_st=aw",
+        "phone": "0509143532",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0509143532"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 6,
+        "staff_provider_code": "750",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "دكرنس · أمام المستشفى العام",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_750",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 6,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_751",
+        "name": "صيدلية معروف",
+        "address": "شارع العروبة (ب) - أمام البنك المتحد",
+        "city": "دكرنس",
+        "markaz": "دكرنس",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/3iWiQsEGnpRRuju17?g_st=aw",
+        "phone": "0507477082",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0507477082"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 7,
+        "staff_provider_code": "751",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "دكرنس · شارع العروبة (ب) - أمام البنك المتحد",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_751",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 7,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_752",
+        "name": "صيدلية د/ محمود محمد محرز جاد",
+        "address": "ميدان الباشا - المنيل",
+        "city": "دكرنس",
+        "markaz": "دكرنس",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/Uu79b7kJBXFJh3jh8?g_st=aw",
+        "phone": "01006789313",
+        "contact_groups": {
+          "mobile": [
+            "01006789313"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 8,
+        "staff_provider_code": "752",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "دكرنس · ميدان الباشا - المنيل",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_752",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 8,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "staff_753",
+        "name": "مستشفى مركز جلورى للقسطره والقلب والاوعيه",
+        "address": "شارع مدارس الهدى والنور - مبنى مركز المنصورة الطبي",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/wYT1Jfnz2QL5W3JM9?g_st=aw",
+        "phone": "01271915182 - 0502728123",
+        "contact_groups": {
+          "mobile": [
+            "01271915182"
+          ],
+          "landline": [
+            "0502728123"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 9,
+        "staff_provider_code": "753",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "المنصورة · شارع مدارس الهدى والنور - مبنى مركز المنصورة الطبي",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_753",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 9,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "staff_754",
+        "name": "مستشفى الباطنة التخصصي",
+        "address": "شارع جيهان",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/WYMcDmijVVWJcqgW9?g_st=aw",
+        "phone": "0502230176",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502230176"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 10,
+        "staff_provider_code": "754",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "المنصورة · شارع جيهان",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_754",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 10,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "staff_755",
+        "name": "مستشفى مركز الأورام الجامعى",
+        "address": "شارع جيهان",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/23H4n6rH1mAZH28h7?g_st=aw",
+        "phone": "0502358021",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502358021"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 11,
+        "staff_provider_code": "755",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "المنصورة · شارع جيهان",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_755",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 11,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "staff_756",
+        "name": "مستشفى مركز جراحة الجهاز الهضمى",
+        "address": "شارع جيهان",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/geNvbjNLFtMpeN5dA?g_st=aw",
+        "phone": "0502240924",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502240924"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 12,
+        "staff_provider_code": "756",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "المنصورة · شارع جيهان",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_756",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 12,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "staff_757",
+        "name": "مستشفى اورام الدقهلية",
+        "address": "شارع - الحرية أمام اداره مرور الدقهلية",
+        "city": "ميت غمر",
+        "markaz": "ميت غمر",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/tsUdFg9dXCr8u4VG7?g_st=aw",
+        "phone": "0506956572",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0506956572"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 13,
+        "staff_provider_code": "757",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "ميت غمر · شارع - الحرية أمام اداره مرور الدقهلية",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_757",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 13,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "hosp_sellab",
+        "name": "مستشفى الجزيرة الدولي بالمنصوره",
+        "address": "برج السلاب جزيرة الورد",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/UKjgsQzWdUHKm4rf6?g_st=aw",
+        "phone": "0502208557 - 0502208558",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502208557",
+            "0502208558"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 14,
+        "staff_provider_code": "758",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "المنصورة · برج السلاب جزيرة الورد",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_758",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 14,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "short_name": "مستشفى السلاب",
+        "phone_digits": "0502208557",
+        "hotline": "",
+        "working_hours": "المواعيد تحتاج تأكيدًا مع الجهة"
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_759",
+        "name": "معمل رويال لاب",
+        "address": "شارع الجامع - ميدان حسين بك - عمارة السقان - الدور 3",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/xKpwLXKhtme88U8k9?g_st=aw",
+        "phone": "16064",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "16064"
+          ]
+        },
+        "contact_evidence": [
+          {
+            "number": "16064",
+            "source_url": "https://royal-lab.net/contact-us/",
+            "check_type": "official_publication",
+            "checked_at": "2026-10-18"
+          }
+        ],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 15,
+        "staff_provider_code": "759",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "المنصورة · شارع الجامع - ميدان حسين بك - عمارة السقان - الدور 3",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_759",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 15,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_760",
+        "name": "معمل ألفا لاب",
+        "address": "شارع عاطف المنجى من شارع الجمهورية",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/TdwakaZBCrY5rK9q8",
+        "phone": "0502209079",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502209079"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 16,
+        "staff_provider_code": "760",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "المنصورة · شارع عاطف المنجى من شارع الجمهورية",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_760",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 16,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "radiology",
+      "entity": {
+        "id": "staff_761",
+        "name": "مركز تكنوسكان",
+        "address": "ميدان على مبارك - ارض سعيدة",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/YtUy7NVQkuS98RXY6?g_st=aw",
+        "phone": "01012221036 - 19989",
+        "contact_groups": {
+          "mobile": [
+            "01012221036"
+          ],
+          "landline": [],
+          "shortcode": [
+            "19989"
+          ]
+        },
+        "contact_evidence": [
+          {
+            "number": "19989",
+            "source_url": "https://technoscan.com.eg/AR/main_pages/branch_locator.aspx",
+            "check_type": "official_publication",
+            "checked_at": "2026-10-18"
+          }
+        ],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 17,
+        "staff_provider_code": "761",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مركز أشعة",
+        "branch_label": "المنصورة · ميدان على مبارك - ارض سعيدة",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_761",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 17,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/technoscan.png",
+        "image_source_url": "https://technoscan.com.eg/AR/Home_page/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "specialized_centers",
+      "entity": {
+        "id": "staff_762",
+        "name": "مركز امبليفون الشرق الاوسط للأجهزة السمعية",
+        "address": "شارع قناة السويس - برج النور - بجوار مكتب بريد توريل",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/7umuZ99L6KLpMivE8?g_st=aw",
+        "phone": "01220333459 - 0502308860",
+        "contact_groups": {
+          "mobile": [
+            "01220333459"
+          ],
+          "landline": [
+            "0502308860"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 18,
+        "staff_provider_code": "762",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "سمعيات",
+        "branch_label": "المنصورة · شارع قناة السويس - برج النور - بجوار مكتب بريد توريل",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_762",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 18,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "staff_764",
+        "name": "مركز طب وجراحة العيون بجامعة المنصورة",
+        "address": "شارع الجمهورية",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/iGwCaFmmDegYkPv46?g_st=aw",
+        "phone": "0502216952",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502216952"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 20,
+        "staff_provider_code": "764",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "المنصورة · شارع الجمهورية",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_764",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 20,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "staff_765",
+        "name": "مركز الأكاديمية للعيون والليزك",
+        "address": "تقاطع شارع الترعة مع شارع جيهان - فوق مطعم كاتشب",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/1DyfwKoCZkcyvu6n7?g_st=aw",
+        "phone": "01003004646",
+        "contact_groups": {
+          "mobile": [
+            "01003004646"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 21,
+        "staff_provider_code": "765",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "المنصورة · تقاطع شارع الترعة مع شارع جيهان - فوق مطعم كاتشب",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_765",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 21,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "hosp_kheir",
+        "name": "مستشفى الخير المنصورة",
+        "address": "شارع قناة السويس",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/jnwqjWPZ34WjXsrt9?g_st=aw",
+        "phone": "0502504066",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502504066"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 22,
+        "staff_provider_code": "766",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "المنصورة · شارع قناة السويس",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_766",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 22,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "short_name": "مستشفى الخير",
+        "phone_digits": "0502504066",
+        "hotline": "",
+        "working_hours": "المواعيد تحتاج تأكيدًا مع الجهة"
+      }
+    },
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "hosp_hekma",
+        "name": "مستشفى الحكمة لطب وجراحة المخ والاعصاب والجراحات المتطورة",
+        "address": "ميدان علي مبارك - هابي لاند",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/ubKrgja2Y7Ugt6gPA?g_st=aw",
+        "phone": "0502332691 - 0502332692 - 0502332693",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502332691",
+            "0502332692",
+            "0502332693"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [
+          {
+            "number": "0502332691",
+            "source_url": "https://www.140online.com/company.aspx?CompanyId=C5449",
+            "check_type": "directory_crosscheck",
+            "checked_at": "2026-10-18"
+          },
+          {
+            "number": "0502332692",
+            "source_url": "https://www.140online.com/company.aspx?CompanyId=C5449",
+            "check_type": "directory_crosscheck",
+            "checked_at": "2026-10-18"
+          },
+          {
+            "number": "0502332693",
+            "source_url": "https://www.140online.com/company.aspx?CompanyId=C5449",
+            "check_type": "directory_crosscheck",
+            "checked_at": "2026-10-18"
+          }
+        ],
+        "contact_review_required": true,
+        "source_ref": "staff-20261018",
+        "source_row": 23,
+        "staff_provider_code": "767",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "المنصورة · ميدان علي مبارك - هابي لاند",
+        "data_notes": "رقم معلق: 050 233269 — صيغة أو عدد خانات غير صالح؛ لا يصحح بالتخمين",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_767",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 23,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "short_name": "مستشفى الحكمة",
+        "phone_digits": "0502332691",
+        "hotline": "",
+        "working_hours": "المواعيد تحتاج تأكيدًا مع الجهة"
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_768",
+        "name": "صيدلية الكمال ميت غمر",
+        "address": "مركز خدمة B7",
+        "city": "ميت غمر",
+        "markaz": "ميت غمر",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/tArqBtMTcNeVGHd48?g_st=aw",
+        "phone": "01229723467 - 01277725500",
+        "contact_groups": {
+          "mobile": [
+            "01229723467",
+            "01277725500"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 24,
+        "staff_provider_code": "768",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "ميت غمر · مركز خدمة B7",
+        "data_notes": "العنوان B7 غير كافٍ؛ راجع الخريطة وأكد العنوان قبل الزيارة",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_768",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 24,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_769",
+        "name": "صيدلية العزبي",
+        "address": "شارع حسني مبارك - لور كراتشز - بجوار فندق مارشال",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/NHY5kVLCJiZgK2WV6?g_st=aw",
+        "phone": "01110079631",
+        "contact_groups": {
+          "mobile": [
+            "01110079631"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 25,
+        "staff_provider_code": "769",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "المنصورة · شارع حسني مبارك - لور كراتشز - بجوار فندق مارشال",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_769",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 25,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/el-ezaby.png",
+        "image_source_url": "https://elezabypharmacy.com/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_770",
+        "name": "صيدلية العزبي",
+        "address": "شارع الجمهورية - مبني أبو طارق",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/SgVqNqH5pdinZfZR6?g_st=aw",
+        "phone": "01110079632",
+        "contact_groups": {
+          "mobile": [
+            "01110079632"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 26,
+        "staff_provider_code": "770",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "المنصورة · شارع الجمهورية - مبني أبو طارق",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_770",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 26,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/el-ezaby.png",
+        "image_source_url": "https://elezabypharmacy.com/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_771",
+        "name": "صيدلية العزبي",
+        "address": "شارع قناة السويس - برج النور",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/ZbCVipAC5eSfvpG59?g_st=aw",
+        "phone": "01110079634",
+        "contact_groups": {
+          "mobile": [
+            "01110079634"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 27,
+        "staff_provider_code": "771",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "المنصورة · شارع قناة السويس - برج النور",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_771",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 27,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/el-ezaby.png",
+        "image_source_url": "https://elezabypharmacy.com/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_772",
+        "name": "صيدلية العزبي",
+        "address": "شارع المعاهدة و شارع 23 يوليو",
+        "city": "ميت غمر",
+        "markaz": "ميت غمر",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/nPRL6BNQZfbpo13ZA?g_st=aw",
+        "phone": "19600",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19600"
+          ]
+        },
+        "contact_evidence": [
+          {
+            "number": "19600",
+            "source_url": "https://elezabypharmacy.com/",
+            "check_type": "official_publication",
+            "checked_at": "2026-10-18"
+          }
+        ],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 28,
+        "staff_provider_code": "772",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "ميت غمر · شارع المعاهدة و شارع 23 يوليو",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_772",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 28,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/el-ezaby.png",
+        "image_source_url": "https://elezabypharmacy.com/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "records",
+      "entity": {
+        "id": "staff_773",
+        "name": "شريف موافي",
+        "address": "شارع الجيش - برج تبارك - الدور الأول",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/zUvZaVrX3uEh9W8W8",
+        "phone": "01004601827",
+        "contact_groups": {
+          "mobile": [
+            "01004601827"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 29,
+        "staff_provider_code": "773",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "doctors",
+        "branch_label": "المنصورة · شارع الجيش - برج تبارك - الدور الأول",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_773",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 29,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "provider_id": "provider_staff_773",
+        "display_name": "د/ شريف موافي",
+        "raw_name": "عيادة دكتور شريف موافي - المنصورة",
+        "raw_phone": "01004601827",
+        "specialty": "طب وجراحة الأسنان",
+        "hospital": "تعاقد مباشر من الشركة WE",
+        "is_department": false,
+        "clinic_type": "عيادة خارجية",
+        "schedule": "المواعيد تحتاج تأكيدًا"
+      }
+    },
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "staff_774",
+        "name": "مركز نيو لايف للكشف المبكر و علاج الأورام - المنصورة",
+        "address": "شارع أحمد ماهر - برج خطاب 2- الدور الأول - اول المنصورة",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/oHPcxAqQR1HdpAde9",
+        "phone": "01062820711 - 0502166096",
+        "contact_groups": {
+          "mobile": [
+            "01062820711"
+          ],
+          "landline": [
+            "0502166096"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 30,
+        "staff_provider_code": "774",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "المنصورة · شارع أحمد ماهر - برج خطاب 2- الدور الأول - اول المنصورة",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_774",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 30,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1220",
+        "name": "معمل المختبر",
+        "address": "شارع الجمهورية - بجوار بنك مصر",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/7EvHpp1Rn7WWamB39",
+        "phone": "0502218448",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502218448"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 31,
+        "staff_provider_code": "1220",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "المنصورة · شارع الجمهورية - بجوار بنك مصر",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1220",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 31,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1221",
+        "name": "معمل المختبر",
+        "address": "شارع الجيش – أمام مبنى المحافظة – فوق بنك أبو ظبى الوطنى",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/pfg4ea9GHz7M8dELA",
+        "phone": "0502305284",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502305284"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 32,
+        "staff_provider_code": "1221",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "المنصورة · شارع الجيش – أمام مبنى المحافظة – فوق بنك أبو ظبى الوطنى",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1221",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 32,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1222",
+        "name": "معمل المختبر",
+        "address": "شارع عاطف المنجي - من شارع الجمهورية - أمام السلاب",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/Vb9TxMP3A4jVJ4yQ9",
+        "phone": "0502344718",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502344718"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 33,
+        "staff_provider_code": "1222",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "المنصورة · شارع عاطف المنجي - من شارع الجمهورية - أمام السلاب",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1222",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 33,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1223",
+        "name": "معمل المختبر",
+        "address": "برج الامراء - بجوار البنك الأهلي",
+        "city": "دكرنس",
+        "markaz": "دكرنس",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/xDJJQdAAbEjrwBqd9",
+        "phone": "0509143766",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0509143766"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 34,
+        "staff_provider_code": "1223",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "دكرنس · برج الامراء - بجوار البنك الأهلي",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1223",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 34,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1224",
+        "name": "معمل المختبر",
+        "address": "شارع الجيش",
+        "city": "ميت غمر",
+        "markaz": "ميت غمر",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/TzssxFeaWM1n1EJZA",
+        "phone": "0506908852",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0506908852"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 35,
+        "staff_provider_code": "1224",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "ميت غمر · شارع الجيش",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1224",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 35,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1315",
+        "name": "معمل المختبر",
+        "address": "شارع مصر والسودان تقاطع شارع الثورة - فوق جواهري الحاج محمد العدوي",
+        "city": "شربين",
+        "markaz": "شربين",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/52Z5xAL4cCc793yR6",
+        "phone": "0507941546",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0507941546"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 36,
+        "staff_provider_code": "1315",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "شربين · شارع مصر والسودان تقاطع شارع الثورة - فوق جواهري الحاج محمد العدوي",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1315",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 36,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1329",
+        "name": "معمل المختبر",
+        "address": "تقاطع شارع الشهيد أحمد عبد العزيز وش الجيش المصري",
+        "city": "السنبلاوين",
+        "markaz": "السنبلاوين",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/EYU22MYR93AxJPCV8",
+        "phone": "0506683148",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0506683148"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 37,
+        "staff_provider_code": "1329",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "السنبلاوين · تقاطع شارع الشهيد أحمد عبد العزيز وش الجيش المصري",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1329",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 37,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1357",
+        "name": "معمل المختبر",
+        "address": "شارع أبو رجيله - برج أبو سالم - أمام المصرف المتحد وبنك مصر",
+        "city": "بلقاس",
+        "markaz": "بلقاس",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/mcwDANkcAX9XXcXs9",
+        "phone": "0502801432",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502801432"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 38,
+        "staff_provider_code": "1357",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "بلقاس · شارع أبو رجيله - برج أبو سالم - أمام المصرف المتحد وبنك مصر",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1357",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 38,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1370",
+        "name": "معمل المختبر",
+        "address": "شارع الطريق الزراعي بجوار محطة مصر شقة4 الدور2",
+        "city": "المنزلة",
+        "markaz": "المنزلة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/kkvjfdaATcdMDxAJ8",
+        "phone": "0507715217",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0507715217"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 39,
+        "staff_provider_code": "1370",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "المنزلة · شارع الطريق الزراعي بجوار محطة مصر شقة4 الدور2",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1370",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 39,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1400",
+        "name": "معمل المختبر",
+        "address": "شارع صلاح سالم - برج خفاجة - بجوار وكالة المنصورة وصيدلية الطرشوبى د1 علوى",
+        "city": "طلخا",
+        "markaz": "طلخا",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/u2tKHurd5PbojCpK8",
+        "phone": "01007745660",
+        "contact_groups": {
+          "mobile": [
+            "01007745660"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 40,
+        "staff_provider_code": "1400",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "طلخا · شارع صلاح سالم - برج خفاجة - بجوار وكالة المنصورة وصيدلية الطرشوبى د1 ",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1400",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 40,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "radiology",
+      "entity": {
+        "id": "staff_1469",
+        "name": "مركز أشعة مصر الحديث - المنزلة",
+        "address": "ميدان الانصاي -برج المبروك",
+        "city": "المنزلة",
+        "markaz": "المنزلة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/b199nqhPg5RRVQEz8",
+        "phone": "01220056999 - 0503606010",
+        "contact_groups": {
+          "mobile": [
+            "01220056999"
+          ],
+          "landline": [
+            "0503606010"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 41,
+        "staff_provider_code": "1469",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مركز أشعة",
+        "branch_label": "المنزلة · ميدان الانصاي -برج المبروك",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1469",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 41,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_1498",
+        "name": "صيدلية الطرشوبى",
+        "address": "السنبلاوين - المعاهدة بعد الإدارة التعليمية أمام ميزان الرشيدي",
+        "city": "السنبلاوين",
+        "markaz": "السنبلاوين",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/8HuokueEq7oGFuC56",
+        "phone": "0504694440",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0504694440"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 42,
+        "staff_provider_code": "1498",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "السنبلاوين · السنبلاوين - المعاهدة بعد الإدارة التعليمية أمام ميزان الرشيدي",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1498",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 42,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_1500",
+        "name": "صيدلية الطرشوبى",
+        "address": "ميت غمر - شارع بورسعيد من ناحية ميدان فاطمة الزهراء",
+        "city": "ميت غمر",
+        "markaz": "ميت غمر",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/2vrq9Tp7njb3Nx287",
+        "phone": "0504966668",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0504966668"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 44,
+        "staff_provider_code": "1500",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "ميت غمر · ميت غمر - شارع بورسعيد من ناحية ميدان فاطمة الزهراء",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1500",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 44,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_1501",
+        "name": "صيدلية الطرشوبى",
+        "address": "اول شارع 23 يوليو أمام مجلس المدينة",
+        "city": "أجا",
+        "markaz": "أجا",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://goo.gl/maps/2PHEeewSCfG7fTp46",
+        "phone": "0504440222",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0504440222"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 45,
+        "staff_provider_code": "1501",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "أجا · اول شارع 23 يوليو أمام مجلس المدينة",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1501",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 45,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_1504",
+        "name": "صيدلية الطرشوبى",
+        "address": "أمام نادي الشباب",
+        "city": "بلقاس",
+        "markaz": "بلقاس",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://goo.gl/maps/KwAwjnfkhmxN5iiC8",
+        "phone": "0502797750",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502797750"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 46,
+        "staff_provider_code": "1504",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "بلقاس · أمام نادي الشباب",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1504",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 46,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "radiology",
+      "entity": {
+        "id": "staff_1562",
+        "name": "مركز الطاهرة للأشعة",
+        "address": "73 شارع الحرية أمام مصنع الغزل والنسيج",
+        "city": "ميت غمر",
+        "markaz": "ميت غمر",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/irpkrnsjW5UwRLySA",
+        "phone": "19173",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19173"
+          ]
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 47,
+        "staff_provider_code": "1562",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مركز أشعة",
+        "branch_label": "ميت غمر · 73 شارع الحرية أمام مصنع الغزل والنسيج",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1562",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 47,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_1665",
+        "name": "صيدليات العزبي - شارع جيهان-المنصورة",
+        "address": "برج الفتح الإسلامي -امتداد شارع جيهان-شارع 4 ارض الخماسية",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/PsVu4YYXVc21gXvL6",
+        "phone": "19600",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19600"
+          ]
+        },
+        "contact_evidence": [
+          {
+            "number": "19600",
+            "source_url": "https://elezabypharmacy.com/",
+            "check_type": "official_publication",
+            "checked_at": "2026-10-18"
+          }
+        ],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 48,
+        "staff_provider_code": "1665",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "المنصورة · برج الفتح الإسلامي -امتداد شارع جيهان-شارع 4 ارض الخماسية",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1665",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 48,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/el-ezaby.png",
+        "image_source_url": "https://elezabypharmacy.com/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1923",
+        "name": "معمل البرج",
+        "address": "شارع فهمى - من شارع البريد - برج العراقى",
+        "city": "أجا",
+        "markaz": "أجا",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/HMDN5j6Jb1jvZBki9",
+        "phone": "19911",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19911"
+          ]
+        },
+        "contact_evidence": [
+          {
+            "number": "19911",
+            "source_url": "https://www.alborglab.com/",
+            "check_type": "official_publication",
+            "checked_at": "2026-10-18"
+          }
+        ],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 49,
+        "staff_provider_code": "1923",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "أجا · شارع فهمى - من شارع البريد - برج العراقى",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1923",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 49,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/al-borg.png",
+        "image_source_url": "https://www.alborglab.com/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1924",
+        "name": "معمل البرج",
+        "address": "شارع الحرية (أبو رجيلة) بجانب بنك مصر",
+        "city": "بلقاس",
+        "markaz": "بلقاس",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/UZUUMCY1PFP8TeP18",
+        "phone": "19911",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19911"
+          ]
+        },
+        "contact_evidence": [
+          {
+            "number": "19911",
+            "source_url": "https://www.alborglab.com/",
+            "check_type": "official_publication",
+            "checked_at": "2026-10-18"
+          }
+        ],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 50,
+        "staff_provider_code": "1924",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "بلقاس · شارع الحرية (أبو رجيلة) بجانب بنك مصر",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1924",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 50,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/al-borg.png",
+        "image_source_url": "https://www.alborglab.com/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1925",
+        "name": "معمل البرج",
+        "address": "شارع نقراش - برج السمرة - دكرنس",
+        "city": "دكرنس",
+        "markaz": "دكرنس",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/E7o7KyL7Lgo51yuE7",
+        "phone": "19911",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19911"
+          ]
+        },
+        "contact_evidence": [
+          {
+            "number": "19911",
+            "source_url": "https://www.alborglab.com/",
+            "check_type": "official_publication",
+            "checked_at": "2026-10-18"
+          }
+        ],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 51,
+        "staff_provider_code": "1925",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "دكرنس · شارع نقراش - برج السمرة - دكرنس",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1925",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 51,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/al-borg.png",
+        "image_source_url": "https://www.alborglab.com/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1926",
+        "name": "معمل البرج",
+        "address": "ميدان مجلس المدينة - بجوار بنك مصر - برج النيل",
+        "city": "السنبلاوين",
+        "markaz": "السنبلاوين",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/yquEx3o8VY3y1GB69",
+        "phone": "19911",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19911"
+          ]
+        },
+        "contact_evidence": [
+          {
+            "number": "19911",
+            "source_url": "https://www.alborglab.com/",
+            "check_type": "official_publication",
+            "checked_at": "2026-10-18"
+          }
+        ],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 52,
+        "staff_provider_code": "1926",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "السنبلاوين · ميدان مجلس المدينة - بجوار بنك مصر - برج النيل",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1926",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 52,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/al-borg.png",
+        "image_source_url": "https://www.alborglab.com/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1927",
+        "name": "معمل البرج",
+        "address": "شارع الجلاء - أمام مدخل الجامعة",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/yDHgPqPbyCsQi6o7A",
+        "phone": "19911",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19911"
+          ]
+        },
+        "contact_evidence": [
+          {
+            "number": "19911",
+            "source_url": "https://www.alborglab.com/",
+            "check_type": "official_publication",
+            "checked_at": "2026-10-18"
+          }
+        ],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 53,
+        "staff_provider_code": "1927",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "المنصورة · شارع الجلاء - أمام مدخل الجامعة",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1927",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 53,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/al-borg.png",
+        "image_source_url": "https://www.alborglab.com/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1928",
+        "name": "معمل البرج",
+        "address": "ميدان المحافظة — تفاصيل المقر تحتاج تأكيدًا",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/WRZZyuAWc992moHq8",
+        "phone": "19911",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19911"
+          ]
+        },
+        "contact_evidence": [
+          {
+            "number": "19911",
+            "source_url": "https://www.alborglab.com/",
+            "check_type": "official_publication",
+            "checked_at": "2026-10-18"
+          }
+        ],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 54,
+        "staff_provider_code": "1928",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "المنصورة · ميدان المحافظة — تفاصيل المقر تحتاج تأكيدًا",
+        "data_notes": "وصف البنك غير موثوق؛ حذف من العنوان المعروض فقط وحفظ في الأصل",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1928",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 54,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/al-borg.png",
+        "image_source_url": "https://www.alborglab.com/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1929",
+        "name": "معمل البرج",
+        "address": "ميدان المحطة - خالد بن الوليد",
+        "city": "المنزلة",
+        "markaz": "المنزلة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/RsuNV1k3EyUabzJW7",
+        "phone": "19911",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19911"
+          ]
+        },
+        "contact_evidence": [
+          {
+            "number": "19911",
+            "source_url": "https://www.alborglab.com/",
+            "check_type": "official_publication",
+            "checked_at": "2026-10-18"
+          }
+        ],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 55,
+        "staff_provider_code": "1929",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "المنزلة · ميدان المحطة - خالد بن الوليد",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1929",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 55,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/al-borg.png",
+        "image_source_url": "https://www.alborglab.com/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1930",
+        "name": "معمل البرج",
+        "address": "شارع أحمد عرابى - بجوار قنصلية المدينة",
+        "city": "ميت غمر",
+        "markaz": "ميت غمر",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/hR8fZuCuLtRYK2Ex5",
+        "phone": "19911",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19911"
+          ]
+        },
+        "contact_evidence": [
+          {
+            "number": "19911",
+            "source_url": "https://www.alborglab.com/",
+            "check_type": "official_publication",
+            "checked_at": "2026-10-18"
+          }
+        ],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 56,
+        "staff_provider_code": "1930",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "ميت غمر · شارع أحمد عرابى - بجوار قنصلية المدينة",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1930",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 56,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/al-borg.png",
+        "image_source_url": "https://www.alborglab.com/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_1931",
+        "name": "معمل البرج",
+        "address": "شارع الجيش مع شارع جواد حسني",
+        "city": "شربين",
+        "markaz": "شربين",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/vEpLUnMfUKgDwHJR7",
+        "phone": "19911",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19911"
+          ]
+        },
+        "contact_evidence": [
+          {
+            "number": "19911",
+            "source_url": "https://www.alborglab.com/",
+            "check_type": "official_publication",
+            "checked_at": "2026-10-18"
+          }
+        ],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 57,
+        "staff_provider_code": "1931",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "شربين · شارع الجيش مع شارع جواد حسني",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_1931",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 57,
+            "financial_terms_status": "unknown"
+          }
+        ],
+        "image_kind": "logo",
+        "image_url": "https://abomawadda.github.io/Medical/img/providers/al-borg.png",
+        "image_source_url": "https://www.alborglab.com/",
+        "image_verified": true
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2010",
+        "name": "صيدليات كير",
+        "address": "شارع أحمد عرابي",
+        "city": "ميت غمر",
+        "markaz": "ميت غمر",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/TyLASit8otDMF2Sa7",
+        "phone": "19757",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19757"
+          ]
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 58,
+        "staff_provider_code": "2010",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "ميت غمر · شارع أحمد عرابي",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2010",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 58,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "radiology",
+      "entity": {
+        "id": "staff_2145",
+        "name": "مركز المنصورة للأشعة المتطورة صبري الموجي",
+        "address": "نهاية شارع المشايه السلفية أمام نادي النيل",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/VQpZB2RejffvVWC27",
+        "phone": "0502212425",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502212425"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 59,
+        "staff_provider_code": "2145",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مركز أشعة",
+        "branch_label": "المنصورة · نهاية شارع المشايه السلفية أمام نادي النيل",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2145",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 59,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_2258",
+        "name": "معامل الطاهرة",
+        "address": "73 شارع ارع الحرية ميت غمر –",
+        "city": "ميت غمر",
+        "markaz": "ميت غمر",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/ZRB9gzaQfdZdzMJv6",
+        "phone": "19173",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19173"
+          ]
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 60,
+        "staff_provider_code": "2258",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "ميت غمر · 73 شارع ارع الحرية ميت غمر –",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2258",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 60,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "staff_2326",
+        "name": "المركز الطبي لجراحة المخ والاعصاب والعمود الفقري",
+        "address": "فاتن حمامة - عمارة حداد",
+        "city": "السنبلاوين",
+        "markaz": "السنبلاوين",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/6npac2ANjcaE3rKQ7",
+        "phone": "01270249989",
+        "contact_groups": {
+          "mobile": [
+            "01270249989"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 61,
+        "staff_provider_code": "2326",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "السنبلاوين · فاتن حمامة - عمارة حداد",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2326",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 61,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2362",
+        "name": "صيدلية د/ عبد الله أحمدعبد الله ( البطاح ) المنصورة",
+        "address": "شارع الثوره برج الصفوه",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/9DthiVKaH7sDJ65CA",
+        "phone": "01012009266",
+        "contact_groups": {
+          "mobile": [
+            "01012009266"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 62,
+        "staff_provider_code": "2362",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "المنصورة · شارع الثوره برج الصفوه",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2362",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 62,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2371",
+        "name": "صيدليات د مصطفى الطرشوبي",
+        "address": "شارع صلاح سالم بجوار مدرسة صلاح سالم",
+        "city": "طلخا",
+        "markaz": "طلخا",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/7ZAgSNy3UQy6Y62F9",
+        "phone": "",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": true,
+        "source_ref": "staff-20261018",
+        "source_row": 63,
+        "staff_provider_code": "2371",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "طلخا · شارع صلاح سالم بجوار مدرسة صلاح سالم",
+        "data_notes": "رقم معلق: 050 25202111 — صيغة أو عدد خانات غير صالح؛ لا يصحح بالتخمين",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2371",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 63,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2372",
+        "name": "صيدليات د مصطفى الطرشوبي",
+        "address": "ميدان المحطة _ برج الرواد بجوار فندق مارشال",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/DYZKMT74HwFxsqYG7",
+        "phone": "0502317777",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502317777"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 64,
+        "staff_provider_code": "2372",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "المنصورة · ميدان المحطة _ برج الرواد بجوار فندق مارشال",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2372",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 64,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2373",
+        "name": "صيدليات د مصطفى الطرشوبي",
+        "address": "30 شارع قناة السويس",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/iKLpZ9HjSeWDf2378",
+        "phone": "",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": true,
+        "source_ref": "staff-20261018",
+        "source_row": 65,
+        "staff_provider_code": "2373",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "المنصورة · 30 شارع قناة السويس",
+        "data_notes": "رقم معلق: 050 22509092 — صيغة أو عدد خانات غير صالح؛ لا يصحح بالتخمين",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2373",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 65,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2374",
+        "name": "صيدليات د مصطفى الطرشوبي",
+        "address": "ميدان مشعل أسفل مستشفى مصر",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/arEnz4ohK9HtA2j6A",
+        "phone": "0502259782",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0502259782"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 66,
+        "staff_provider_code": "2374",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "المنصورة · ميدان مشعل أسفل مستشفى مصر",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2374",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 66,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2375",
+        "name": "صيدليات د مصطفى الطرشوبي",
+        "address": "شارع الجيش _ برج طلبة",
+        "city": "ميت غمر",
+        "markaz": "ميت غمر",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/7Qt5Mq5hyscmJBAB9",
+        "phone": "0504920094 - 0504913838",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [
+            "0504920094",
+            "0504913838"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 67,
+        "staff_provider_code": "2375",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "ميت غمر · شارع الجيش _ برج طلبة",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2375",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 67,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "labs",
+      "entity": {
+        "id": "staff_2378",
+        "name": "معامل ألفا - المنصورة",
+        "address": "تقاطع شارع جيهان مع شارع الجمهورية",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/Heox9pzS89iUQBMfA",
+        "phone": "01101216191 - 01200790566",
+        "contact_groups": {
+          "mobile": [
+            "01101216191",
+            "01200790566"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 68,
+        "staff_provider_code": "2378",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "معمل تحاليل",
+        "branch_label": "المنصورة · تقاطع شارع جيهان مع شارع الجمهورية",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2378",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 68,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "hospitals",
+      "entity": {
+        "id": "staff_2433",
+        "name": "مركز نبض الحياة للقلب والاوعية الدموية",
+        "address": "شارع الجيش -برج مستشفى تبارك - بجوار المحطة الدولية",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/ThkdMaydWzPLL3fV8",
+        "phone": "01157057091 - 01110000255",
+        "contact_groups": {
+          "mobile": [
+            "01157057091",
+            "01110000255"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": true,
+        "source_ref": "staff-20261018",
+        "source_row": 69,
+        "staff_provider_code": "2433",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "مستشفى",
+        "branch_label": "المنصورة · شارع الجيش -برج مستشفى تبارك - بجوار المحطة الدولية",
+        "data_notes": "رقم معلق: 011 57057092011 — صيغة أو عدد خانات غير صالح؛ لا يصحح بالتخمين؛ رقم معلق: 050 57057095 — صيغة أو عدد خانات غير صالح؛ لا يصحح بالتخمين",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2433",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 69,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2546",
+        "name": "صيدليات كير",
+        "address": "2 شارع جيهان أمام بوابة ستاد الجامعه",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/F2N8bsQhZxWDWJQB9",
+        "phone": "19757",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19757"
+          ]
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 71,
+        "staff_provider_code": "2546",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "المنصورة · 2 شارع جيهان أمام بوابة ستاد الجامعه",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2546",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 71,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2547",
+        "name": "صيدليات كير",
+        "address": "شارع قناة السويس أمام نادي الناصريه",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/DbC6pDpFXbe2Sr7CA",
+        "phone": "19757",
+        "contact_groups": {
+          "mobile": [],
+          "landline": [],
+          "shortcode": [
+            "19757"
+          ]
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 72,
+        "staff_provider_code": "2547",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "المنصورة · شارع قناة السويس أمام نادي الناصريه",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2547",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 72,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2616",
+        "name": "صيدلية أورانج لإدارة الصيدليات",
+        "address": "محلة أنجاق بملك محمد عباس- طريق شربين -",
+        "city": "شربين",
+        "markaz": "شربين",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/mEWnVHC19kFMSgiZ6",
+        "phone": "01005063539 - 0503936539",
+        "contact_groups": {
+          "mobile": [
+            "01005063539"
+          ],
+          "landline": [
+            "0503936539"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 73,
+        "staff_provider_code": "2616",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "شربين · محلة أنجاق بملك محمد عباس- طريق شربين -",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2616",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 73,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2617",
+        "name": "صيدلية أورانج لإدارة الصيدليات",
+        "address": "شارع القومية العربية - أمام التأمينات بجوار مسجد عصر - شربين - الدقهلية",
+        "city": "شربين",
+        "markaz": "شربين",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/haeDjJMmoUBt5JVi7",
+        "phone": "01005063539 - 0503932601",
+        "contact_groups": {
+          "mobile": [
+            "01005063539"
+          ],
+          "landline": [
+            "0503932601"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 74,
+        "staff_provider_code": "2617",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "شربين · شارع القومية العربية - أمام التأمينات بجوار مسجد عصر - شربين - الدقهلي",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2617",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 74,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2618",
+        "name": "صيدلية أورانج لإدارة الصيدليات",
+        "address": "محلة أنجاق بملك محمد حامد - أمام الجامع الكبير - شربين - الدقهلية",
+        "city": "شربين",
+        "markaz": "شربين",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/Xjfdxz2xD78pVM9L7",
+        "phone": "01005063539 - 0503937814",
+        "contact_groups": {
+          "mobile": [
+            "01005063539"
+          ],
+          "landline": [
+            "0503937814"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 75,
+        "staff_provider_code": "2618",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "شربين · محلة أنجاق بملك محمد حامد - أمام الجامع الكبير - شربين - الدقهلية",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2618",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 75,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2619",
+        "name": "صيدلية أورانج لإدارة الصيدليات",
+        "address": "محلة أنجاق بملك إيمان حمزة - طريق شربين - الدقهلية",
+        "city": "شربين",
+        "markaz": "شربين",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/gZxU6R5mHn24tmHj8",
+        "phone": "01005063539 - 0503923216",
+        "contact_groups": {
+          "mobile": [
+            "01005063539"
+          ],
+          "landline": [
+            "0503923216"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 76,
+        "staff_provider_code": "2619",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "شربين · محلة أنجاق بملك إيمان حمزة - طريق شربين - الدقهلية",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2619",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 76,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2633",
+        "name": "صيدلية أورانج لإدارة الصيدليات",
+        "address": "شارع النقراشي - أمام بنك مصر - موقف القاهرة - دكرنس - الدقهلية",
+        "city": "دكرنس",
+        "markaz": "دكرنس",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/bZP3LdoPecUzqPdX8",
+        "phone": "01033337975 - 01004394904 - 0503475309",
+        "contact_groups": {
+          "mobile": [
+            "01033337975",
+            "01004394904"
+          ],
+          "landline": [
+            "0503475309"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 77,
+        "staff_provider_code": "2633",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "دكرنس · شارع النقراشي - أمام بنك مصر - موقف القاهرة - دكرنس - الدقهلية",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2633",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 77,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2649",
+        "name": "صيدلية أورانج لإدارة الصيدليات",
+        "address": "70ش قناة السويس - برج الصديق - توريل - المنصورة - الدقهلية",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/Bgqm2cYijeCthiB97",
+        "phone": "01060949391 - 0502316509",
+        "contact_groups": {
+          "mobile": [
+            "01060949391"
+          ],
+          "landline": [
+            "0502316509"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 78,
+        "staff_provider_code": "2649",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "المنصورة · 70ش قناة السويس - برج الصديق - توريل - المنصورة - الدقهلية",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2649",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 78,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "pharmacies",
+      "entity": {
+        "id": "staff_2678",
+        "name": "صيدلية أورانج لإدارة الصيدليات",
+        "address": "شارع الجيش - أمام موقف المنصورة",
+        "city": "أجا",
+        "markaz": "أجا",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/hgjRTAQv5J286jN56",
+        "phone": "01007894298 - 01030395558 - 0504444444 - 0504444333",
+        "contact_groups": {
+          "mobile": [
+            "01007894298",
+            "01030395558"
+          ],
+          "landline": [
+            "0504444444",
+            "0504444333"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 79,
+        "staff_provider_code": "2678",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "صيدلية",
+        "branch_label": "أجا · شارع الجيش - أمام موقف المنصورة",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2678",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 79,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "specialized_centers",
+      "entity": {
+        "id": "staff_2745",
+        "name": "مركز توث سبوت -المنصورة",
+        "address": "شارع المشاية برج الجزيرة الخلفي دور 1",
+        "city": "المنصورة",
+        "markaz": "المنصورة",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/nNzihh3X6XswQAJe6",
+        "phone": "01014999877 - 0932158697",
+        "contact_groups": {
+          "mobile": [
+            "01014999877"
+          ],
+          "landline": [
+            "0932158697"
+          ],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": true,
+        "source_ref": "staff-20261018",
+        "source_row": 80,
+        "staff_provider_code": "2745",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "أسنان",
+        "branch_label": "المنصورة · شارع المشاية برج الجزيرة الخلفي دور 1",
+        "data_notes": "الأرضي 093 تابع لمنطقة خارج الدقهلية؛ يلزم تأكيد أنه رقم هذه الجهة",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2745",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 80,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "specialized_centers",
+      "entity": {
+        "id": "staff_2757",
+        "name": "مركز الفيروز للعلاج الطبيعي -ميت غمر",
+        "address": "شارع26 يوليو و الجيش - أعلى توكيل DS - أمام سلم المنصورة ( برج طيبة ) - الدور الأول - ميت غمر",
+        "city": "ميت غمر",
+        "markaz": "ميت غمر",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/oKpGmKcvBt19Voc47",
+        "phone": "01226011486 - 01273738269",
+        "contact_groups": {
+          "mobile": [
+            "01226011486",
+            "01273738269"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": true,
+        "source_ref": "staff-20261018",
+        "source_row": 81,
+        "staff_provider_code": "2757",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "علاج طبيعي",
+        "branch_label": "ميت غمر · شارع26 يوليو و الجيش - أعلى توكيل DS - أمام سلم المنصورة ( برج طيبة ) ",
+        "data_notes": "رقم معلق: 050920003 — صيغة أو عدد خانات غير صالح؛ لا يصحح بالتخمين",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2757",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 81,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "specialized_centers",
+      "entity": {
+        "id": "staff_2844",
+        "name": "مركز دهب للعلاج الطبيعي و التأهيل - اجا",
+        "address": "أمام مجلس المدينة شارع غرب المحكمة اول شارع هارون للسيارات",
+        "city": "أجا",
+        "markaz": "أجا",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/Mz9yu9dFP2Q9F5Wu7",
+        "phone": "01062545102",
+        "contact_groups": {
+          "mobile": [
+            "01062545102"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 82,
+        "staff_provider_code": "2844",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "علاج طبيعي",
+        "branch_label": "أجا · أمام مجلس المدينة شارع غرب المحكمة اول شارع هارون للسيارات",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2844",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 82,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "specialized_centers",
+      "entity": {
+        "id": "staff_2845",
+        "name": "مركز دهب للعلاج الطبيعي و التأهيل - اجا",
+        "address": "بجوار مسجد العمايرة",
+        "city": "صهرجت الصغرى",
+        "markaz": "أجا",
+        "country_code": "EG",
+        "governorate": "الدقهلية",
+        "governorate_code": "EG-DK",
+        "maps_url": "https://maps.app.goo.gl/eWiUx36uM6ZCWfnt5",
+        "phone": "01062545102",
+        "contact_groups": {
+          "mobile": [
+            "01062545102"
+          ],
+          "landline": [],
+          "shortcode": []
+        },
+        "contact_evidence": [],
+        "contact_review_required": false,
+        "source_ref": "staff-20261018",
+        "source_row": 83,
+        "staff_provider_code": "2845",
+        "imported_at": "2026-10-18",
+        "network_members": [
+          "employee"
+        ],
+        "contract_type": "direct_we",
+        "contract_entity": "تعاقد مباشر من الشركة WE",
+        "contract_entity_id": "direct_we",
+        "coverage_scope": "unknown",
+        "declared_coverage_scope": "employee_only",
+        "coverage_verified": false,
+        "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+        "category": "علاج طبيعي",
+        "branch_label": "صهرجت الصغرى · بجوار مسجد العمايرة",
+        "data_notes": "",
+        "contract_relationships": [
+          {
+            "id": "contract_staff_2845",
+            "route": "direct_we",
+            "network_members": [
+              "employee"
+            ],
+            "source_ref": "staff-20261018",
+            "source_row": 83,
+            "financial_terms_status": "unknown"
+          }
+        ]
+      }
+    }
+  ]
+}

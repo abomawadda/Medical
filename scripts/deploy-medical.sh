@@ -74,10 +74,10 @@ const response = await fetch('https://europe-west1-we-medical-dakahlia.cloudfunc
   cache: 'no-store', signal: AbortSignal.timeout(30000),
 });
 const health = await response.json();
-if (!response.ok || !health.configured || !['member-profile', 'review-revisions'].every((c) => health.capabilities?.includes(c))) {
+if (!response.ok || !health.configured || !['member-profile', 'review-revisions', 'staff-directory', 'provider-images'].every((c) => health.capabilities?.includes(c))) {
   throw new Error('Deployment finished, but the updated API capabilities could not be confirmed. Do not declare the release complete.');
 }
-console.log('Published API confirmed: member profiles and revision-safe moderation enabled.');
+console.log('Published API confirmed: member profiles, revision-safe moderation, staff directory and provider image support enabled.');
 JS
 
 echo 'Deployment command finished. Verify the API and real login before configuring the public site.'
