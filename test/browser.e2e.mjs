@@ -197,7 +197,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"نبض النقابة - رعاية أقرب لك ولأسرتك · الإصدار 4.2.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"نبض النقابة - رعاية أقرب لك ولأسرتك · الإصدار 4.3.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -353,7 +353,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.2.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.3.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -407,6 +407,50 @@ try {
   await a.getByRole('button',{name:'حفظ التغييرات',exact:true}).click();
   await a.locator('.form-error').getByText(/يوجد فرع مشابه/).waitFor();
   await a.getByRole('button',{name:'إغلاق النافذة',exact:true}).click();
+  await a.getByLabel('نوع السجلات',{exact:true}).selectOption('records');
+  // Selection applies exactly to checked rows, then can be reversed atomically.
+  await a.locator('tbody tr').nth(0).locator('.batch-row-check').check();
+  await a.locator('tbody tr').nth(1).locator('.batch-row-check').check();
+  await a.getByRole('button',{name:'معالجة المحدد (2)',exact:true}).click();
+  assert.equal(await a.locator('.batch-preview li').count(),2);
+  await a.getByLabel('العملية الجماعية',{exact:true}).selectOption('pause');
+  await a.getByRole('button',{name:'تطبيق على المحدد',exact:true}).click();
+  await a.locator('dialog').waitFor({state:'hidden'});
+  await a.locator('tbody tr').nth(0).getByRole('button',{name:'استئناف الخدمة',exact:true}).waitFor();
+  await a.locator('tbody tr').nth(0).locator('.batch-row-check').check();
+  await a.locator('tbody tr').nth(1).locator('.batch-row-check').check();
+  await a.getByRole('button',{name:'معالجة المحدد (2)',exact:true}).click();
+  await a.getByLabel('العملية الجماعية',{exact:true}).selectOption('resume');
+  await a.getByRole('button',{name:'تطبيق على المحدد',exact:true}).click();
+  await a.locator('dialog').waitFor({state:'hidden'});
+  await a.locator('tbody tr').nth(0).getByRole('button',{name:'إيقاف مؤقت',exact:true}).waitFor();
+  // New hospital defaults and independent addresses persist as two branches.
+  await a.getByLabel('نوع السجلات',{exact:true}).selectOption('hospitals');
+  await a.getByRole('button',{name:'إضافة سجل',exact:true}).click();
+  assert.equal(await a.getByLabel('نوع الجهة',{exact:true}).inputValue(),'مستشفى استثماري');
+  await a.getByLabel('الاسم',{exact:true}).fill('مستشفى فروع اختبار');
+  await a.getByLabel('المركز / المدينة',{exact:true}).selectOption('المنصورة');
+  await a.getByLabel('العنوان',{exact:true}).fill('عنوان رئيسي مصطنع');
+  await a.getByLabel('المحمول',{exact:true}).fill('01012345678');
+  await a.getByLabel('المستفيدون',{exact:true}).selectOption('all');
+  await a.getByRole('button',{name:'+ إضافة عنوان / فرع',exact:true}).click();
+  await a.getByLabel('اسم مختصر للفرع',{exact:true}).fill('فرع طلخا');
+  await a.getByLabel('مركز الفرع',{exact:true}).selectOption('طلخا');
+  await a.getByLabel('عنوان الفرع',{exact:true}).fill('عنوان فرع ثانٍ مصطنع');
+  await a.getByLabel('أرضي الفرع',{exact:true}).fill('0502000001');
+  await a.getByLabel('راجعت بيانات الجهة وتعاقدها وأعتمد إظهارها للأعضاء',{exact:true}).check();
+  await a.getByRole('button',{name:'حفظ التغييرات',exact:true}).click();
+  await a.locator('dialog').waitFor({state:'hidden'});
+  const newHospitals=(await store.catalog()).hospitals.filter(h=>h.name==='مستشفى فروع اختبار');
+  assert.equal(newHospitals.length,2);assert.equal(newHospitals[0].organization_id,newHospitals[1].organization_id);
+  assert.equal(newHospitals[0].category,'مستشفى استثماري');
+  assert.deepEqual(newHospitals[1].contact_groups.mobile,[]);
+  const branchesContext=await context(true,'block',await memberContext.storageState()),bp=await branchesContext.newPage();
+  await bp.goto(origin+'/#entity='+encodeURIComponent('hospitals:'+newHospitals[0].id));
+  await bp.locator('.facility-group-card').waitFor();
+  assert.equal(await bp.locator('[data-facility-branch]').count(),2);
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await bp.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'hospital-multiple-addresses.png'),fullPage:true});
+  await branchesContext.close();
   await a.getByLabel('نوع السجلات',{exact:true}).selectOption('records');
   await a.setViewportSize({width:1440,height:1000});
   const sidebar=await a.locator('#main-nav').boundingBox();
@@ -465,7 +509,7 @@ try {
     a.getByRole("button", {name:"تنزيل تقرير الجودة",exact:true}).click(),
   ]);
   const qualityReport = JSON.parse(await readFile(await qualityDownload.path(), "utf8"));
-  assert.equal(qualityReport.total, Object.entries(seed).filter(([kind]) => kind !== "medical_guidelines").reduce((sum, [,rows]) => sum + rows.length, 0));
+  assert.equal(qualityReport.total, Object.entries(await store.catalog()).filter(([kind]) => kind !== "medical_guidelines").reduce((sum, [,rows]) => sum + rows.length, 0));
   assert.ok(!JSON.stringify(qualityReport).includes("ملاحظة اختبار"));
   assert.ok(!JSON.stringify(qualityReport).includes(employee.nationalId));
   if (process.env.MEDICAL_SCREENSHOT_DIR) {

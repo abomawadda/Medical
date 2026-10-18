@@ -253,7 +253,7 @@ export function firebaseAdapters({
         if(facilityStatsCache.size>=32)facilityStatsCache.clear();
         facilityStatsCache.set(cacheKey,{at:Date.now(),stats:totals});return totals;
       },
-      async mutateEntities(changes,actor,at) {
+      async mutateEntities(changes,actor,at,action='entity.state') {
         await db.runTransaction(async tx => {
           const refs=changes.map(c=>entities.doc(key(`${c.kind}:${c.id}`)));
           const snapshots=await tx.getAll(...refs);
@@ -262,7 +262,7 @@ export function firebaseAdapters({
               throw new ApiError(409,"VERSION_CONFLICT","تغيرت حالة أحد المقار؛ حدّث الدليل وأعد المحاولة.");
           }
           changes.forEach((c,i)=>tx.set(refs[i],{kind:c.kind,entityId:c.id,value:c.value,deleted:false,version:c.expectedVersion+1,updated_at:at}));
-          tx.create(audit.doc(),{action:"entity.state",entities:changes.map(c=>`${c.kind}:${c.id}`),actor,at});
+          tx.create(audit.doc(),{action,entities:changes.map(c=>`${c.kind}:${c.id}`),actor,at});
         });
       },
       async mutateEntity(kind, id, change, expectedVersion, actor, at) {

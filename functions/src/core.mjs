@@ -140,6 +140,7 @@ const fields = {
   ],
   hospitals: [
     "id",
+    "category",
     "name",
     "short_name",
     "address",
@@ -305,6 +306,8 @@ export function validateEntity(kind, input, previous) {
     if(out.effective_from && out.expires_at && out.expires_at < out.effective_from) fail(400,'INVALID_ENTITY','نهاية السريان تسبق بدايته.');
     if(out.publication_status === 'published' && (!out.issuing_authority || !(out.source_reference || out.source_url) || !out.verified_at)) fail(400,'PUBLICATION_SOURCE_REQUIRED','النشر يحتاج الجهة المصدرة ومرجعًا وتاريخ مراجعة.');
   }
+  if(kind === "hospitals" && !previous && !out.category)out.category="مستشفى استثماري";
+  for(const key of ['organization_id','organization_name'])if(previous?.[key])out[key]=previous[key];
   if (kind === "records") {
     out.provider_id = previous?.provider_id || `provider_${randomUUID()}`;
     out.display_name ||= out.name;
@@ -489,7 +492,7 @@ export function createService({
       const catalog = user.role === "admin" ? all : memberCatalog(all,now());
       const allowed = targets(catalog);
       const stats = Object.fromEntries(Object.entries(await store.getStats()).filter(([id]) => allowed.has(id)));
-      return {catalog, stats, facilityBranches: true, facilityStats: await store.getGroupedStats(facilities.reviewGroups(catalog)), reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
+      return {catalog, stats, adminBatch:true, structuredBranches:true, facilityBranches: true, facilityStats: await store.getGroupedStats(facilities.reviewGroups(catalog)), reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
     },
     async adminProfile(token) {
       const session=await authorize(token,"admin");
@@ -611,6 +614,72 @@ export function createService({
         return {kind,id:String(r.id),value:entity,expectedVersion:r._version || 0};
       }),s.sourceId,now());
       return {success:true,updated:selected.length};
+    },
+    async batchEntityState(token,body) {
+      const session=await authorize(token,"admin");
+      const {field,value,items}=body;
+      if(!["directory_visibility","service_status"].includes(field) || !(field==='directory_visibility'?['visible','hidden']:['active','suspended']).includes(value) || !Array.isArray(items) || !items.length || items.length>50)
+        fail(400,"INVALID_BATCH","حدد من سجل واحد إلى 50 سجلًا واختر عملية صحيحة.");
+      const catalog=await store.catalog(),seen=new Set();
+      const changes=items.map(item=>{
+        if(!item || !kinds.includes(item.kind) || item.kind==='medical_guidelines' || typeof item.id!=='string' || !Number.isInteger(item.version))fail(400,"INVALID_BATCH","أحد السجلات المحددة غير صالح.");
+        const key=item.kind+':'+item.id;if(seen.has(key))fail(400,"INVALID_BATCH","السجل مكرر داخل التحديد.");seen.add(key);
+        const current=catalog[item.kind].find(r=>String(r.id)===item.id);
+        if(!current || (current._version || 0)!==item.version)fail(409,"VERSION_CONFLICT","تغير أحد السجلات؛ حدّث القائمة وأعد التحديد. لم تُحفظ العملية.");
+        const entity={...current,[field]:value,directory_update:{type:field==='service_status'?(value==='suspended'?'suspended':'resumed'):'updated',at:new Date(now()).toISOString()}};delete entity._version;
+        if(field==='directory_visibility' && value==='visible' && current.contract_listing===false){
+          if(body.approve_contract!==true)fail(400,"APPROVAL_REQUIRED","راجع واعتمد تعاقدات السجلات المحجوبة قبل الإظهار الجماعي.");
+          if(item.kind!=='emergency_services' && !hasContract(entity))fail(400,"CONTRACT_REQUIRED","أكمل جهة تعاقد السجلات المحددة أولًا.");
+          entity.publication_approval={status:'approved',by:session.sourceId,at:new Date(now()).toISOString()};
+        }
+        return {kind:item.kind,id:item.id,value:entity,expectedVersion:item.version};
+      });
+      if(field==='directory_visibility' && value==='visible')for(const c of changes){
+        const r=c.value,linked=catalog.hospitals.find(h=>r.contract_entity_id===h.id || (r.hospital && [h.name,h.short_name].includes(r.hospital)));
+        const parentId=r.contract_parent_id || (c.kind==='records'?linked?.id:(r.contract_type==='hospital'?r.contract_entity_id:null));
+        if(!parentId || parentId===c.id)continue;
+        const parent=changes.find(p=>p.kind==='hospitals' && p.id===parentId)?.value || catalog.hospitals.find(p=>p.id===parentId);
+        if(!parent || parent.directory_visibility==='hidden' || (parent.contract_listing===false && parent.publication_approval?.status!=='approved'))fail(400,'PARENT_HIDDEN','أظهر واعتمد المستشفى التابعة أولًا، أو ضمها إلى التحديد نفسه.');
+      }
+      await store.mutateEntities(changes,session.sourceId,now());
+      return {success:true,updated:changes.length};
+    },
+    async createEntityBranches(token,body) {
+      const session=await authorize(token,'admin');
+      const kind=body.kind,extra=body.branches;
+      if(!['records','hospitals','labs','radiology','pharmacies','specialized_centers'].includes(kind) || !Array.isArray(extra) || !extra.length || extra.length>9)fail(400,'INVALID_BRANCHES','أضف من فرع إضافي إلى تسعة فروع إضافية.');
+      const catalog=await store.catalog();
+      const first=validateEntity(kind,body.entity);
+      if(catalog[kind].some(r=>String(r.id)===String(first.id)))fail(409,'ALREADY_EXISTS','السجل موجود بالفعل. حدّث الدليل قبل إعادة الإضافة.');
+      if(first.contract_type==='independent'){first.contract_entity_id=first.id;first.contract_entity=first.name;}
+      const organization='org_'+randomUUID(),seen=new Set();
+      const entities=[first];
+      for(const branch of extra){
+        if(!branch || typeof branch.address!=='string' || !branch.address.trim() || typeof branch.markaz!=='string' || !branch.markaz.trim())fail(400,'INVALID_BRANCHES','لكل فرع عنوان ومركز مستقلان.');
+        const input={...first,id:'entry_'+randomUUID().replaceAll('-',''),...Object.fromEntries(['address','markaz','branch_label','maps_url','working_hours','schedule','phone','raw_phone'].filter(k=>Object.hasOwn(branch,k)).map(k=>[k,branch[k]]))};
+        for(const key of ['phone','raw_phone','hotline','phone_digits','whatsapp','phones','contact_groups','contact_evidence'])delete input[key];
+        input.phone=String(branch.phone || '');input.raw_phone=String(branch.raw_phone || branch.phone || '');
+        input.schedule=String(branch.schedule || '');input.working_hours=String(branch.working_hours || '');input.maps_url=String(branch.maps_url || '');input.city=branch.markaz;
+        if(input.contract_type==='independent'){input.contract_entity_id=input.id;input.contract_entity=input.name;}
+        const entity=validateEntity(kind,input);
+        if(kind==='records')entity.provider_id=first.provider_id;
+        entities.push(entity);
+      }
+      const changes=entities.map(entity=>{
+        if(typeof entity.address!=='string'||!entity.address.trim()||!entity.markaz)fail(400,'INVALID_BRANCHES','أكمل عنوان ومركز الفرع الرئيسي.');
+        const key=facilities.normalize(digits(entity.address))+'|'+facilities.normalize(entity.markaz);
+        if(seen.has(key))fail(400,'DUPLICATE_BRANCH','يوجد عنوان مكرر في الفروع المدخلة.');seen.add(key);
+        if(entity.contact_review_required)fail(400,'INVALID_PHONE','راجع أرقام اتصال الفروع قبل الحفظ.');
+        entity.organization_id=organization;entity.organization_name=first.name;
+        entity.admin_reviewed_at=new Date(now()).toISOString();entity.directory_update={type:'added',at:new Date(now()).toISOString()};
+        if(body.approve_contract===true){
+          if(!hasContract(entity))fail(400,'CONTRACT_REQUIRED','أكمل جهة التعاقد أولًا.');
+          entity.publication_approval={status:'approved',by:session.sourceId,at:new Date(now()).toISOString()};entity.directory_visibility='visible';
+        }else entity.directory_visibility='hidden';
+        return {kind,id:String(entity.id),value:entity,expectedVersion:0};
+      });
+      await store.mutateEntities(changes,session.sourceId,now(),'entity.branches.create');
+      return {success:true,created:changes.map(c=>c.id)};
     },
     async putEntity(token, kind, id, body) {
       const s = await authorize(token, "admin");

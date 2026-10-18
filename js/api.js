@@ -168,6 +168,8 @@ window.MedicalAPI = (() => {
       forget();
   });
   return Object.freeze({
+    batchState:body=>request('/admin/batch',{method:'PATCH',body,protectedRequest:true}),
+    createBranches:body=>request('/admin/branches',{method:'POST',body,protectedRequest:true}),
     configured,
     session,
     restore,

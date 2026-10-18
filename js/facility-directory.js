@@ -10,7 +10,7 @@
     const key=branchKey(kind,entries[0]);const primary=entries.find(r=>String(r.id)===key)||entries[0];
     return {id:String(primary.id),entries,network_members:[...new Set(entries.flatMap(r=>r.network_members || []))]};
   });}
-  function brand(kind,r){const name=normalize(r.name);let match;
+  function brand(kind,r){if(r.organization_id && r.organization_name)return {key:kind+':organization:'+r.organization_id,name:r.organization_name};const name=normalize(r.name);let match;
     if(kind==='labs')match=[['المختبر','معامل المختبر'],['البرج','معامل البرج'],['الفا','معامل ألفا'],['النحاس','معامل النحاس'],['رويال لاب','رويال لاب'],['الطاهره','معامل الطاهرة']].find(([key])=>(' '+name+' ').includes(' '+key+' '));
     if(kind==='pharmacies')match=[['العزبي','صيدليات العزبي'],['الطرشوبي','صيدليات الطرشوبي'],['كير','صيدليات كير'],['اورانج','صيدليات أورانج']].find(([key])=>(' '+name+' ').includes(' '+key+' '));
     return match ? {key:[kind,r.country_code||'EG',r.governorate_code||'EG-DK',match[0]].join(':'),name:match[1]}:{key:kind+':'+String(r.id),name:r.name};

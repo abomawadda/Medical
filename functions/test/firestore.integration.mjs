@@ -206,6 +206,18 @@ assert.equal((await ownDbForAudits.collection('medical_reviews').doc(current.id)
 assert.deepEqual((await service.catalog(member)).facilityStats['labs:family_20261018_068'],{count:0,average:null});
 await service.moderateReview(admin,legacyId,{status:'published',revision:2});
 assert.deepEqual((await service.catalog(member)).facilityStats['labs:staff_2378'],{count:1,average:3});
+// New multi-address entities and batch state changes are all-or-nothing.
+const multi=await service.createEntityBranches(admin,{kind:'hospitals',entity:{id:'multi_test_hospital',name:'مستشفى فروع المحاكي',address:'عنوان رئيسي مصطنع',markaz:'المنصورة',phone:'01012345678',contract_type:'independent',contract_entity:'مستشفى فروع المحاكي',contract_entity_id:'multi_test_hospital'},branches:[{address:'عنوان فرع مصطنع',markaz:'طلخا',phone:'0502000001'}],approve_contract:true});
+const created=(await service.catalog(admin)).catalog.hospitals.filter(h=>multi.created.includes(h.id));
+assert.equal(created.length,2);assert.equal(created[0].organization_id,created[1].organization_id);
+assert.equal(created[0].category,'مستشفى استثماري');
+assert.deepEqual(created[1].contact_groups.mobile,[]);
+const batch={field:'service_status',value:'suspended',items:created.map(r=>({kind:'hospitals',id:r.id,version:r._version}))};
+await assert.rejects(()=>service.batchEntityState(admin,{...batch,items:[batch.items[0],{...batch.items[1],version:99}]}),e=>e.code==='VERSION_CONFLICT');
+assert.ok((await service.catalog(admin)).catalog.hospitals.filter(h=>multi.created.includes(h.id)).every(h=>h.service_status!=='suspended'));
+await service.batchEntityState(admin,batch);
+assert.ok((await service.catalog(admin)).catalog.hospitals.filter(h=>multi.created.includes(h.id)).every(h=>h.service_status==='suspended'));
+await assert.rejects(()=>service.batchEntityState(admin,batch),e=>e.code==='VERSION_CONFLICT');
 const attempts = await Promise.allSettled([
   service.putEntity(admin, "records", "1", {
     entity: { ...seed.records[0], name: "تعديل أ" },

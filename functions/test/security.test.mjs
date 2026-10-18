@@ -719,3 +719,53 @@ test('a member reviewing staff/family aliases edits one logical branch experienc
  assert.equal(f.store.reviews.size,1);assert.equal((await f.service.ownReviews(t)).reviews[0].revision,2);
  assert.deepEqual((await f.service.catalog(t)).facilityStats['labs:staff_2378'],{count:0,average:null});
 });
+
+test('batch states require an administrator and exact fresh versions, apply atomically, and never implicitly approve contracts',async()=>{
+ const f=setup(),a=await admin(f),m=await member(f);
+ const body={field:'service_status',value:'suspended',items:[{kind:'records',id:'1',version:0},{kind:'hospitals',id:'h1',version:0}]};
+ await assert.rejects(()=>f.service.batchEntityState(m,body),e=>e.status===403);
+ await assert.rejects(()=>f.service.batchEntityState(a,{...body,items:[...body.items,{kind:'records',id:'1',version:0}]}),e=>e.code==='INVALID_BATCH');
+ await assert.rejects(()=>f.service.batchEntityState(a,{...body,items:[body.items[0],{kind:'hospitals',id:'h1',version:9}]}),e=>e.code==='VERSION_CONFLICT');
+ assert.equal(f.store.overlays.size,0);
+ assert.equal((await f.service.batchEntityState(a,body)).updated,2);
+ assert.ok((await f.store.catalog()).records.every(r=>r.service_status==='suspended'));
+ await assert.rejects(()=>f.service.batchEntityState(a,body),e=>e.code==='VERSION_CONFLICT');
+ await f.store.mutateEntity('labs','withheld',{value:{id:'withheld',name:'جهة اختبار',contract_listing:false,contract_entity:'شركة اختبار',contract_entity_id:'direct_we'}},0,'fixture',1);
+ const show={field:'directory_visibility',value:'visible',items:[{kind:'labs',id:'withheld',version:1}]};
+ await assert.rejects(()=>f.service.batchEntityState(a,show),e=>e.code==='APPROVAL_REQUIRED');
+ await f.service.batchEntityState(a,{...show,approve_contract:true});
+ assert.equal((await f.store.catalog()).labs[0].publication_approval.by,'source-admin');
+});
+
+test('multi-address creation is atomic, keeps independent contacts and trusted organization metadata, and defaults new hospitals to investment classification',async()=>{
+ const f=setup(),a=await admin(f),m=await member(f);
+ const entity={id:'test_hospital',name:'مستشفى اختبار متعدد الفروع',address:'عنوان رئيسي للاختبار',markaz:'المنصورة',phone:'01012345678',network_members:['employee'],contract_type:'independent',contract_entity:'مستشفى اختبار',contract_entity_id:'test_hospital'};
+ const body={kind:'hospitals',entity,branches:[{address:'عنوان آخر للاختبار',markaz:'طلخا',phone:'0502000001',working_hours:'مواعيد اختبار'}],approve_contract:true};
+ await assert.rejects(()=>f.service.createEntityBranches(m,body),e=>e.status===403);
+ await assert.rejects(()=>f.service.createEntityBranches(a,{...body,branches:[{address:entity.address,markaz:entity.markaz}]}),e=>e.code==='DUPLICATE_BRANCH');
+ assert.equal(f.store.overlays.size,0);
+ await assert.rejects(()=>f.service.createEntityBranches(a,{...body,branches:[{...body.branches[0],maps_url:'javascript:bad'}]}),e=>e.code==='INVALID_URL');
+ assert.equal(f.store.overlays.size,0);
+ const result=await f.service.createEntityBranches(a,body);
+ const hospitals=(await f.store.catalog()).hospitals.filter(r=>result.created.includes(r.id));
+ assert.equal(hospitals.length,2);assert.ok(hospitals.every(r=>r.category==='مستشفى استثماري'));
+ assert.equal(hospitals[0].organization_id,hospitals[1].organization_id);
+ assert.deepEqual(hospitals[1].contact_groups.mobile,[]);assert.deepEqual(hospitals[1].contact_groups.landline,['0502000001']);
+ assert.ok(hospitals.every(r=>r.contract_entity_id===r.id));
+ const edited=validateEntity('hospitals',{...hospitals[0],organization_id:'forged'},hospitals[0]);assert.equal(edited.organization_id,hospitals[0].organization_id);
+ assert.equal(validateEntity('hospitals',{id:'newh',name:'اختبار',organization_id:'forged'}).organization_id,undefined);
+ await assert.rejects(()=>f.service.createEntityBranches(a,body),e=>e.code==='ALREADY_EXISTS');
+});
+
+test('new doctor addresses share one provider, and batch showing a dependent branch requires its parent to be shown',async()=>{
+ const f=setup(),a=await admin(f);
+ await f.service.batchEntityState(a,{field:'directory_visibility',value:'hidden',items:[{kind:'hospitals',id:'h1',version:0}]});
+ await assert.rejects(()=>f.service.batchEntityState(a,{field:'directory_visibility',value:'visible',items:[{kind:'records',id:'1',version:0}]}),e=>e.code==='PARENT_HIDDEN');
+ assert.equal((await f.store.catalog()).records[0]._version,0);
+ await f.service.batchEntityState(a,{field:'directory_visibility',value:'visible',items:[{kind:'records',id:'1',version:0},{kind:'hospitals',id:'h1',version:1}]});
+ const result=await f.service.createEntityBranches(a,{kind:'records',entity:{id:'multi_doctor',name:'طبيب فروع اختبار',specialty:'باطنة',hospital:'مستشفى اختبار',contract_type:'hospital',contract_entity:'مستشفى اختبار',contract_entity_id:'h1',address:'عنوان رئيسي',markaz:'المنصورة'},branches:[{address:'عنوان آخر',markaz:'طلخا'}]});
+ const rows=(await f.store.catalog()).records.filter(r=>result.created.includes(String(r.id)));
+ assert.equal(new Set(rows.map(r=>r.provider_id)).size,1);
+ assert.ok(rows.every(r=>r.directory_visibility==='hidden'));
+ assert.equal(f.employees[0].name,'عضو اختبار محلي');
+});
