@@ -186,7 +186,22 @@ assert.equal(attempts.find((a) => a.status === "rejected").reason.status, 409);
 const saved = (await service.catalog(admin)).catalog.records[0];
 assert.equal(saved._version, 1);
 assert.equal(saved.provider_id, "p1");
-await service.deleteEntity(admin, "records", "1", { expected_version: 1 });
+await service.putEntity(admin,"records","second",{entity:{...seed.records[0],id:"second",hospital:"مستشفى أخرى"},expected_version:0});
+await adapters.store.mutateEntity("records","second",{value:{...seed.records[0],id:"second",hospital:"مستشفى أخرى"},deleted:false},1,"local-test",Date.now());
+// A concurrent write invalidates the group operation before any branch is changed.
+await assert.rejects(()=>adapters.store.mutateEntities([
+  {kind:"records",id:"1",value:{...saved,directory_visibility:"hidden"},expectedVersion:1},
+  {kind:"records",id:"second",value:{...seed.records[0],id:"second",directory_visibility:"hidden"},expectedVersion:1},
+],"local-test",Date.now()),e=>e.status===409);
+assert.equal((await service.catalog(member)).catalog.records.length,2);
+await service.setEntityState(admin,"records","1",{field:"directory_visibility",value:"hidden",scope:"provider",versions:{"1":1,second:2}});
+assert.equal((await service.catalog(member)).catalog.records.length,0);
+assert.equal((await service.catalog(admin)).catalog.records.length,2);
+await service.setEntityState(admin,"records","1",{field:"directory_visibility",value:"visible",scope:"provider",versions:{"1":2,second:3}});
+await service.setEntityState(admin,"records","1",{field:"service_status",value:"suspended",scope:"entity",versions:{"1":3}});
+assert.equal((await service.catalog(member)).catalog.records.find(r=>String(r.id)==="1").service_status,"suspended");
+await service.deleteEntity(admin,"records","second",{expected_version:4});
+await service.deleteEntity(admin, "records", "1", { expected_version: 4 });
 assert.equal((await service.catalog(admin)).catalog.records.length, 0);
 assert.equal(
   JSON.stringify(

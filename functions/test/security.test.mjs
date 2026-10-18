@@ -605,3 +605,49 @@ test("member profiles and login activity are isolated between members", async ()
   await f.service.memberLogin({...credentials,employee_code:"00234"},"other-ip-2");
   assert.deepEqual((await f.service.memberProfile(first)).profile,before);
 });
+
+test("directory hiding is server enforced, retains admin access and blocks hidden review targets", async () => {
+  const f=setup(), a=await admin(f), m=await member(f);
+  await assert.rejects(()=>f.service.putEntity(m,"records","1",{entity:{...seed.records[0],directory_visibility:"hidden"},expected_version:0}),e=>e.status===403);
+  await f.service.putEntity(a,"records","1",{entity:{...seed.records[0],directory_visibility:"hidden"},expected_version:0});
+  assert.equal((await f.service.catalog(m)).catalog.records.length,0);
+  assert.equal((await f.service.catalog(a)).catalog.records[0].directory_visibility,"hidden");
+  await assert.rejects(()=>f.service.submitReview(m,review,"review-hidden"),e=>e.code==="INVALID_TARGET");
+  await assert.rejects(()=>f.service.putEntity(a,"records","1",{entity:seed.records[0],expected_version:0}),e=>e.status===409);
+  await f.service.putEntity(a,"records","1",{entity:{...seed.records[0],directory_visibility:"visible"},expected_version:1});
+  assert.equal((await f.service.catalog(m)).catalog.records.length,1);
+});
+
+test("hospital suspension or hiding affects only its dependent doctor branches and is reversible", async () => {
+  const f=setup(), a=await admin(f), m=await member(f);
+  await f.service.putEntity(a,"records","independent",{entity:{...seed.records[0],id:"independent",hospital:"مستشفى أخرى",provider_id:"p1"},expected_version:0});
+  await f.service.putEntity(a,"hospitals","h1",{entity:{...seed.hospitals[0],service_status:"suspended"},expected_version:0});
+  let catalog=(await f.service.catalog(m)).catalog;
+  assert.equal(catalog.hospitals[0].service_status,"suspended");
+  assert.equal(catalog.records.find(r=>r.id===1).service_status,"suspended");
+  assert.equal(catalog.records.find(r=>r.id==="independent").service_status,"active");
+  await f.service.putEntity(a,"hospitals","h1",{entity:{...seed.hospitals[0],directory_visibility:"hidden"},expected_version:1});
+  catalog=(await f.service.catalog(m)).catalog;
+  assert.equal(catalog.hospitals.length,0);
+  assert.equal(catalog.records.length,1);
+  assert.equal(catalog.records[0].id,"independent");
+  await f.service.putEntity(a,"hospitals","h1",{entity:{...seed.hospitals[0],directory_visibility:"visible",service_status:"active"},expected_version:2});
+  assert.equal((await f.service.catalog(m)).catalog.records.length,2);
+  assert.throws(()=>validateEntity("hospitals",{...seed.hospitals[0],service_status:"broken"}),e=>e.code==="INVALID_ENTITY");
+});
+
+test("all current doctor branches change atomically; stale versions cannot partially hide a doctor", async () => {
+  const f=setup(), a=await admin(f), m=await member(f);
+  await f.store.mutateEntity("records","other",{value:{...seed.records[0],id:"other",hospital:"مستشفى أخرى"},deleted:false},0,"fixture",Date.now());
+  const body={field:"directory_visibility",value:"hidden",scope:"provider",versions:{"1":0,other:1}};
+  await assert.rejects(()=>f.service.setEntityState(m,"records","1",body),e=>e.status===403);
+  await assert.rejects(()=>f.service.setEntityState(a,"records","1",{...body,versions:{"1":0,other:0}}),e=>e.status===409);
+  assert.equal((await f.service.catalog(m)).catalog.records.length,2);
+  assert.equal((await f.service.setEntityState(a,"records","1",body)).updated,2);
+  assert.equal((await f.service.catalog(m)).catalog.records.length,0);
+  const rows=(await f.service.catalog(a)).catalog.records;
+  assert.ok(rows.every(r=>r.directory_visibility === "hidden"));
+  await assert.rejects(()=>f.service.setEntityState(a,"records","1",body),e=>e.status===409);
+  await f.service.setEntityState(a,"records","1",{...body,value:"visible",versions:{"1":1,other:2}});
+  assert.equal((await f.service.catalog(m)).catalog.records.length,2);
+});

@@ -202,6 +202,7 @@ window.MedicalAPI = (() => {
         body: { status, revision },
         protectedRequest: true,
       }),
+    setState: (kind,id,body) => request("/admin/entities/"+encodeURIComponent(kind)+"/"+encodeURIComponent(id),{method:"PATCH",body,protectedRequest:true}),
     save: (kind, entity, version) =>
       request(
         "/admin/entities/" +

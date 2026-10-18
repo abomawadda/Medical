@@ -75,4 +75,5 @@ def merge_staff_catalog(bundle):
             bundle['specialties'].append({'name': r['specialty'], 'total_records': sum(x['specialty'] == r['specialty'] for x in bundle['records'])})
             existing_specialties.add(r['specialty'])
     bundle['metadata']['total_specialties'] = len(bundle['specialties'])
+    bundle['emergency_services'] = [r for r in bundle['emergency_services'] if r['id'] not in ('em_we_coord', 'em_we_employee', 'em_we_family')] + [{'id': 'em_we_employee', 'name': 'الخط الساخن للرعاية الطبية · موظفون', 'number': '16133', 'tel': '16133', 'description': 'خدمة الرعاية الطبية للموظفين', 'category': 'الرعاية الطبية', 'markaz': 'عموم محافظة الدقهلية', 'verification_source': 'إفادة مالك التطبيق بتاريخ 2026-10-18', 'verified': False}, {'id': 'em_we_family', 'name': 'الخط الساخن للرعاية الطبية · أسر ومعاشات', 'number': '19104', 'tel': '19104', 'description': 'خدمة الرعاية الطبية للأسر والمعاشات', 'category': 'الرعاية الطبية', 'markaz': 'عموم محافظة الدقهلية', 'verification_source': 'إفادة مالك التطبيق بتاريخ 2026-10-18', 'verified': False}]
     return bundle

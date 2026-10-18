@@ -241,6 +241,18 @@ export function firebaseAdapters({
           }),
         );
       },
+      async mutateEntities(changes,actor,at) {
+        await db.runTransaction(async tx => {
+          const refs=changes.map(c=>entities.doc(key(`${c.kind}:${c.id}`)));
+          const snapshots=await tx.getAll(...refs);
+          for (let i=0;i<changes.length;i++) {
+            if ((snapshots[i].data()?.version || 0) !== changes[i].expectedVersion)
+              throw new ApiError(409,"VERSION_CONFLICT","تغيرت حالة أحد المقار؛ حدّث الدليل وأعد المحاولة.");
+          }
+          changes.forEach((c,i)=>tx.set(refs[i],{kind:c.kind,entityId:c.id,value:c.value,deleted:false,version:c.expectedVersion+1,updated_at:at}));
+          tx.create(audit.doc(),{action:"entity.state",entities:changes.map(c=>`${c.kind}:${c.id}`),actor,at});
+        });
+      },
       async mutateEntity(kind, id, change, expectedVersion, actor, at) {
         const ref = entities.doc(key(`${kind}:${id}`)),
           log = audit.doc();

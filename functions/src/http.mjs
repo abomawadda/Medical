@@ -24,7 +24,7 @@ export function createHandler({ getService, origins, logger = console }) {
     if (req.method === "GET" && path === "/v1/health") {
       try {
         getService();
-        return res.json({ configured: true, capabilities: ["member-profile", "review-revisions", "staff-directory", "provider-images", "provider-illustrations"] });
+        return res.json({ configured: true, capabilities: ["member-profile", "review-revisions", "staff-directory", "provider-images", "provider-illustrations", "directory-state-v1"] });
       } catch {
         return res.status(503).json({
           configured: false,
@@ -76,6 +76,10 @@ export function createHandler({ getService, origins, logger = console }) {
         /^\/v1\/admin\/reviews\/[a-f0-9]{64}$/.test(path)
       )
         data = await service.moderateReview(token, path.split("/").pop(), body);
+      else if (req.method === "PATCH" && /^\/v1\/admin\/entities\/[^/]+\/[^/]+$/.test(path)) {
+        const [,kind,id]=path.match(/\/entities\/([^/]+)\/([^/]+)$/);
+        data=await service.setEntityState(token,decodeURIComponent(kind),decodeURIComponent(id),body);
+      }
       else if (
         ["PUT", "DELETE"].includes(req.method) &&
         /^\/v1\/admin\/entities\/[^/]+\/[^/]+$/.test(path)

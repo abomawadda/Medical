@@ -23,7 +23,7 @@ for (const [name, path, method, origin, expected] of checks) {
   if (name === 'api-health') {
     const value = await response.json();
     assert.equal(value.configured, true, 'API is not configured');
-    for (const capability of ['member-profile', 'review-revisions', ...(process.argv.includes('--require-staff') ? ['staff-directory','provider-images','provider-illustrations'] : [])])
+    for (const capability of ['member-profile', 'review-revisions', ...(process.argv.includes('--require-staff') ? ['staff-directory','provider-images','provider-illustrations','directory-state-v1'] : [])])
       assert.ok(value.capabilities?.includes(capability), 'Missing API capability: ' + capability);
   } else await response.arrayBuffer();
   report.checks.push({ name, status: response.status, milliseconds: Math.round(performance.now() - start) });

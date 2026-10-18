@@ -56,6 +56,15 @@ function safeEqual(a, b) {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
+// Project at the server boundary: hidden entries never reach member browsers.
+export function memberCatalog(catalog) {
+  const hospitals = catalog.hospitals || [];
+  const parent = (r) => hospitals.find(h => r.contract_entity_id === h.id || (r.hospital && [h.name,h.short_name].includes(r.hospital)));
+  return Object.fromEntries(kinds.map(kind => [kind, (catalog[kind] || [])
+    .filter(r => r.directory_visibility !== "hidden" && !(kind === "records" && parent(r)?.directory_visibility === "hidden"))
+    .map(r => ({...r, service_status: r.service_status === "suspended" || (kind === "records" && parent(r)?.service_status === "suspended") ? "suspended" : "active"}))]));
+}
+
 export function targets(catalog) {
   const map = new Map();
   for (const r of catalog.records || []) {
@@ -216,7 +225,7 @@ export function validateEntity(kind, input, previous) {
     typeof input !== "object"
   )
     fail(400, "INVALID_ENTITY", "نوع الجهة غير صالح.");
-  const allowed = [...(fields[kind] || fields.facilities), "country_code", "governorate", "governorate_code", "network_members", "network_source", "contract_type", "contract_relationships", "source_ref", "source_row", "staff_provider_code", "branch_label", "data_notes", "image_url", "image_source_url", "image_verified", "contact_evidence", "contact_review_required"];
+  const allowed = [...(fields[kind] || fields.facilities), "country_code", "governorate", "governorate_code", "network_members", "network_source", "contract_type", "contract_relationships", "source_ref", "source_row", "staff_provider_code", "branch_label", "data_notes", "image_url", "image_source_url", "image_verified", "contact_evidence", "contact_review_required", "directory_visibility", "service_status"];
   const out = Object.fromEntries(
     allowed
       .filter((k) => Object.hasOwn(input, k))
@@ -235,6 +244,10 @@ export function validateEntity(kind, input, previous) {
       out[field].length > (field === "summary" ? 3000 : 250)
     )
       fail(400, "INVALID_ENTITY", "يرجى استكمال الحقول المطلوبة.");
+  }
+  for (const [field, values] of [["directory_visibility",["visible","hidden"]],["service_status",["active","suspended"]]]) {
+    if (Object.hasOwn(out,field) && !values.includes(out[field])) fail(400,"INVALID_ENTITY","حالة الجهة غير صالحة.");
+    if (!Object.hasOwn(out,field) && previous?.[field]) out[field] = previous[field];
   }
   if (Object.hasOwn(input,"image_kind")) out.image_kind = clean(input.image_kind);
   if (Object.hasOwn(input,"avatar_type")) out.avatar_type = clean(input.avatar_type);
@@ -440,8 +453,12 @@ export function createService({
       return { name: s.name, role: s.role, expiresAt: s.expiresAt };
     },
     async catalog(token) {
-      await authorize(token);
-      return { catalog: await store.catalog(), stats: await store.getStats() };
+      const user = await authorize(token);
+      const all = await store.catalog();
+      const catalog = user.role === "admin" ? all : memberCatalog(all);
+      const allowed = targets(catalog);
+      const stats = Object.fromEntries(Object.entries(await store.getStats()).filter(([id]) => allowed.has(id)));
+      return {catalog, stats, directoryState: true};
     },
     async memberProfile(token) {
       const s = await authorize(token, "member");
@@ -460,7 +477,7 @@ export function createService({
       // Only this authenticated member can write the content of their review.
       const s = await authorize(token, "member");
       await rate(ip, "review", 20);
-      const target = targets(await store.catalog()).get(body.target_id);
+      const target = targets(memberCatalog(await store.catalog())).get(body.target_id);
       const branch = String(body.branch_id ?? "");
       if (!target || !target.branches.includes(branch))
         fail(400, "INVALID_TARGET", "مقر الزيارة غير متاح في الدليل.");
@@ -509,6 +526,26 @@ export function createService({
         fail(409, "REVIEW_CHANGED", "حدّث التطبيق وقائمة التقييمات قبل الاعتماد.");
       const result = await store.moderateReview(id, body.status, s.sourceId, now(), body.revision);
       return { success: true, ...result };
+    },
+    async setEntityState(token,kind,id,body) {
+      const s=await authorize(token,"admin");
+      const field=body.field, value=body.value;
+      if (!kinds.includes(kind) || !["directory_visibility","service_status"].includes(field) ||
+          !(field === "directory_visibility" ? ["visible","hidden"] : ["active","suspended"]).includes(value) ||
+          !["entity","provider"].includes(body.scope) || (body.scope === "provider" && kind !== "records"))
+        fail(400,"INVALID_ENTITY","طلب حالة الجهة غير صالح.");
+      const rows=(await store.catalog())[kind];
+      const current=rows.find(r=>String(r.id)===id);
+      if (!current) fail(404,"NOT_FOUND","المقر غير موجود.");
+      const selected=body.scope === "provider" ? rows.filter(r=>r.provider_id === current.provider_id) : [current];
+      if (!body.versions || Array.isArray(body.versions) || typeof body.versions !== "object" ||
+          Object.keys(body.versions).length !== selected.length || selected.some(r=>!Number.isInteger(body.versions[String(r.id)]) || body.versions[String(r.id)] !== (r._version || 0)))
+        fail(409,"VERSION_CONFLICT","تغيرت مقار الجهة؛ حدّث الدليل وأعد المحاولة.");
+      await store.mutateEntities(selected.map(r=>{
+        const entity={...r,[field]:value}; delete entity._version;
+        return {kind,id:String(r.id),value:entity,expectedVersion:r._version || 0};
+      }),s.sourceId,now());
+      return {success:true,updated:selected.length};
     },
     async putEntity(token, kind, id, body) {
       const s = await authorize(token, "admin");

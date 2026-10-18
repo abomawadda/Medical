@@ -63,6 +63,12 @@ export function fixtureStore(seed) {
         ]),
       );
     },
+    async mutateEntities(changes,actor,at) {
+      for (const c of changes) if ((overlays.get(c.kind+":"+c.id)?.version || 0) !== c.expectedVersion)
+        throw new ApiError(409,"VERSION_CONFLICT","تعارض");
+      for (const c of changes) overlays.set(c.kind+":"+c.id,{kind:c.kind,entityId:c.id,value:structuredClone(c.value),deleted:false,version:c.expectedVersion+1});
+      audit.push({action:"entity.state",actor,at});
+    },
     async mutateEntity(kind, id, change, expected, actor, at) {
       const k = kind + ":" + id;
       const previous = overlays.get(k);
