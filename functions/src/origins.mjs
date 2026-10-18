@@ -2,6 +2,7 @@
 export const productionOrigins = Object.freeze([
   "https://abomawadda.github.io",
   "https://medical-nekaba.vercel.app",
+  "https://reayati-we.vercel.app",
 ]);
 
 export function normalizeOrigin(value) {

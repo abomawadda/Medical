@@ -8,8 +8,9 @@ import {resolveAllowedOrigins, normalizeOrigin, productionOrigins} from '../src/
 import {createHandler} from '../src/http.mjs';
 import {ApiError} from '../src/core.mjs';
 
-test('production site origins include the exact Vercel host even with a legacy GitHub-only environment',()=>{
+test('production site origins include the original and owner-bound Rayati hosts with a legacy GitHub-only environment',()=>{
  assert.deepEqual(resolveAllowedOrigins('https://abomawadda.github.io'),productionOrigins);
+ assert.ok(productionOrigins.includes('https://reayati-we.vercel.app'));
  assert.equal(normalizeOrigin('https://medical-nekaba.vercel.app/'),'https://medical-nekaba.vercel.app');
  assert.deepEqual(resolveAllowedOrigins('https://other.example,https://other.example/'),[...productionOrigins,'https://other.example']);
  for(const value of ['*','https://*.vercel.app','http://medical-nekaba.vercel.app','https://user:password@other.example','https://other.example/Medical','https://other.example?x=1','https://other.example#x','https://other.example:444']) assert.throws(()=>normalizeOrigin(value));
@@ -25,7 +26,7 @@ test('approved sites pass preflight; unrelated Vercel previews are denied; catal
   const catalog=result();await handler(req(origin,'GET','/v1/catalog'),catalog);assert.equal(catalog.statusCode,401);assert.equal(catalog.headers['Access-Control-Allow-Origin'],origin);
  }
  const afterAllowed=calls;
- for(const origin of ['https://medical-nekaba-preview.vercel.app','https://medical-nekaba.vercel.app.evil.example','https://example.invalid']){
+ for(const origin of ['https://medical-nekaba-preview.vercel.app','https://rayati-we.vercel.app','https://reayati-we-preview.vercel.app','https://reayati-we.vercel.app.evil.example','https://medical-nekaba.vercel.app.evil.example','https://example.invalid']){
   const denied=result();await handler(req(origin),denied);assert.equal(denied.statusCode,403);assert.equal(denied.headers['Access-Control-Allow-Origin'],undefined);
  }
  assert.equal(calls,afterAllowed);

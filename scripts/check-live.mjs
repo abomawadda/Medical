@@ -13,7 +13,7 @@ const checks = [
 ];
 for (const [flag, origin, label] of [
   ['--vercel','https://medical-nekaba.vercel.app','vercel'],
-  ['--rayati','https://rayati-we.vercel.app','rayati'],
+  ['--rayati','https://reayati-we.vercel.app','rayati'],
 ]) {
   if (process.argv.includes(flag))
     checks.push(['api-health-'+label,'/v1/health','GET',origin,200],[label+'-catalog-requires-session','/v1/catalog','GET',origin,401],[label+'-browser-preflight','/v1/member/session','OPTIONS',origin,204]);
