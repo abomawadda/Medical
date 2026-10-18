@@ -11,10 +11,14 @@ const checks = [
   ['browser-preflight', '/v1/member/session', 'OPTIONS', allowed, 204],
   ['foreign-origin-denied', '/v1/health', 'GET', 'https://example.invalid', 403],
 ];
-if (process.argv.includes('--vercel')) {
-  const origin='https://medical-nekaba.vercel.app';
-  checks.push(['api-health-vercel','/v1/health','GET',origin,200],['vercel-catalog-requires-session','/v1/catalog','GET',origin,401],['vercel-browser-preflight','/v1/member/session','OPTIONS',origin,204]);
+for (const [flag, origin, label] of [
+  ['--vercel','https://medical-nekaba.vercel.app','vercel'],
+  ['--rayati','https://rayati-we.vercel.app','rayati'],
+]) {
+  if (process.argv.includes(flag))
+    checks.push(['api-health-'+label,'/v1/health','GET',origin,200],[label+'-catalog-requires-session','/v1/catalog','GET',origin,401],[label+'-browser-preflight','/v1/member/session','OPTIONS',origin,204]);
 }
+
 const report = { checkedAt: new Date().toISOString(), project: 'we-medical-dakahlia', checks: [] };
 for (const [name, path, method, origin, expected] of checks) {
   const start = performance.now();
