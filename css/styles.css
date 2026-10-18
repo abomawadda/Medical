@@ -1107,3 +1107,54 @@ html { overflow-anchor:none; scroll-behavior:auto; }
  .login-card .brand-pair img {width:48px;height:48px}
  .login-card .creator-credit {flex-direction:row;justify-content:center;gap:14px}
 }
+
+/* Provider profiles and a calm, task-focused emergency directory. */
+.beneficiary-icon {font-size:1.05rem;line-height:1}
+.network-badge {display:inline-flex;align-items:center;flex-wrap:wrap;gap:7px}
+.network-badge strong {font-size:.76rem}
+.provider-title-link {color:inherit;text-decoration:none;border-radius:6px}
+.provider-title-link:hover,.provider-title-link:focus-visible {color:var(--primary);text-decoration:underline;text-underline-offset:5px}
+.profile-open {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-radius:14px;background:var(--primary-soft);color:var(--primary);font-weight:700;text-decoration:none;margin-top:auto;min-height:48px}
+.profile-open:hover {box-shadow:inset 0 0 0 1px var(--primary)}
+.provider-profile {padding:clamp(20px,4vw,36px);background:linear-gradient(140deg,var(--card),var(--primary-soft));margin-bottom:24px}
+.provider-profile .provider-avatar {width:130px;height:130px;flex-basis:130px}
+.provider-profile h1 {font-size:clamp(1.6rem,4vw,2.4rem);margin:8px 0}
+.provider-profile .card-specialty {font-size:1rem}
+.provider-profile .branch-details {background:var(--card);padding:20px}
+.profile-sections {display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 16px}
+.profile-sections a {display:inline-flex;align-items:center;padding:10px 16px;min-height:44px;background:var(--card);border:1px solid var(--border);border-radius:30px;color:var(--primary);text-decoration:none;font-size:.85rem}
+.profile-back {margin-bottom:14px}
+.external-reputation {scroll-margin-top:110px}
+.reputation-local,.external-source {border:1px solid var(--border);border-radius:18px;padding:18px;background:var(--card)}
+.external-source {border-inline-start:4px solid var(--primary);margin-top:8px}
+.external-score {display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:12px 0}
+.external-score strong {font-size:1.8rem;color:var(--primary);font-family:Tajawal,sans-serif}
+.external-score span,.source-snapshot {color:var(--muted);font-size:.82rem}
+.fact-source {font-size:.78rem;color:var(--primary);min-height:32px;display:inline-flex;align-items:center;text-underline-offset:4px}
+.care-hotlines {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:20px 0}
+.care-hotline {display:flex;flex-direction:column;align-items:flex-start;padding:26px;border-radius:24px;border:1px solid var(--border);text-decoration:none;color:var(--primary);background:linear-gradient(135deg,var(--card),var(--primary-soft));box-shadow:0 10px 28px #45266b0a;position:relative;overflow:hidden}
+.care-hotline:hover {border-color:var(--primary);box-shadow:0 12px 30px #45266b17}
+.care-hotline h2 {margin:8px 0;font-size:1.35rem}
+.care-hotline strong {font-family:Tajawal,sans-serif;font-size:clamp(2rem,5vw,3.2rem);letter-spacing:.08em;line-height:1.3}
+.care-caption {font-size:.8rem;color:var(--muted)}
+.care-icon {font-size:1.5rem;margin-bottom:10px}
+.ambulance-call {display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid var(--border);background:var(--card);padding:20px 24px;border-radius:22px;margin:20px 0 32px}
+.ambulance-call h2 {margin:4px 0}
+.ambulance-call .button {font-size:1.6rem;font-weight:800;min-width:100px}
+.emergency-card-title {display:flex;align-items:flex-start;gap:12px}
+.emergency-icon {display:grid;place-items:center;background:var(--primary-soft);color:var(--primary);border-radius:12px;width:38px;height:38px;flex:0 0 38px}
+.emergency-card .card-actions {margin-top:auto}
+.emergency-card h3 {margin-top:0}
+@media(max-width:600px) {
+ .care-hotlines {gap:10px}
+ .care-hotline {padding:18px 14px}
+ .care-hotline h2 {font-size:1rem}
+ .care-caption {font-size:.68rem}
+ .care-hotline strong {font-size:2.1rem}
+ .provider-profile .provider-avatar {width:90px;height:90px;flex-basis:90px}
+ .provider-profile .branch-details {padding:16px}
+ .ambulance-call {padding:16px}
+ .ambulance-call h2 {font-size:1.15rem}
+}
+
+.reputation-panel {display:flex;flex-direction:column;gap:16px;padding:24px;border:1px solid var(--border);border-radius:24px;background:var(--card);box-shadow:var(--shadow);margin:24px 0}

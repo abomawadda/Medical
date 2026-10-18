@@ -288,6 +288,7 @@ try {
     target,
   );
   await p.locator(".branch-options").waitFor();
+  assert.ok(!/null|undefined|NaN/.test(await p.locator(".doctor-card").innerText()));
   assert.equal(await p.locator(".branch-select").count(),0);
   await p.locator('[data-branch="' + branches[1].id + '"]').click();
   assert.equal(await p.locator('[data-branch="' + branches[1].id + '"]').getAttribute("aria-pressed"),"true");
@@ -351,6 +352,14 @@ try {
   assert.equal(await a.locator(".admin-metrics article").count(),3);
   if(process.env.MEDICAL_SCREENSHOT_DIR) { await a.evaluate(()=>window.scrollTo(0,0)); await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"admin-redesign-mobile.png"),fullPage:false,style:"#toast{visibility:hidden}"}); }
 
+  await a.getByRole("button",{name:"مراجعة المواقع والمواعيد",exact:true}).click();
+  await a.getByRole("heading",{name:"مراجعة المواقع والمواعيد",exact:true}).waitFor();
+  await a.getByText("تعارض يستلزم تصحيحًا",{exact:false}).first().waitFor();
+  await a.getByRole("button",{name:"إغلاق النافذة",exact:true}).click();
+  await a.goto(origin+"/#emergency");
+  await a.getByText("رقم منشور بالدليل · راجع حداثة البيانات",{exact:true}).first().waitFor();
+  await a.goto(origin+"/#admin");
+  await a.getByRole("heading",{name:"مركز إدارة نبض النقابة",exact:true}).waitFor();
   await a.getByRole("button", { name: "جودة بيانات الدليل", exact: true }).click();
   await a.getByRole("heading", { name: "جودة بيانات الدليل", exact: true }).waitFor();
   await a.getByLabel("نوع الملاحظة", {exact:true}).selectOption("missing_source");
@@ -505,6 +514,32 @@ try {
   await g.goto(origin+"/#emergency");
   await g.locator('a[href="tel:16133"]').waitFor();
   await g.locator('a[href="tel:19104"]').waitFor();
+  assert.ok(!(await g.locator("#main").innerText()).includes("راجع حداثة"));
+  assert.ok(!(await g.locator("#main").innerText()).includes("لم يُعثر"));
+  const careBottom=await g.locator(".care-hotlines").evaluate(n=>n.getBoundingClientRect().bottom);
+  const ambulanceTop=await g.locator(".ambulance-call").evaluate(n=>n.getBoundingClientRect().top);
+  assert.ok(careBottom < ambulanceTop);
+  await g.locator('[data-emergency="em_mans_kheir_cath"]').getByText("استقبال الطوارئ على مدار 24 ساعة",{exact:true}).waitFor();
+  if(process.env.MEDICAL_SCREENSHOT_DIR) await g.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"emergency-refined-mobile.png"),fullPage:false});
+  await g.goto(origin+"/#entity="+encodeURIComponent("hospitals:staff_754"));
+  await g.getByText("شارع الجمهورية - المنصورة",{exact:true}).waitFor();
+  const resolvedMap=await g.getByRole("link",{name:"البحث عن العنوان",exact:true}).getAttribute("href");
+  assert.ok(new URL(resolvedMap).searchParams.get("query").includes("شارع الجمهورية"));
+  assert.ok(!/null|undefined|NaN/.test(await g.locator(".facility-card").innerText()));
+  await g.goto(origin+"/#doctors");
+  await g.getByRole("heading",{name:"الأطباء والعيادات",exact:true}).waitFor();
+  assert.equal(await g.locator(".provider-profile").count(),0);
+  assert.equal(await g.locator(".profile-open").count(),await g.locator(".doctor-card").count());
+  await g.locator(".profile-open").first().click();
+  await g.locator(".provider-profile").waitFor();
+  assert.ok(!/null|undefined|NaN/.test(await g.locator(".provider-profile").innerText()));
+  await g.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_127"));
+  await g.locator(".external-score").waitFor();
+  assert.ok((await g.locator(".external-score").innerText()).includes("459"));
+  assert.ok((await g.locator(".external-source").innerText()).includes("يوليو 2018"));
+  await g.getByText("المستفيدون",{exact:true}).first().waitFor();
+  if(process.env.MEDICAL_SCREENSHOT_DIR) await g.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"doctor-profile-mobile.png"),fullPage:true});
+
   assert.ok(!(await g.locator("#main").innerText()).includes("مسؤول الرعاية الطبية"));
   await g.goto(origin+"/#services");
   await g.getByRole("button",{name:"الصيدليات",exact:true}).click();
@@ -590,7 +625,7 @@ try {
   await pilot.getByRole("button", {name:"ابحث الآن",exact:true}).click();
   await pilot.locator(".card").first().waitFor();
   await pilot.locator(".before-visit summary").first().click();
-  assert.ok(await pilot.getByText("راجع تفاصيل هذا المقر قبل الزيارة.", {exact:true}).first().isVisible());
+  assert.equal(await pilot.getByText("راجع تفاصيل هذا المقر قبل الزيارة.", {exact:true}).count(),0);
   await pilot.locator('[data-branch="' + branches[1].id + '"]').first().click();
   await pilot.locator(".before-visit summary").first().click();
   assert.ok((await pilot.locator(".before-visit").first().textContent()).includes(branches[1].address));

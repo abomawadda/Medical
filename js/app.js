@@ -13,6 +13,7 @@
   const API = window.MedicalAPI,
     prefs = window.MedicalStorage;
   const CONTACTS = window.MedicalContacts;
+  const RESEARCH = window.MedicalResearch;
   const dakahliaCenters = ["المنصورة","طلخا","ميت غمر","السنبلاوين","بلقاس","دكرنس","شربين","أجا","المنزلة","منية النصر","ميت سلسيل","بني عبيد","نبروه","الجمالية","تمي الأمديد","محلة دمنة"];
   const kinds = [
     "records",
@@ -111,7 +112,7 @@
   }
   const empty = (text) => el("div", { class: "empty" }, text);
   const detail = (symbol, text) =>
-    text
+    display(text)
       ? el(
           "p",
           { class: "detail" },
@@ -119,6 +120,24 @@
           el("span", {}, text),
         )
       : null;
+  function replaceNodes(node,...children) {
+    node.replaceChildren(...children.flat(Infinity).filter(child=>child instanceof Node));
+  }
+  const usable = value => {
+    const text=String(display(value) || "").trim();
+    return text && !/تحتاج? (?:إلى )?تأكيد|تحتاج? مراجعة|غير مسجل|غير متاح|اتصل لمعرفة|راجع حداثة|راجع جهة|تأكد من العنوان/.test(text) ? text : "";
+  };
+  function publicBranch(branch,kind) {
+    let result={...branch};
+    const facts=kind === "hospitals" ? RESEARCH.hospital(result) : null;
+    if (facts?.address && result.address === facts.originalAddress && !result._version) result.address=facts.address;
+    if (kind === "records" && /^(?:مقر )?مستشفي/.test(normalize(result.address))) {
+      const h=state.catalog.hospitals.find(h=>h.id === result.contract_entity_id || [h.name,h.short_name].includes(result.hospital));
+      if (h) {const parent=publicBranch(h,"hospitals");result.address=parent.address;result.maps_url=parent.maps_url;}
+    }
+    if (facts?.originalMap === result.maps_url && ["conflict","unresolved"].includes(facts?.mapStatus)) result.maps_url="";
+    return result;
+  }
   function toast(text) {
     $("#toast").textContent = text;
     $("#toast").hidden = false;
@@ -214,6 +233,7 @@
     connection();
     const u = session();
     $(".admin-link").hidden = u?.role === "member";
+    $("#filter-panel > small").hidden = !isAdmin();
     $("#member-button").textContent = u
       ? (u.role === "member" ? "مرحبًا، " : "") + u.name
       : "دخول الأعضاء";
@@ -351,7 +371,7 @@
     if (!label && entity.source_ref === "staff-20261018") label = "شبكة الموظفين";
     if (!label && entity.coverage_verified === true) label = {both:"الموظفون والأسر",employee_only:"الموظفون",family_globemed:"الأسر"}[entity.coverage_scope];
     if (!label && isAdmin()) label = "تصنيف الشبكة يحتاج مراجعة الإدارة";
-    return label ? el("div",{class:"network-badge"},label) : null;
+    return label ? el("div",{class:"network-badge"},el("span",{"aria-hidden":"true",class:"beneficiary-icon"},"♧"),el("strong",{},"المستفيدون"),el("span",{},label)) : null;
   }
   function providerAvatar(entity, type) {
     const defaultType = type === "doctor" ? window.MedicalAvatarHints.doctor(entity.name) : type === "pharmacy" ? "pharmacy" : "clinic";
@@ -379,18 +399,14 @@
         const evidence = (branch.contact_evidence || []).find((e) => e.number === n);
         return el("span", {class:"phone-entry"}, el("a", {class:"phone-chip",href:"tel:" + n,dir:"ltr","aria-label":`${kind === "mobile" ? "محمول" : kind === "landline" ? "أرضي" : "رقم مختصر"} ${n}`}, n), isAdmin() && evidence ? link("المصدر",evidence.source_url,"phone-source") : null);
       }))));
-    return el("div", {class:"contact-groups"}, rows.length ? rows : el("p", {class:"muted"}, "رقم الاتصال غير متاح"),
+    return el("div", {class:"contact-groups"}, rows.length ? rows : isAdmin() ? el("p", {class:"muted"}, "رقم الاتصال غير متاح") : null,
       isAdmin() && (branch.contact_review_required || groups.invalid.length) ? el("small", {class:"muted"}, "بعض الأرقام تحتاج مراجعة؛ أُخفيت الأرقام غير سليمة الصيغة.") : null);
   }
   function actionLinks(branch) {
-    return [
-      contactGroups(branch, true),
-      link(
-        "الخريطة",
-        branch.maps_url ||
-          `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([branch.name, branch.address, branch.markaz || branch.city].filter(Boolean).join(" "))}`,
-      ),
-    ];
+    const query=[branch.name,branch.address,branch.markaz || branch.city,"الدقهلية","مصر"].map(display).filter(Boolean).join(" ");
+    const original=safeUrl(branch.maps_url);
+    const exact=original && !/\/maps\/search|[?&](q|query)=/.test(original);
+    return [contactGroups(branch,true),link(exact ? "الموقع على الخريطة" : "البحث عن العنوان", exact ? original : "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(query))];
   }
   function share(target, name) {
     const url = new URL(location.href);
@@ -407,16 +423,16 @@
   function beforeVisit(branch) {
     return el("details", {class:"before-visit"},
       el("summary", {}, "قبل ما تتحرك"),
-      el("p", {class:"muted"}, "راجع تفاصيل هذا المقر قبل الزيارة."),
+      isAdmin() ? el("p", {class:"muted"}, "راجع تفاصيل هذا المقر قبل الزيارة.") : null,
       el("dl", {class:"visit-checklist"},
-        el("div", {}, el("dt", {}, "العنوان"), el("dd", {}, branch.address || "تأكد من العنوان عند الاتصال")),
-        el("div", {}, el("dt", {}, "المواعيد"), el("dd", {}, branch.schedule || branch.working_hours || "تحتاج تأكيدًا عند الاتصال")),
-        el("div", {}, el("dt", {}, "الشبكة"), el("dd", {}, coverage(branch) || "راجع جهة التعاقد")),
+        usable(branch.address) || isAdmin() ? el("div", {}, el("dt", {}, "العنوان"), el("dd", {}, usable(branch.address) || "العنوان يحتاج استكمالًا")) : null,
+        usable(branch.schedule || branch.working_hours) || isAdmin() ? el("div", {}, el("dt", {}, "المواعيد"), el("dd", {}, usable(branch.schedule || branch.working_hours) || "المواعيد تحتاج استكمالًا")) : null,
+        coverage(branch) || isAdmin() ? el("div", {}, el("dt", {}, "الشبكة"), el("dd", {}, coverage(branch) || "تصنيف الشبكة يحتاج مراجعة")) : null,
         isAdmin() ? el("div", {}, el("dt", {}, "تاريخ التحقق"), el("dd", {}, branch.verified_at || "غير مسجل في الدليل")) : null),
       isAdmin() && branch.source_url ? link("مصدر المعلومة", branch.source_url, "text-button") : null,
-      el("p", {class:"notice"}, "اتصل بالمقر لمعرفة المواعيد وإجراء الزيارة."));
+      isAdmin() ? el("p", {class:"notice"}, "اتصل بالمقر لمعرفة المواعيد وإجراء الزيارة.") : null);
   }
-  function doctorCard(p) {
+  function doctorCard(p,full = false) {
     const target = "doctor:" + p.id;
     let branch = p.matched[0];
     const details = el("div",{class:"branch-details"});
@@ -429,37 +445,44 @@
         button.classList.toggle("active", active);
         button.setAttribute("aria-pressed",String(active));
       }
-      details.replaceChildren(
+      const shown=publicBranch(branch,"records");
+      replaceNodes(details,
         el("p",{class:"branch-hospital"},branch.hospital || "العيادة"),
         statusBadge(branch),
-        detail("⌖",branch.address || "العنوان غير متاح"),
-        detail("◷",branch.schedule || "اتصل لمعرفة المواعيد"),
+        detail("⌖",usable(shown.address) || (isAdmin() ? "العنوان غير متاح" : "")),
+        detail("◷",usable(branch.schedule) || (isAdmin() ? "المواعيد تحتاج استكمالًا" : "")),
         coverage(branch),
-        companionPreview ? beforeVisit(branch) : null);
-      actions.replaceChildren(...actionLinks(branch), button("قيّم الزيارة",()=>reviewDialog(target,p.name,String(branch.id)),"button primary"));
+        companionPreview ? beforeVisit(publicBranch(branch,"records")) : null);
+      replaceNodes(actions,...actionLinks(shown), button("قيّم الزيارة",()=>reviewDialog(target,p.name,String(branch.id)),"button primary"));
     };
-    const card = el("article",{class:"card doctor-card","data-target":target},
+    const card = el("article",{class:"card doctor-card"+(full ? " provider-profile" : ""),"data-target":target},
       el("div",{class:"card-top"},providerAvatar(p,p.is_department ? "clinic" : "doctor"),
-        el("div",{class:"card-info"},el("span",{class:"card-eyebrow"},p.is_department ? "قسم طبي" : "رعاية متخصصة"),el("h3",{},p.name),el("p",{class:"card-specialty"},p.specialty),
+        el("div",{class:"card-info"},el("span",{class:"card-eyebrow"},p.is_department ? "قسم طبي" : "رعاية متخصصة"),el(full ? "h1" : "h3",{},full ? p.name : el("a",{href:"#entity="+encodeURIComponent(target),class:"provider-title-link"},p.name)),el("p",{class:"card-specialty"},p.specialty),
           isAdmin() && p.image_verified ? link("مصدر الصورة",p.image_source_url,"image-source") : null),favorite(target)));
     if (p.branches.length > 1) card.append(el("p",{class:"multi-location"},`له ${p.branches.length} مقار · لكل مقر تفاصيله`));
     if (p.matched.length > 1) {
-      card.append(el("p",{class:"branch-instruction"},"اختر المستشفى أو العيادة لعرض تفاصيلها"));
+      if(isAdmin()) card.append(el("p",{class:"branch-instruction"},"اختر المستشفى أو العيادة لعرض تفاصيلها"));
       for (const b of p.matched) {
         const option = button("",()=>{branch=b;renderBranch();},"branch-option");
         option.dataset.branch = String(b.id);
-        option.append(el("strong",{},b.hospital || "العيادة"),el("small",{},[b.clinic_type,b.markaz || b.city].filter(Boolean).join(" · ")),statusBadge(b));
+        replaceNodes(option,el("strong",{},b.hospital || "العيادة"),el("small",{},[b.clinic_type,b.markaz || b.city].filter(Boolean).join(" · ")),statusBadge(b));
         buttons.push([b,option]);
         options.append(option);
       }
       card.append(options);
     }
     if (p.branches.length > p.matched.length) card.append(button(`عرض كل المقار (${p.branches.length})`,()=>{location.hash="entity="+encodeURIComponent(target);},"text-button"));
-    card.append(details,rating(target),actions,button("مشاركة الجهة",()=>share(target,p.name),"text-button card-share"));
+    card.append(...[details,full ? null : rating(target),actions,button("مشاركة الجهة",()=>share(target,p.name),"text-button card-share")].filter(n=>n instanceof Node));
+    if (!full) {
+      card.append(el("a",{class:"profile-open",href:"#entity="+encodeURIComponent(target)},p.is_department ? "ملف القسم الطبي" : "ملف الطبيب والتفاصيل",el("span",{"aria-hidden":"true"},"←")));
+      card.addEventListener("click",event=>{if(!event.target.closest("a,button,input,details,summary,select,textarea")) location.hash="entity="+encodeURIComponent(target);});
+    }
     renderBranch();
     return card;
   }
-  function facilityCard(kind, r) {
+  function facilityCard(kind, original) {
+    const r=publicBranch(original,kind);
+    const facts=kind === "hospitals" ? RESEARCH.hospital(original) : null;
     const target = kind + ":" + r.id;
     return el(
       "article",
@@ -478,10 +501,14 @@
         favorite(target),
       ),
       statusBadge(r),
-      detail("⌖", r.address),
-      detail("↔",r.contract_type === "direct_we" || r.contract_entity_id === "direct_we" ? "تعاقد مباشر مع الشركة" : r.contract_entity),
+      detail("⌖", usable(r.address)),
+      detail("↔",r.contract_type === "direct_we" || r.contract_entity_id === "direct_we" ? "تعاقد مباشر مع الشركة" : usable(r.contract_entity)),
       isAdmin() && r.data_notes ? el("p", {class:"data-note"}, r.data_notes) : null,
-      kind === "pharmacies" ? detail("◷", r.working_hours) : detail("◷", r.working_hours || "اتصل لمعرفة المواعيد"),
+      detail("◷",facts?.hours || usable(r.working_hours)),
+      facts?.hoursSource ? link("مصدر ساعات العمل",facts.hoursSource,"fact-source") : null,
+      facts?.scheduleSource ? link("جدول الاستقبال والعيادات",facts.scheduleSource,"fact-source") : null,
+      isAdmin() && facts?.note ? el("p",{class:"data-note"},facts.note) : null,
+      isAdmin() && !usable(r.working_hours) && !facts?.hours ? el("p",{class:"data-note"},"مواعيد استقبال موثقة مطلوبة") : null,
       coverage(r),
       companionPreview ? beforeVisit(r) : null,
       rating(target),
@@ -518,8 +545,8 @@
   function renderFilters() {
     const container = $("#filters");
     container.replaceChildren();
-    $("#filter-panel").hidden = ["home", "admin", "account", "guidelines", "districts"].includes(state.tab);
-    if (["home", "admin", "account", "guidelines", "districts"].includes(state.tab)) return;
+    $("#filter-panel").hidden = ["home", "admin", "account", "guidelines", "districts", "profile"].includes(state.tab);
+    if (["home", "admin", "account", "guidelines", "districts", "profile"].includes(state.tab)) return;
     const areas = [
       ...new Set([...dakahliaCenters,
         kinds
@@ -807,6 +834,10 @@
       );
       return;
     }
+    if (location.hash.startsWith("#entity=")) {
+      try {return openDeepLink(decodeURIComponent(location.hash.slice(8)));}
+      catch {return main.append(empty("تعذر عرض بيانات الجهة."));}
+    }
     if (state.tab === "home") return renderHome(main);
     if (state.tab === "admin") return renderAdmin(main);
     if (state.tab === "account") return renderAccount(main);
@@ -851,61 +882,30 @@
       return;
     }
     if (state.tab === "emergency") {
-      main.append(
-        heading(
-          "الطوارئ والاتصال العاجل",
-          "للإسعاف اتصل مباشرة بـ123. أرقام الجهات المحلية تحتاج تأكيدًا دوريًا.",
-        ),
-        el(
-          "div",
-          { class: "actions-row" },
-          el(
-            "a",
-            { class: "button danger", href: "tel:123" },
-            "اتصال بالإسعاف 123",
-          ),
-        ),
-      );
-      main.append(
-        gridCards(
-          [...[
-            {id:"em_we_employee",name:"الخط الساخن للرعاية الطبية · موظفون",number:"16133",tel:"16133",description:"خدمة الرعاية الطبية للموظفين"},
-            {id:"em_we_family",name:"الخط الساخن للرعاية الطبية · أسر ومعاشات",number:"19104",tel:"19104",description:"خدمة الرعاية الطبية للأسر والمعاشات"},
-          ].filter(r => !state.directoryState && !state.catalog.emergency_services.some(e => e.id === r.id)), ...state.catalog.emergency_services]
-            .filter(r => r.id !== "em_we_coord" && !/مسؤول الرعاية الطبية/.test(r.name))
-            .filter(
-              (r) =>
-                (!state.markaz || r.markaz === state.markaz) &&
-                matchesText([r.name, r.markaz, r.description]),
-            )
-            .map((r) =>
-              el(
-                "article",
-                { class: "card" },
-                el("h3", {}, r.name),
-                detail("⌖", r.markaz),
-                el("p", { class: "muted" }, r.description),
-                el(
-                  "p",
-                  { class: "coverage unknown" },
-                  r.verified && r.source_url
-                    ? "آخر تحقق: " + r.verification_date
-                    : "رقم منشور بالدليل · راجع حداثة البيانات",
-                ),
-                telephone(r.tel || r.number)
-                  ? el(
-                      "a",
-                      {
-                        class: "button danger",
-                        href: "tel:" + telephone(r.tel || r.number),
-                      },
-                      "اتصال " + (r.number || r.tel),
-                    )
-                  : null,
-              ),
-            ),
-        ),
-      );
+      main.append(heading("الرعاية الطبية والطوارئ",isAdmin() ? "بيانات التشغيل غير المؤكدة ظاهرة للإدارة فقط." : "أرقام الرعاية الطبية وخدمات الاتصال العاجل"));
+      const rows=[...[
+        {id:"em_we_employee",name:"الخط الساخن للرعاية الطبية · موظفون",number:"16133",tel:"16133"},
+        {id:"em_we_family",name:"الخط الساخن للرعاية الطبية · أسر ومعاشات",number:"19104",tel:"19104"},
+      ].filter(r=>!state.directoryState && !state.catalog.emergency_services.some(e=>e.id===r.id)),...state.catalog.emergency_services]
+        .filter(r=>r.id !== "em_we_coord" && !/مسؤول الرعاية الطبية/.test(r.name));
+      const care=rows.filter(r=>["em_we_employee","em_we_family"].includes(r.id)).sort((a,b)=>a.id === "em_we_employee" ? -1 : b.id === "em_we_employee" ? 1 : 0);
+      main.append(el("section",{class:"care-hotlines","aria-label":"خطوط الرعاية الطبية"},care.map(r=>
+        el("a",{class:"care-hotline",href:"tel:"+telephone(r.tel || r.number)},el("span",{class:"care-icon","aria-hidden":"true"},"✚"),el("span",{class:"care-caption"},"الخط الساخن للرعاية الطبية"),el("h2",{},r.id === "em_we_employee" ? "الموظفون" : "الأسر والمعاشات"),el("strong",{dir:"ltr"},r.number || r.tel)))));
+      main.append(el("section",{class:"ambulance-call"},el("div",{},el("span",{class:"card-eyebrow"},"الاتصال العاجل"),el("h2",{},"الإسعاف المصري")),el("a",{href:"tel:123",class:"button danger",dir:"ltr"},"123")));
+      const selected=rows.filter(r=>!["em_we_employee","em_we_family","em_1"].includes(r.id) && (!state.markaz || r.markaz === state.markaz) && matchesText([r.name,r.markaz,r.description]));
+      main.append(heading("الاستقبال والمستشفيات والخدمات"),gridCards(selected.map(r=>{
+        const facts=RESEARCH.urgent(r);
+        return el("article",{class:"card emergency-card","data-emergency":r.id},
+          el("div",{class:"emergency-card-title"},el("span",{"aria-hidden":"true",class:"emergency-icon"},"✚"),el("h3",{},r.name)),
+          detail("⌖",usable(r.address) || usable(r.markaz)),
+          detail("◷",facts?.hours),
+          facts?.hoursSource ? link("مصدر ساعات العمل",facts.hoursSource,"fact-source") : null,
+          facts?.scheduleSource ? link("جدول الاستقبال",facts.scheduleSource,"fact-source") : null,
+          isAdmin() ? el("p",{class:"data-note"},facts?.note || (!facts?.hours ? "لم يُعثر على مواعيد استقبال حديثة موثقة؛ ساعات الملف السابقة: "+(usable(r.hours)||"غير مسجلة") : "رُوجع المصدر في 18 أكتوبر 2026")) : null,
+          isAdmin() ? el("p",{class:"coverage unknown"},r.verified && r.source_url ? "آخر تحقق: "+(display(r.verification_date)||"غير مسجل") : "رقم منشور بالدليل · راجع حداثة البيانات") : null,
+          el("div",{class:"card-actions"},telephone(r.tel || r.number) ? el("a",{class:"button danger",href:"tel:"+telephone(r.tel || r.number)},"اتصال "+(r.number || r.tel)) : null,
+            link("الخريطة","https://www.google.com/maps/search/?api=1&query="+encodeURIComponent([r.name,r.address,r.markaz,"الدقهلية","مصر"].map(display).filter(Boolean).join(" ")))));
+      })));
       return;
     }
     if (["services","dental"].includes(state.tab))
@@ -943,7 +943,7 @@
           .filter(
             (p) => state.tab !== "favorites" || favs.includes("doctor:" + p.id),
           )
-          .map(doctorCard),
+          .map(p=>doctorCard(p)),
       );
     const facilityKinds =
       state.tab === "hospitals"
@@ -1054,14 +1054,16 @@
     }
     const main = $("#main");
     main.dataset.catalogReady = "true";
-    state.tab = "doctors";
+    state.tab = "profile";
     renderFilters();
-    main.replaceChildren(heading("الجهة الطبية"));
+    const navTarget=target.startsWith("doctor:") ? "#doctors" : "#services";
+    $("#main-nav").querySelectorAll("a").forEach(a=>{const active=a.getAttribute("href") === navTarget;a.classList.toggle("active",active);if(active)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");});
+    main.replaceChildren();
     if (target.startsWith("doctor:")) {
       const p = providers().find((p) => "doctor:" + p.id === target);
       main.append(
         p
-          ? doctorCard({ ...p, matched: p.branches })
+          ? doctorProfile(p)
           : empty("الجهة لم تعد متاحة."),
       );
     } else {
@@ -1069,8 +1071,37 @@
         kind = target.slice(0, at),
         id = target.slice(at + 1),
         r = state.catalog[kind]?.find((r) => String(r.id) === id);
-      main.append(r ? facilityCard(kind, r) : empty("الجهة لم تعد متاحة."));
+      main.append(heading("الجهة الطبية"),r ? facilityCard(kind, r) : empty("الجهة لم تعد متاحة."));
     }
+  }
+  function doctorProfile(p) {
+    const box=el("section",{class:"doctor-profile-page"},
+      button("العودة إلى الأطباء",()=>go("doctors"),"text-button profile-back"),
+      doctorCard({...p,matched:p.branches},true));
+    const target="doctor:"+p.id;
+    const tabs=el("nav",{class:"profile-sections","aria-label":"أقسام ملف الطبيب"},
+      el("a",{href:"#profile-locations",onClick:event=>{event.preventDefault();box.querySelector(".branch-details").scrollIntoView({behavior:"smooth",block:"center"});}},"المقار والتواصل"),
+      el("a",{href:"#profile-reputation",onClick:event=>{event.preventDefault();box.querySelector(".external-reputation").scrollIntoView({behavior:"smooth",block:"start"});}},"الآراء والمصادر"));
+    box.prepend(tabs);
+    const facts=RESEARCH.doctor(p);
+    const external=el("section",{class:"external-reputation reputation-panel",id:"profile-reputation"},
+      el("div",{class:"section-heading"},el("div",{},el("span",{class:"card-eyebrow"},"تجارب ومصادر مستقلة"),el("h2",{},"آراء المرضى"))),
+      el("div",{class:"reputation-local"},el("h3",{},"تقييم أعضاء نبض النقابة"),rating(target)));
+    if(facts) {
+      const snapshot=facts.average ? el("div",{class:"external-score"},el("strong",{},`★ ${facts.average.toFixed(1)}/5`),el("span",{},`${facts.count} تقييمًا على ${facts.source}`)) : null;
+      external.append(el("article",{class:"external-source"},el("h3",{},facts.source),snapshot,
+        facts.reviewSummary ? el("p",{},facts.reviewSummary) : null,
+        facts.reviewDate ? el("small",{class:"muted"},"تاريخ الرأي المعروض: "+facts.reviewDate) : null,
+        facts.average ? el("p",{class:"source-snapshot"},"لقطة المصدر بتاريخ 18 أكتوبر 2026 · مستقلة عن تقييم أعضاء التطبيق") : null,
+        link("عرض الملف والآراء في المصدر",facts.url,"button outline"),
+        facts.reviewUrl ? link("ملف فيزيتا",facts.reviewUrl,"fact-source") : null,
+        isAdmin() && facts.note ? el("p",{class:"data-note"},facts.note) : null));
+    }
+    const search="https://www.google.com/search?q="+encodeURIComponent([p.name,p.specialty,...new Set(p.branches.map(b=>b.markaz || b.city)),"آراء المرضى"].filter(Boolean).join(" "));
+    external.append(link("بحث خارجي عن الطبيب",search,"text-button"));
+    if(isAdmin() && !facts) external.append(el("p",{class:"data-note"},"لم تثبت مطابقة ملف خارجي لهذا الطبيب؛ لا يوجد تقييم خارجي مضاف."));
+    box.append(external);
+    return box;
   }
   function memberForm() {
     const form = el(
@@ -1392,6 +1423,7 @@
         ),
         button("مراجعة التقييمات", adminReviewDialog, "button outline"),
         button("جودة بيانات الدليل", qualityDialog, "button outline"),
+        button("مراجعة المواقع والمواعيد", researchDialog, "button outline"),
         button("تصدير بيانات الدليل", exportCatalog, "button outline"),
         button("تسجيل الخروج", logout, "button outline"),
       ),
@@ -1477,6 +1509,28 @@
           "button outline load-more",
         ),
       );
+  }
+  function researchDialog() {
+    if(!isAdmin()) return;
+    const content=el("div",{class:"research-review"},el("p",{class:"muted"},"مراجعة مصادر منشورة بتاريخ 18 أكتوبر 2026. ساعات فتح المنشأة لا تثبت مواعيد جميع التخصصات أو استقبال كل فئات المرضى. لم تجر مكالمات هاتفية."));
+    for(const r of state.catalog.hospitals) {
+      const facts=RESEARCH.hospital(r);
+      content.append(el("article",{class:"quality-item"},el("h3",{},r.name),
+        el("p",{},"مطابقة الموقع: "+({matched:"اسم الجهة متوافق مع رابط الخريطة",conflict:"تعارض يستلزم تصحيحًا",unresolved:"المطابقة التفصيلية غير محسومة"}[facts?.mapStatus] || "لم يراجع")),
+        el("p",{},facts?.hours || "لم تثبت مواعيد استقبال حديثة"),
+        facts?.note ? el("p",{class:"data-note"},facts.note) : null,
+        facts?.address ? el("p",{},"عنوان العرض المصحح: "+facts.address) : null,
+        facts?.hoursSource ? link("مصدر ساعات العمل",facts.hoursSource,"fact-source") : null,
+        facts?.addressSource ? link("مصدر العنوان",facts.addressSource,"fact-source") : null,
+        facts?.scheduleSource ? link("جدول العيادات والاستقبال",facts.scheduleSource,"fact-source") : null,
+        button("مراجعة بيانات الجهة",()=>editDialog("hospitals",r),"button outline")));
+    }
+    content.append(el("h3",{},"مواعيد جهات الطوارئ"));
+    for(const r of state.catalog.emergency_services.filter(r=>/مستش/.test(r.name))) {
+      const facts=RESEARCH.urgent(r);
+      content.append(el("article",{class:"quality-item"},el("strong",{},r.name),el("p",{},facts?.hours || "لم تثبت ساعات استقبال قابلة للنشر"),facts?.hoursSource ? link("المصدر",facts.hoursSource,"fact-source") : null));
+    }
+    dialog("مراجعة المواقع والمواعيد",content);
   }
   async function changeEntityState(kind,r,key,value) {
     const all=kind === "records" ? state.catalog.records.filter(e=>e.provider_id===r.provider_id) : [r];
@@ -1856,7 +1910,7 @@
     startOfPage();
     state.query = event.target.value;
     state.limit = 24;
-    if (state.tab === "home") {
+    if (["home","profile"].includes(state.tab)) {
       go("doctors");
     } else renderMain();
   });
