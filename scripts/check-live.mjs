@@ -11,16 +11,20 @@ const checks = [
   ['browser-preflight', '/v1/member/session', 'OPTIONS', allowed, 204],
   ['foreign-origin-denied', '/v1/health', 'GET', 'https://example.invalid', 403],
 ];
+if (process.argv.includes('--vercel')) {
+  const origin='https://medical-nekaba.vercel.app';
+  checks.push(['api-health-vercel','/v1/health','GET',origin,200],['vercel-catalog-requires-session','/v1/catalog','GET',origin,401],['vercel-browser-preflight','/v1/member/session','OPTIONS',origin,204]);
+}
 const report = { checkedAt: new Date().toISOString(), project: 'we-medical-dakahlia', checks: [] };
 for (const [name, path, method, origin, expected] of checks) {
   const start = performance.now();
   const response = await fetch(base + path, {
-    method, headers: { Origin: origin }, cache: 'no-store', signal: AbortSignal.timeout(30000),
+    method, headers: { Origin: origin, ...(method === 'OPTIONS' ? {'Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'Content-Type,Authorization'} : {}) }, cache: 'no-store', signal: AbortSignal.timeout(30000),
   });
   assert.equal(response.status, expected, name + ': unexpected HTTP status');
   assert.match(response.headers.get('cache-control') || '', /no-store/, name + ': API must not be cached');
-  if (origin === allowed) assert.equal(response.headers.get('access-control-allow-origin'), allowed, name + ': CORS');
-  if (name === 'api-health') {
+  if (origin !== 'https://example.invalid') assert.equal(response.headers.get('access-control-allow-origin'), allowed, name + ': CORS');
+  if (name.startsWith('api-health')) {
     const value = await response.json();
     assert.equal(value.configured, true, 'API is not configured');
     for (const capability of ['member-profile', 'review-revisions', ...(process.argv.includes('--require-content') ? ['directory-content-v1'] : []), ...(process.argv.includes('--require-family') ? ['family-directory-v1'] : []), ...(process.argv.includes('--require-staff') ? ['staff-directory','provider-images','provider-illustrations','directory-state-v1'] : [])])

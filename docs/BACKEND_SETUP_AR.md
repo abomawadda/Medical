@@ -107,3 +107,7 @@ cd ~/cloudshell_open/Medical && git pull --ff-only && bash scripts/deploy-medica
 ```
 
 يتحقق المساعد بعد النشر من وجود الميزتين عبر عنوان الصحة العام. إذا لم يوجد ملف الإعداد الخاص في Cloud Shell، استخدم وسيطي معرف المدير ومفتاح Web API كما في تعليمات النشر السابقة؛ لا تحاول تعويض الملف بمفتاح الخدمة أو كلمة مرور المدير.
+
+## إضافة موقع Vercel المعتمد
+
+أضاف المالك `https://medical-nekaba.vercel.app`، مع إبقاء GitHub Pages. قائمة النطاقات الدقيقة في `functions/src/origins.mjs`، ويحتفظ مساعد النشر بإضافات البيئة السابقة. تحديث هذه القائمة يحتاج نشر خدمة Medical، ثم `node scripts/check-live.mjs --vercel`. التفاصيل وأدلة تشخيص رفض OPTIONS في `docs/VERCEL_CONNECTION_AR.md`؛ لا تستخدم wildcard لنطاقات Vercel ولا تغيّر بيانات الدخول لحل رفض Origin.

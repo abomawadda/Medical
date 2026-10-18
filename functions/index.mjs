@@ -4,6 +4,7 @@ import { defineSecret } from "firebase-functions/params";
 import { createService } from "./src/core.mjs";
 import { firebaseAdapters } from "./src/firebase-adapters.mjs";
 import { createHandler } from "./src/http.mjs";
+import { resolveAllowedOrigins } from "./src/origins.mjs";
 
 const sessionSecret = defineSecret("MEDICAL_SESSION_SECRET");
 const membershipCredentials = defineSecret("MYNEKABA_READONLY_CREDENTIALS");
@@ -46,12 +47,7 @@ function getService() {
   });
   return service;
 }
-const origins = String(
-  process.env.MEDICAL_ALLOWED_ORIGINS || "https://abomawadda.github.io",
-)
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+const origins = resolveAllowedOrigins(process.env.MEDICAL_ALLOWED_ORIGINS);
 export const medicalApi = onRequest(
   {
     region: "europe-west1",

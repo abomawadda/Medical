@@ -7,6 +7,7 @@ cd "$(dirname "$0")/.."
 export MEDICAL_DEPLOY_PROJECT=we-medical-dakahlia
 export MYNEKABA_PROJECT_ID=nekaba2026
 export GCLOUD_PROJECT="$MEDICAL_DEPLOY_PROJECT"
+deploy_env="functions/.env.$MEDICAL_DEPLOY_PROJECT"
 
 if [[ "${1:-}" == --existing-config ]]; then
   if [[ $# -gt 2 || ( $# -eq 2 && "$2" != --prepare-only ) ]]; then
@@ -49,13 +50,23 @@ node -e 'if (Number(process.versions.node.split(".")[0]) < 22) { console.error("
 
 # Only non-secret configuration is written here, and this file is Git-ignored.
 # The two private secrets must already exist in Medical Secret Manager.
+# Retain any configured sites while including the approved production origins.
+allowed_origins=$(node --input-type=module - "$deploy_env" <<'JS'
+import { existsSync, readFileSync } from 'node:fs';
+import { resolveAllowedOrigins } from './functions/src/origins.mjs';
+const path = process.argv[2];
+const line = existsSync(path) ? readFileSync(path, 'utf8').split(/\r?\n/).find(s => s.startsWith('MEDICAL_ALLOWED_ORIGINS=')) : '';
+const saved = line ? line.slice(line.indexOf('=') + 1).trim().replace(/^(['"])(.*)\1$/, '$2') : '';
+console.log(resolveAllowedOrigins([saved, process.env.MEDICAL_ALLOWED_ORIGINS].filter(Boolean).join(',')).join(','));
+JS
+)
 umask 077
 cat > "functions/.env.$MEDICAL_DEPLOY_PROJECT" <<EOF
 MEMBER_ACCESS_POLICY=all_registered
 MEMBER_ALLOWED_STATES=[]
 MYNEKABA_ADMIN_ACCOUNT_IDS=$1
 MYNEKABA_AUTH_API_KEY=$2
-MEDICAL_ALLOWED_ORIGINS=https://abomawadda.github.io
+MEDICAL_ALLOWED_ORIGINS=$allowed_origins
 EOF
 node scripts/prepare-seed.mjs
 if [[ "${3:-}" == --prepare-only ]]; then
@@ -69,7 +80,7 @@ npx --yes firebase-tools@15.34.0 deploy \
   --project "$MEDICAL_DEPLOY_PROJECT" \
   --only functions:medical,firestore:rules
 
-node --input-type=module <<'JS'
+MEDICAL_RELEASE_ORIGINS="$allowed_origins" node --input-type=module <<'JS'
 const response = await fetch('https://europe-west1-we-medical-dakahlia.cloudfunctions.net/medicalApi/v1/health', {
   cache: 'no-store', signal: AbortSignal.timeout(30000),
 });
@@ -78,6 +89,15 @@ if (!response.ok || !health.configured || !['member-profile', 'review-revisions'
   throw new Error('Deployment finished, but the updated API capabilities could not be confirmed. Do not declare the release complete.');
 }
 console.log('Published API confirmed: member profiles, revision-safe moderation, staff directory and provider image support enabled.');
+for (const origin of process.env.MEDICAL_RELEASE_ORIGINS.split(',')) {
+  const response = await fetch('https://europe-west1-we-medical-dakahlia.cloudfunctions.net/medicalApi/v1/member/session', {
+    method: 'OPTIONS', headers: { Origin: origin, 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'Content-Type,Authorization' },
+    cache: 'no-store', signal: AbortSignal.timeout(30000),
+  });
+  if (response.status !== 204 || response.headers.get('access-control-allow-origin') !== origin)
+    throw new Error('Deployment completed, but an approved site failed its CORS preflight. Do not declare login repaired.');
+  console.log('Published site connection verified: ' + origin);
+}
 JS
 
 echo 'Deployment command finished. Verify the API and real login before configuring the public site.'
