@@ -554,6 +554,21 @@ try {
   assert.equal(await g.locator('.facility-card').getByText("153 شارع قناة السويس",{exact:true}).count(),0);
   await g.goto(origin+"/#services");
   await g.locator(".network-tabs").getByRole("button",{name:"كل الشبكات",exact:true}).click();
+  // Home searches all authorized provider categories, not just physicians.
+  await g.goto(origin+"/#home");
+  await g.locator("#search-input").fill("داوي");
+  await g.getByRole("heading",{name:"نتائج البحث في الدليل",exact:true}).waitFor();
+  await g.locator('[data-target="specialized_centers:family_20261018_047"]').waitFor();
+  await g.locator("#search-input").fill("مركز داوى متخصص");
+  await g.locator('[data-target="specialized_centers:family_20261018_047"]').waitFor();
+  await g.locator("#search-input").fill("دواي");
+  await g.locator('.search-suggestions').waitFor();
+  await g.locator('[data-target="specialized_centers:family_20261018_047"]').waitFor();
+  await g.locator('.search-suggestions').getByRole("button",{name:"عيادات داوي",exact:true}).click();
+  assert.equal(await g.locator("#search-input").inputValue(),"عيادات داوي");
+  await g.locator("#main-nav").getByRole("link",{name:"الأطباء",exact:true}).click();
+  await g.getByRole("heading",{name:"الأطباء والعيادات",exact:true}).waitFor();
+  assert.equal(await g.locator("#search-input").inputValue(),"");
   // Section navigation clears hidden search, district and service filters.
   await g.goto(origin+"/#doctors");
   await g.locator("#search-input").fill("عبارة اختبار لا تطابق أحدًا");
@@ -733,6 +748,11 @@ try {
     await pilot.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"companion-home-mobile.png"),fullPage:true});
   }
   await pilot.goto(origin + "/?experience=companion#home");
+  await pilot.locator(".companion-welcome").waitFor();
+  await pilot.getByLabel("ابحث عن طبيب أو جهة أو تخصص",{exact:true}).fill("داوي");
+  await pilot.getByRole("button",{name:"ابحث الآن",exact:true}).click();
+  await pilot.locator('[data-target="specialized_centers:family_20261018_047"]').waitFor();
+  await pilot.goto(origin+"/?experience=companion#home");
   await pilot.locator(".companion-welcome").waitFor();
   for (const width of [320,390,768,1440]) {
     await pilot.setViewportSize({width,height:844});

@@ -12,6 +12,7 @@
   document.documentElement.classList.toggle("companion-preview", companionPreview);
   const API = window.MedicalAPI,
     prefs = window.MedicalStorage;
+  const SEARCH = window.MedicalSearch;
   const CONTACTS = window.MedicalContacts;
   const RESEARCH = window.MedicalResearch;
   const dakahliaCenters = ["المنصورة","طلخا","ميت غمر","السنبلاوين","بلقاس","دكرنس","شربين","أجا","المنزلة","منية النصر","ميت سلسيل","بني عبيد","نبروه","الجمالية","تمي الأمديد","محلة دمنة","المطرية"];
@@ -314,10 +315,38 @@
     );
   }
   function matchesText(values) {
-    return (
-      !state.query ||
-      normalize(values.join(" ")).includes(normalize(state.query))
-    );
+    if(!state.query) return true;
+    if(isAdmin() && state.tab === "admin") return normalize(values.join(" ")).includes(normalize(state.query));
+    return SEARCH.match(state.query,values).score > 0;
+  }
+  function renderSearch(main) {
+    const found=[];
+    for(const p of providers()) {
+      const matched=p.branches.filter(b=>matchesBranch(b) && (!state.specialty || p.specialty === state.specialty));
+      if(!matched.length)continue;
+      const scored=matched.map(b=>({branch:b,...SEARCH.match(state.query,{name:p.name,tags:[p.specialty,"طبيب عيادة"],details:[b.hospital,b.address,b.markaz,b.raw_phone]})})).filter(r=>r.score>0).sort((a,b)=>b.score-a.score);
+      if(scored.length)found.push({...scored[0],name:p.name,key:"doctor:"+p.id,render:()=>doctorCard({...p,matched:scored.map(r=>r.branch)})});
+    }
+    for(const kind of ["hospitals","labs","radiology","pharmacies","specialized_centers"])for(const r of state.catalog[kind]) {
+      if(!matchesBranch(r))continue;
+      const result=SEARCH.match(state.query,{name:r.name,tags:[labels[kind],r.category,r.services],details:[r.address,r.markaz,r.phone]});
+      if(result.score>0)found.push({...result,name:r.name,key:kind+":"+r.id,render:()=>facilityCard(kind,r)});
+    }
+    for(const r of state.catalog.emergency_services) {
+      if(state.markaz && r.markaz !== state.markaz)continue;
+      const result=SEARCH.match(state.query,{name:r.name,tags:["الطوارئ",r.service_type],details:[r.address,r.markaz,r.number]});
+      if(result.score>0)found.push({...result,name:r.name,key:"emergency:"+r.id,render:()=>el("article",{class:"card","data-target":"emergency:"+r.id},el("span",{class:"card-eyebrow"},"الطوارئ"),el("h3",{},r.name),detail("⌖",r.address || r.markaz),button("عرض خدمة الطوارئ",()=>go("emergency",{query:r.name}),"button outline"))});
+    }
+    found.sort((a,b)=>Number(a.approximate)-Number(b.approximate) || b.score-a.score || a.name.localeCompare(b.name,"ar") || a.key.localeCompare(b.key));
+    main.append(heading("نتائج البحث في الدليل",`${found.length} نتيجة · الأطباء وجميع الجهات والخدمات`));
+    if(found.length && found.every(r=>r.approximate))main.append(el("section",{class:"notice search-suggestions","aria-label":"اقتراحات البحث"},el("strong",{},"قد تقصد"),...found.slice(0,3).map(r=>button(r.name,()=>go("search",{query:r.name}),"text-button"))));
+    main.append(gridCards(found.slice(0,state.limit).map(r=>{
+      const card=r.render();
+      if(r.approximate)card.prepend(el("span",{class:"card-eyebrow"},"نتيجة قريبة من بحثك"));
+      return card;
+    })));
+    if(!found.length && state.network)main.append(button("البحث في كل الشبكات",()=>{state.network="";renderFilters();renderMain();},"button outline"));
+    if(found.length>state.limit)main.append(button("عرض المزيد",()=>{state.limit+=24;renderMain();},"button outline load-more"));
   }
   function doctorResults() {
     return providers()
@@ -328,6 +357,7 @@
             matchesBranch(b) &&
             matchesText([
               p.name,
+              "الأطباء والعيادات",
               p.specialty,
               b.hospital,
               b.address,
@@ -660,7 +690,7 @@
       event.preventDefault();
       state.query = search.querySelector("input").value.trim();
       $("#search-input").value = state.query;
-      go("doctors",{query:state.query});
+      go("search",{query:state.query});
     });
     main.append(el("section", {class:"companion-welcome"},
       el("div", {class:"eyebrow"}, "نبض النقابة · معك خطوة بخطوة"),
@@ -885,6 +915,7 @@
     const activeFilters=[["البحث",state.query],["المركز",state.markaz],["التخصص",state.specialty],["المستشفى",state.hospital],["الخدمة",labels[state.serviceKind]],["مسار التعاقد",state.contractType ? {direct_we:"مباشر",hospital:"عبر مستشفى",family_network:"الأسر والمعاشات"}[state.contractType] : ""]].filter(([,v])=>v);
     if(activeFilters.length) main.append(el("section",{class:"active-filters","aria-label":"البحث والتصفية النشطة"},activeFilters.map(([k,v])=>el("span",{class:"filter-chip"},k+": "+v)),button("مسح البحث والتصفية",()=>{resetSearch();renderFilters();renderMain();},"text-button")));
     if (state.tab === "home") return renderHome(main);
+    if (state.tab === "search") return renderSearch(main);
     if (state.tab === "admin") return renderAdmin(main);
     if (state.tab === "account") return renderAccount(main);
     if (state.tab === "districts") {
@@ -1006,7 +1037,7 @@
             (r) =>
               matchesBranch(r) &&
               (state.tab !== "dental" || isDental(r)) &&
-              matchesText([r.name, r.address, r.markaz, r.phone]) &&
+              matchesText([r.name,labels[kind],r.category,...[r.services].flat().filter(Boolean),r.address,r.markaz,r.phone]) &&
               (state.tab !== "favorites" || favs.includes(kind + ":" + r.id)),
           )
           .map((r) => facilityCard(kind, r)),
@@ -1068,6 +1099,7 @@
     state.tab = [
       ...nav.map((n) => n[0]),
       "district-network",
+      "search",
       "dental",
       "hospitals",
       "admin",
@@ -1993,7 +2025,7 @@
     state.query = event.target.value;
     state.limit = 24;
     if (["home","profile"].includes(state.tab)) {
-      go("doctors",{query:state.query});
+      go("search",{query:state.query});
     } else renderMain();
   });
   $("#clear-search").addEventListener("click", () => {
