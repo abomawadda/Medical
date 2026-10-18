@@ -197,7 +197,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").innerText(),"نبض النقابة - رعاية أقرب لك ولأسرتك");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"نبض النقابة - رعاية أقرب لك ولأسرتك · الإصدار 4.1.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -267,7 +267,7 @@ try {
   await named.goto(origin+"/#home");
   await named.waitForFunction(()=>document.querySelector('#member-button')?.textContent === "مرحبًا، أحمد محمد أبو النجا");
   assert.deepEqual(await named.locator('.greeting-name-part').allTextContents(),["أحمد","محمد","أبو النجا"]);
-  for(const width of [320,390]){await named.setViewportSize({width,height:844});assert.ok(await named.evaluate(()=>document.documentElement.scrollWidth)<=width);}
+  for(const width of [320,390]){await named.setViewportSize({width,height:844});assert.ok(await named.evaluate(()=>document.documentElement.scrollWidth)<=width,"Greeting and notification bell fit at "+width);}
   assert.ok(!(await named.evaluate(()=>JSON.stringify(localStorage))).includes("أبو النجا"));
   await namesContext.close();
   await p.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
@@ -323,6 +323,8 @@ try {
   );
   await p.getByRole("button", { name: "قيّم الزيارة" }).click();
   await p.getByLabel("تقييم تجربة الزيارة", { exact: true }).selectOption("4");
+  await p.getByLabel("الاستقبال والتعامل",{exact:true}).selectOption("5");
+  await p.getByLabel("وقت الانتظار",{exact:true}).selectOption("3");
   await p
     .getByLabel("ملاحظاتك على الزيارة", { exact: true })
     .fill("ملاحظة اختبار <img src=x onerror=alert(1)>");
@@ -330,6 +332,28 @@ try {
   await p.getByRole("button", { name: "حفظ التقييم" }).click();
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
+  assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.1.0');
+  assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
+  await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
+  await p.locator('.location-row').first().waitFor();
+  assert.equal(await p.locator('.doctor-card').count(),1);
+  assert.equal(await p.locator('.location-row').count(),2);
+  const maps=await p.locator('.location-row a').evaluateAll(nodes=>nodes.map(n=>new URL(n.href).searchParams.get('query')));
+  assert.ok(maps[0].includes('الرحمة') && !maps[0].includes('الإيمان'));
+  assert.ok(maps[1].includes('الإيمان') && !maps[1].includes('الرحمة'));
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await p.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"doctor-two-addresses.png"),fullPage:true});
+  const legacyContext=await context(true,"block",await memberContext.storageState());
+  await legacyContext.route("https://medical.example.invalid/v1/catalog",async route=>{
+    const response=await fetch(origin+'/v1/catalog',{headers:{Origin:origin,Authorization:route.request().headers().authorization}});
+    const result=await response.json();delete result.reviewCriteria;
+    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(result)});
+  });
+  const oldClient=await legacyContext.newPage();await oldClient.goto(origin+'/#entity='+encodeURIComponent(target));
+  await oldClient.getByRole('button',{name:'قيّم الزيارة',exact:true}).click();
+  assert.equal(await oldClient.locator('.review-criteria').count(),0);
+  assert.ok(await oldClient.getByLabel('تقييم تجربة الزيارة',{exact:true}).isVisible());
+  await legacyContext.close();
   const adminContext = await context(),
     a = await adminContext.newPage();
   await a.goto(origin + "/#admin");
@@ -527,6 +551,12 @@ try {
   await p.locator(".update-card").getByRole("heading",{name:"إعلان اختبار الشبكة",exact:true}).waitFor();
   assert.equal(await p.locator('.update-card').filter({hasText:"طبيب اختبار مضاف"}).count(),0);
   assert.equal(await p.locator('.update-card:not(:has(.update-label.news))').count(),0);
+  await p.getByRole("button",{name:/الإشعارات/}).click();
+  await p.locator('.notification-item').filter({hasText:'إعلان اختبار الشبكة'}).waitFor();
+  assert.equal(await p.locator('.notification-item').filter({hasText:'طبيب اختبار مضاف'}).count(),0);
+  await p.getByRole('button',{name:'تحديد الإعلانات كمقروءة',exact:true}).click();
+  assert.equal(await p.locator('#notifications-button .notification-count').isHidden(),true);
+  await p.getByRole('button',{name:'إغلاق النافذة',exact:true}).click();
   await a.getByRole("button",{name:"جودة بيانات الدليل",exact:true}).click();
   assert.equal(await a.locator('.quality-item').filter({hasText:"طبيب اختبار مضاف"}).count(),0);
   await a.getByLabel("البحث في جميع السجلات بما فيها المحدّثة",{exact:true}).fill("طبيب اختبار مضاف");

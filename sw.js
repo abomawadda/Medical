@@ -1,9 +1,9 @@
-const CACHE_NAME = "we-medical-v4-e50f0fcd18bd0de7";
+const CACHE_NAME = "we-medical-v4-b04797882d9da277";
 const PRECACHE = [
   "./",
   "./index.html",
   "./manifest.json?v=20261018-compact",
-  "./css/styles.css?v=20261018-names",
+  "./css/styles.css?v=20261018-care",
   "./js/config.js?v=20261017-live",
   "./css/fonts.css",
   "./js/storage.js",
@@ -13,8 +13,12 @@ const PRECACHE = [
   "./js/directory-research.js?v=20261018-compact",
   "./js/avatar-hints.js?v=20261018-compact",
   "./js/search.js?v=20261018-search",
-  "./js/names.js?v=20261018-names",
-  "./js/app.js?v=20261018-names",
+  "./js/names.js?v=20261018-care",
+  "./js/arabic-directory.js?v=20261018-care",
+  "./js/review-criteria.js?v=20261018-care",
+  "./js/locations.js?v=20261018-care",
+  "./js/release.js?v=20261018-care",
+  "./js/app.js?v=20261018-care",
   "./img/we_logo.webp",
   "./img/nekaba-mark.png",
   "./img/provider-anime.png",

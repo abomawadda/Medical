@@ -15,7 +15,7 @@
     <link rel="icon" href="img/app-icon-family.png" />
     <link rel="manifest" href="manifest.json?v=20261018-compact" />
     <link rel="apple-touch-icon" href="img/app-icon-family.png" />
-    <link rel="stylesheet" href="css/styles.css?v=20261018-names" />
+    <link rel="stylesheet" href="css/styles.css?v=20261018-care" />
     <link rel="stylesheet" href="css/fonts.css" />
     <script defer src="js/config.js?v=20261017-live"></script>
     <script defer src="js/storage.js"></script>
@@ -25,8 +25,12 @@
     <script defer src="js/directory-research.js?v=20261018-compact"></script>
     <script defer src="js/avatar-hints.js?v=20261018-compact"></script>
     <script defer src="js/search.js?v=20261018-search"></script>
-    <script defer src="js/names.js?v=20261018-names"></script>
-    <script defer src="js/app.js?v=20261018-names"></script>
+    <script defer src="js/names.js?v=20261018-care"></script>
+    <script defer src="js/arabic-directory.js?v=20261018-care"></script>
+    <script defer src="js/review-criteria.js?v=20261018-care"></script>
+    <script defer src="js/locations.js?v=20261018-care"></script>
+    <script defer src="js/release.js?v=20261018-care"></script>
+    <script defer src="js/app.js?v=20261018-care"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">انتقل إلى المحتوى</a>
@@ -39,6 +43,10 @@
         >
       </a>
       <div class="header-actions">
+        <button id="notifications-button" class="icon-button notifications-button" aria-label="الإشعارات" hidden>
+          <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4M12 2V1"/></svg>
+          <span class="notification-count" hidden></span>
+        </button>
         <button id="theme-toggle" class="icon-button" aria-label="تبديل المظهر">
           ◐
         </button>
@@ -83,7 +91,8 @@
         </section>
       </main>
       <footer class="app-footer">
-        <small>نبض النقابة - رعاية أقرب لك ولأسرتك</small>
+        <small>نبض النقابة - رعاية أقرب لك ولأسرتك · <span id="app-version"></span></small>
+        <small class="copyright">جميع الحقوق محفوظة للأستاذ/ محمود العراقي <a href="tel:01550100025" dir="ltr">01550100025</a></small>
       </footer>
     </div>
     <nav id="main-nav" class="bottom-nav" aria-label="التنقل الرئيسي" hidden></nav>

@@ -178,10 +178,12 @@ assert.deepEqual((await service.catalog(admin)).stats["doctor:p1"], {
 });
 await service.moderateReview(admin,id,{status:"hidden",revision:2});
 await assert.rejects(() => service.moderateReview(admin,id,{status:"published",revision:2}), (e) => e.code === "REVIEW_ALREADY_DECIDED");
-await service.submitReview(member,{target_id:"doctor:p1",branch_id:"1",rating:3,comment:"نسخة جديدة من العضو",visited_declared:true},"edit-member");
+await service.submitReview(member,{target_id:"doctor:p1",branch_id:"1",rating:3,criteria:{reception:5,waiting:2},comment:"نسخة جديدة من العضو",visited_declared:true},"edit-member");
 await assert.rejects(() => service.moderateReview(admin,id,{status:"published",revision:2}), (e) => e.code === "REVIEW_CHANGED");
 await service.moderateReview(admin,id,{status:"published",revision:3});
 assert.equal((await service.catalog(admin)).stats["doctor:p1"].average,3);
+assert.deepEqual((await service.ownReviews(member)).reviews[0].criteria,{reception:5,waiting:2});
+assert.equal((await service.submitReview(member,{target_id:"doctor:p1",branch_id:"1",rating:3,criteria:{waiting:2,reception:5},comment:"نسخة جديدة من العضو",visited_declared:true},"same-criteria")).changed,false);
 const attempts = await Promise.allSettled([
   service.putEntity(admin, "records", "1", {
     entity: { ...seed.records[0], name: "تعديل أ" },

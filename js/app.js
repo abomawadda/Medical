@@ -13,6 +13,9 @@
   const API = window.MedicalAPI,
     prefs = window.MedicalStorage;
   const SEARCH = window.MedicalSearch;
+  const CRITERIA = window.MedicalReviewCriteria;
+  let waitingUpdate = null;
+  document.querySelector("#app-version").textContent = "الإصدار " + window.MedicalRelease.version;
   const CONTACTS = window.MedicalContacts;
   const RESEARCH = window.MedicalResearch;
   const dakahliaCenters = ["المنصورة","طلخا","ميت غمر","السنبلاوين","بلقاس","دكرنس","شربين","أجا","المنزلة","منية النصر","ميت سلسيل","بني عبيد","نبروه","الجمالية","تمي الأمديد","محلة دمنة","المطرية"];
@@ -146,7 +149,8 @@
     if (facts?.address && result.address === facts.originalAddress && !result._version) result.address=facts.address;
     if (kind === "records" && /^(?:مقر )?مستشفي/.test(normalize(result.address))) {
       const h=state.catalog.hospitals.find(h=>h.id === result.contract_entity_id || [h.name,h.short_name].includes(result.hospital));
-      if (h) {const parent=publicBranch(h,"hospitals");result.address=parent.address;result.maps_url=parent.maps_url;}
+      const address=normalize(result.address).replace(/^مقر /,"").replace(/ بالمنصوره$/,"");
+      if (h && [h.name,h.short_name].filter(Boolean).some(name=>normalize(name)===address)) {const parent=publicBranch(h,"hospitals");result.address=parent.address;result.maps_url=parent.maps_url;}
     }
     if (facts?.originalMap === result.maps_url && ["conflict","unresolved"].includes(facts?.mapStatus)) result.maps_url="";
     return result;
@@ -246,6 +250,7 @@
     connection();
     const u = session();
     $(".admin-link").hidden = u?.role === "member";
+    updateNotifications();
     $("#filter-panel > small").hidden = !isAdmin();
     const greeting=u ? window.MedicalNames.parts(u.name).flatMap((part,index)=>[index ? " " : "",el("span",{class:"greeting-name-part"},part)]) : [];
     $("#member-button").replaceChildren(...(u ? [u.role === "member" ? "مرحبًا، " : "",...greeting] : ["دخول الأعضاء"]).map(value=>typeof value === "string" ? document.createTextNode(value) : value));
@@ -275,7 +280,8 @@
       !kinds.every((k) => Array.isArray(result.catalog[k]))
     )
       throw new Error("تعذر قراءة بيانات الدليل.");
-    state.catalog = cleanDisplay(result.catalog);
+    state.catalog = window.MedicalArabic.entity(cleanDisplay(result.catalog));
+    state.reviewCriteria = result.reviewCriteria === true;
     state.directoryState = result.directoryState === true;
     state.familyDirectory = result.familyDirectory === true;
     state.contractDirectory = result.contractDirectory === true;
@@ -292,6 +298,7 @@
     }
     state.stats = result.stats || {};
     state.remote = true;
+    updateNotifications();
     connection();
     renderFilters();
     if (location.hash.startsWith("#entity=")) route();
@@ -457,11 +464,16 @@
     return el("div", {class:"contact-groups"}, rows.length ? rows : isAdmin() ? el("p", {class:"muted"}, "رقم الاتصال غير متاح") : null,
       isAdmin() && (branch.contact_review_required || groups.invalid.length) ? el("small", {class:"muted"}, "بعض الأرقام تحتاج مراجعة؛ أُخفيت الأرقام غير سليمة الصيغة.") : null);
   }
+  function locationDetails(branch) {
+    const parts=window.MedicalLocations.parts(usable(branch.address));
+    if(parts.length<2)return detail("⌖",usable(branch.address));
+    return el("section",{class:"location-list","aria-label":"عناوين المقر"},el("strong",{},"أماكن تقديم الخدمة"),parts.map((part,index)=>el("div",{class:"location-row"},el("span",{class:"location-number","aria-hidden":"true"},index+1),el("div",{},el("p",{},part.text),part.mappable ? link("البحث عن هذا العنوان","https://www.google.com/maps/search/?api=1&query="+encodeURIComponent([branch.name,part.text,"الدقهلية مصر"].join(" ")),"text-button") : part.phone ? el("a",{href:"tel:"+part.phone,dir:"ltr",class:"phone-chip"},part.phone) : null))));
+  }
   function actionLinks(branch) {
     const query=[branch.name,branch.address,branch.markaz || branch.city,"الدقهلية","مصر"].map(display).filter(Boolean).join(" ");
     const original=safeUrl(branch.maps_url);
     const exact=original && !/\/maps\/search|[?&](q|query)=/.test(original);
-    return [contactGroups(branch,true),link(exact ? "الموقع على الخريطة" : "البحث عن العنوان", exact ? original : "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(query))];
+    return [contactGroups(branch,true),window.MedicalLocations.parts(branch.address).length>1 ? null : link(exact ? "الموقع على الخريطة" : "البحث عن العنوان", exact ? original : "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(query))];
   }
   function share(target, name) {
     const url = new URL(location.href);
@@ -504,7 +516,7 @@
       replaceNodes(details,
         el("p",{class:"branch-hospital"},branch.hospital || "العيادة"),
         statusBadge(branch),
-        detail("⌖",usable(shown.address) || (isAdmin() ? "العنوان غير متاح" : "")),
+        locationDetails(shown),
         detail("◷",usable(branch.schedule) || (isAdmin() ? "المواعيد تحتاج استكمالًا" : "")),
         coverage(shown),
         companionPreview ? beforeVisit(publicBranch(branch,"records")) : null);
@@ -514,13 +526,14 @@
       el("div",{class:"card-top"},providerAvatar(p,p.is_department ? "clinic" : "doctor"),
         el("div",{class:"card-info"},el("span",{class:"card-eyebrow"},p.is_department ? "قسم طبي" : "رعاية متخصصة"),el(full ? "h1" : "h3",{},full ? p.name : el("a",{href:"#entity="+encodeURIComponent(target),class:"provider-title-link"},p.name)),el("p",{class:"card-specialty"},p.specialty),
           isAdmin() && p.image_verified ? link("مصدر الصورة",p.image_source_url,"image-source") : null),favorite(target)));
-    if (p.branches.length > 1) card.append(el("p",{class:"multi-location"},`له ${p.branches.length} مقار · لكل مقر تفاصيله`));
+    if (p.branches.length > 1 || window.MedicalLocations.parts(publicBranch(branch,"records").address).length>1) card.append(el("p",{class:"multi-location"},`أماكن الزيارة: ${new Set(p.branches.flatMap(b=>window.MedicalLocations.parts(publicBranch(b,"records").address).map(p=>p.text))).size || p.branches.length} · اختر المكان المناسب`));
     if (p.matched.length > 1) {
+      card.append(el("h4",{class:"branch-heading"},"اختر مكان الزيارة"));
       if(isAdmin()) card.append(el("p",{class:"branch-instruction"},"اختر المستشفى أو العيادة لعرض تفاصيلها"));
       for (const b of p.matched) {
         const option = button("",()=>{branch=b;renderBranch();},"branch-option");
         option.dataset.branch = String(b.id);
-        replaceNodes(option,el("strong",{},b.hospital || "العيادة"),el("small",{},[b.clinic_type,b.markaz || b.city].filter(Boolean).join(" · ")),statusBadge(b));
+        replaceNodes(option,el("strong",{},b.hospital || "العيادة"),el("small",{},[b.clinic_type,b.markaz || b.city].filter(Boolean).join(" · ")),el("span",{class:"branch-address"},usable(publicBranch(b,"records").address)),statusBadge(b));
         buttons.push([b,option]);
         options.append(option);
       }
@@ -549,6 +562,7 @@
         el(
           "div",
           { class: "card-info" },
+          el("span",{class:"card-eyebrow"},labels[kind]),
           el("h3", {}, r.name),
           el("p", {}, (r.category && r.source_ref ? r.category : labels[kind]) + " · " + (r.markaz || r.city || "")),
           isAdmin() && r.image_verified ? link(r.image_kind === "logo" ? "شعار الجهة · المصدر" : "مصدر الصورة",r.image_source_url,"image-source") : null,
@@ -556,7 +570,7 @@
         favorite(target),
       ),
       statusBadge(r),
-      detail("⌖", usable(r.address)),
+      locationDetails(r),
       detail("↔",r.contract_type === "direct_we" || r.contract_entity_id === "direct_we" ? "تعاقد مباشر مع الشركة" : usable(r.contract_entity)),
       isAdmin() && r.data_notes ? el("p", {class:"data-note"}, r.data_notes) : null,
       detail("◷",facts?.hours || usable(r.working_hours)),
@@ -757,6 +771,42 @@
       r.source_url ? link("المصدر",r.source_url,"text-button") : null,
       isAdmin() ? button("تحرير المحتوى",()=>editDialog("medical_guidelines",r),"text-button") : null);
   }
+  // Only explicit publications become notifications. Routine directory edits stay silent.
+  const notificationKey="medical_read_announcements_v1";
+  function announcementKey(r) {
+    const value=JSON.stringify([r.id,r.title,r.summary,r.steps,r.directory_update?.at,r.verified_at]);
+    let hash=2166136261;for(const c of value)hash=Math.imul(hash^c.charCodeAt(0),16777619);
+    return String(r.id)+":"+(hash>>>0).toString(16);
+  }
+  function announcements() {
+    return state.catalog.medical_guidelines.filter(r=>r.document_type === "news" && publishedContent(r)).sort((a,b)=>String(b.directory_update?.at || b.verified_at).localeCompare(String(a.directory_update?.at || a.verified_at)));
+  }
+  function readAnnouncements() {try {const value=JSON.parse(localStorage.getItem(notificationKey));return new Set(Array.isArray(value)?value.filter(v=>typeof v === "string"):[]);}catch{return new Set();}}
+  function markAnnouncements(rows) {
+    const keys=readAnnouncements();for(const row of rows)keys.add(announcementKey(row));
+    try{localStorage.setItem(notificationKey,JSON.stringify([...keys].slice(-200)));}catch{toast("تعذر حفظ حالة القراءة على هذا الجهاز.");}
+    updateNotifications();
+  }
+  function updateNotifications() {
+    const b=$("#notifications-button");if(!b)return;
+    b.hidden=!session();
+    const seen=readAnnouncements(),unread=announcements().filter(r=>!seen.has(announcementKey(r))).length+Number(!!waitingUpdate);
+    b.querySelector("span").textContent=String(unread);b.querySelector("span").hidden=!unread;
+    b.setAttribute("aria-label",unread ? `الإشعارات · ${unread} غير مقروءة` : "الإشعارات");
+  }
+  function showNotifications() {
+    if(!session())return;
+    const rows=announcements(),seen=readAnnouncements();
+    const box=el("div",{class:"notification-list"},el("p",{class:"muted"},"إعلانات الشبكة وتحديث التطبيق"));
+    if(waitingUpdate)box.append(el("article",{class:"notification-item unread"},el("strong",{},"تحديث جديد للتطبيق جاهز"),el("p",{},"تفعيل التحديث سيعيد فتح الصفحة. احفظ أي نموذج مفتوح أولًا."),button("تحديث التطبيق الآن",()=>waitingUpdate?.(),"button primary")));
+    for(const r of rows)box.append(el("article",{class:"notification-item"+(!seen.has(announcementKey(r))?" unread":"")},el("strong",{},r.title),el("p",{},r.summary),button("قراءة الإعلان",()=>{markAnnouncements([r]);dialog(r.title,contentCard(r));},"text-button")));
+    if(!rows.length && !waitingUpdate)box.append(empty("لا توجد إشعارات جديدة حاليًا."));
+    box.append(button("تحديث الإشعارات",async()=>{try{await refresh();if(session())showNotifications();}catch(e){toast(e.message);}},"text-button"));
+    if(rows.length)box.append(button("تحديد الإعلانات كمقروءة",()=>{markAnnouncements(rows);showNotifications();},"button outline"));
+    dialog("الإشعارات",box);
+  }
+  $("#notifications-button").onclick=showNotifications;
+  window.addEventListener("storage",e=>{if(e.key===notificationKey)updateNotifications();});
   function recentUpdates(main) {
     const rows=[];
     for(const r of state.catalog.medical_guidelines.filter(r=>r.document_type === "news" && publishedContent(r))) rows.push({id:r.id,title:r.title,at:r.directory_update?.at || r.verified_at,type:"news",document:r,subtitle:r.summary});
@@ -1373,8 +1423,18 @@
       ),
     );
     form.querySelector("select").required = true;
+    if(state.reviewCriteria) {
+      const measured=el("fieldset",{class:"review-criteria"},el("legend",{},"تفاصيل تجربة الخدمة"),el("p",{class:"muted"},"من 1 غير مرضٍ إلى 5 ممتاز. اترك ما لم تجربه دون تقييم. هذه العناصر لا تقيس الكفاءة الطبية."));
+      for(const item of CRITERIA.items) {
+        const row=selectField(item.label,"criteria_"+item.id,[["","لم أجرب / لا ينطبق"],["1","1 · غير مرضٍ"],["2","2 · ضعيف"],["3","3 · متوسط"],["4","4 · جيد"],["5","5 · ممتاز"]],String(previous?.criteria?.[item.id] || ""));
+        row.append(el("small",{class:"muted"},item.hint));measured.append(row);
+      }
+      form.querySelector('[name="comment"]').closest("label").before(measured);
+    }
     form.save = async (data) => {
+      const measured=Object.fromEntries(CRITERIA.items.filter(i=>data["criteria_"+i.id]).map(i=>[i.id,Number(data["criteria_"+i.id])]));
       const result = await API.review({
+        ...(Object.keys(measured).length ? {criteria:measured} : {}),
         target_id: target,
         branch_id: branch,
         rating: Number(data.rating),
@@ -1478,6 +1538,7 @@
         { class: "muted" },
         `${display(r.author_name) || "عضو النقابة"} · ${score} · ${display(statusText(r.status)) || "قيد المراجعة"}`,
       ),
+      r.criteria ? el("dl",{class:"review-breakdown"},CRITERIA.items.filter(i=>r.criteria[i.id]).map(i=>el("div",{},el("dt",{},i.label),el("dd",{},r.criteria[i.id]+" / 5")))) : null,
       el("p", {}, r.comment),
     );
   }
@@ -2102,6 +2163,8 @@
       .then((reg) => {
         const offer = () => {
           if (!reg.waiting) return;
+          waitingUpdate = () => reg.waiting?.postMessage({ action: "activate-update" });
+          updateNotifications();
           const b = $("#update-button");
           b.hidden = false;
           b.onclick = () =>

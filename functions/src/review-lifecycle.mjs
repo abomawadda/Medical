@@ -6,7 +6,8 @@ export function reviseReview(previous, incoming) {
   if (previous && previous.author_id !== incoming.author_id)
     throw new ApiError(403, "FORBIDDEN", "لا يمكنك تعديل تقييم عضو آخر.");
   if (previous && ["target_id", "branch_id", "rating", "comment", "visited_declared"]
-    .every((field) => previous[field] === incoming[field]))
+    .every((field) => previous[field] === incoming[field]) &&
+    JSON.stringify(previous.criteria || {}) === JSON.stringify(incoming.criteria || {}))
     return { changed: false, review: previous };
   return { changed: true, review: {
     ...incoming, status: "pending", revision: previous ? reviewRevision(previous) + 1 : 1,

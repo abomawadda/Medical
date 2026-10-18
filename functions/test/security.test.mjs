@@ -680,3 +680,23 @@ test('directory update dates and types come from the server; hidden entries neve
   await f.service.setEntityState(a,'hospitals','new_hospital',{field:'directory_visibility',value:'hidden',scope:'entity',versions:{new_hospital:2}});
   assert.ok(!(await f.service.catalog(m)).catalog.hospitals.some(r=>r.id==='new_hospital'));
 });
+
+test("measured reviews retain private criteria, unchanged saves are idempotent and changed criteria reopen author revision",async()=>{
+ const f=setup(),t=await member(f),a=await admin(f);
+ const submitted={...review,criteria:{service:4,reception:3}};
+ const first=await f.service.submitReview(t,submitted,'criteria-ip');
+ const saved=[...f.store.reviews.values()][0];
+ assert.deepEqual(saved.criteria,{reception:3,service:4});
+ await f.service.moderateReview(a,saved.id,{status:'published',revision:1});
+ assert.equal((await f.service.submitReview(t,{...submitted,criteria:{reception:3,service:4}},'criteria-ip')).changed,false);
+ assert.equal(f.store.reviews.get(saved.id).revision,1);
+ assert.equal((await f.service.catalog(t)).reviewCriteria,true);
+ assert.deepEqual((await f.service.catalog(t)).stats['doctor:p1'],{count:1,average:4});
+ assert.ok(!JSON.stringify((await f.service.catalog(t)).stats).includes('reception'));
+ await f.service.submitReview(t,{...submitted,criteria:{reception:5,service:4}},'criteria-ip');
+ assert.equal(f.store.reviews.get(saved.id).revision,2);
+ assert.equal(f.store.reviews.get(saved.id).status,'pending');
+ await assert.rejects(()=>f.service.moderateReview(a,saved.id,{status:'published',revision:1}),e=>e.code==='REVIEW_CHANGED');
+ for(const criteria of [{unknown:5},{waiting:9},{reception:'5'},{}])await assert.rejects(()=>f.service.submitReview(t,{...review,criteria},'criteria-ip'),e=>e.code==='INVALID_CRITERIA');
+ assert.equal((await f.service.ownReviews(t)).reviews[0].criteria.reception,5);
+});

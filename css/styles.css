@@ -1246,3 +1246,38 @@ html { overflow-anchor:none; scroll-behavior:auto; }
 .greeting-name-part {display:inline-block;white-space:nowrap}
 #member-button {white-space:normal;line-height:1.55;max-width:28ch}
 @media(max-width:560px){.header-actions,.app-header .brand,.app-header .brand>span {min-width:0}.app-header .brand {flex-shrink:1}#member-button {max-width:40vw}}
+
+/* Care directory 4.1: clearer identity, locations and measured experience. */
+.doctor-card,.facility-card {border:1px solid var(--border);border-radius:24px;box-shadow:0 8px 28px #35224c08;overflow:hidden}
+.doctor-card .card-top,.facility-card .card-top {align-items:flex-start;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.card-info h3 {line-height:1.65;margin:3px 0;font-size:1.16rem}
+.card-specialty {font-weight:700;color:var(--primary)}
+.branch-heading {margin:10px 0 4px;font-size:.9rem}
+.branch-options {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:8px}
+.branch-option {display:flex;flex-direction:column;align-items:stretch;text-align:start;gap:4px;padding:12px;border-radius:14px;min-width:0;white-space:normal}
+.branch-option.active {box-shadow:inset -3px 0 var(--primary);border-color:var(--primary)}
+.branch-address {font-size:.82rem;line-height:1.8;font-weight:400;overflow-wrap:anywhere}
+.multi-location {font-size:.83rem;border-radius:10px;padding:7px 10px;background:var(--surface-alt,#f5f1fa)}
+.facility-card .card-actions,.doctor-card .card-actions {margin-top:12px}
+.notifications-button {position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.notification-count {position:absolute;top:-4px;inset-inline-end:-5px;min-width:19px;height:19px;padding:0 4px;border-radius:12px;background:#b22b56;color:white;font:bold 11px/19px sans-serif}
+.notification-list {display:grid;gap:12px}
+.notification-item {border:1px solid var(--border);padding:14px;border-radius:14px}
+.notification-item.unread {border-inline-start:4px solid var(--primary);background:var(--surface-alt,#f5f1fa)}
+.review-criteria {margin:8px 0;padding:14px;border:1px solid var(--border);border-radius:16px;display:grid;gap:12px;min-width:0}
+.review-criteria legend {font-weight:700;padding:0 5px}
+.review-criteria small {font-size:.76rem}
+.review-breakdown {display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:.84rem}
+.review-breakdown div {padding:8px;background:var(--surface-alt,#f5f1fa);border-radius:10px}
+.review-breakdown dd {margin:4px 0 0;font-weight:700}
+.app-footer small {display:block;line-height:1.7}
+.copyright {font-size:.71rem}
+@media(max-width:480px){.header-actions {gap:4px}.notifications-button {width:34px;min-width:34px;padding:5px}.app-header .brand small {font-size:.62rem}.app-header .brand {gap:5px}.app-header .brand img {width:32px;height:32px}.app-header .brand strong {font-size:.9rem}.header-actions #member-button {max-width:34vw;font-size:.76rem;padding:8px}.app-footer small {font-size:.65rem}}
+.location-list {display:grid;gap:8px;margin:12px 0}
+.location-row {display:flex;gap:10px;padding:10px;border:1px solid var(--border);border-radius:12px;align-items:flex-start}
+.location-row p {margin:0;line-height:1.8}
+.location-number {border-radius:50%;background:var(--primary-soft);color:var(--primary);width:24px;height:24px;text-align:center;flex:none;font-weight:700}
+[data-theme="dark"] .multi-location,[data-theme="dark"] .notification-item.unread,[data-theme="dark"] .review-breakdown div {background:var(--card)}
+@media(max-width:360px){.app-header {padding-inline:10px;gap:6px}.header-actions {gap:3px}.header-actions .icon-button {width:30px;min-width:30px;height:34px;padding:4px}.app-header .brand img {width:27px;height:27px}.app-header .brand strong {font-size:.81rem}.app-header .brand small {font-size:.53rem}.header-actions #member-button {max-width:32vw;padding:7px;font-size:.71rem}}
+@media(max-width:560px){.header-actions #member-button {flex-shrink:0;min-width:70px}.app-header .brand>span {overflow-wrap:anywhere}}
+#member-button {display:block;text-align:center}

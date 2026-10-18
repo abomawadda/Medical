@@ -5,6 +5,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import contacts from "./contacts.cjs";
+import criteria from "./review-criteria.cjs";
 
 export class ApiError extends Error {
   constructor(status, code, message) {
@@ -483,7 +484,7 @@ export function createService({
       const catalog = user.role === "admin" ? all : memberCatalog(all,now());
       const allowed = targets(catalog);
       const stats = Object.fromEntries(Object.entries(await store.getStats()).filter(([id]) => allowed.has(id)));
-      return {catalog, stats, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
+      return {catalog, stats, reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
     },
     async adminProfile(token) {
       const session=await authorize(token,"admin");
@@ -528,6 +529,9 @@ export function createService({
         fail(400, "INVALID_RATING", "اختر تقييمًا من 1 إلى 5.");
       if (typeof body.comment !== "string" || body.comment.length > 1500)
         fail(400, "INVALID_COMMENT", "الملاحظات بحد أقصى 1500 حرف.");
+      let measured;
+      try { measured = criteria.parse(body.criteria); }
+      catch { fail(400,"INVALID_CRITERIA","اختر درجة من 1 إلى 5 للعناصر التي جربتها فقط."); }
       const id = digest(`${s.subject}|${body.target_id}`);
       const review = {
         id,
@@ -537,6 +541,7 @@ export function createService({
         author_id: s.subject,
         author_name: s.name,
         rating: body.rating,
+        ...(measured ? {criteria:measured} : {}),
         comment: body.comment.trim(),
         visited_declared: true,
         status: "pending",

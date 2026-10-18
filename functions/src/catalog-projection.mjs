@@ -1,3 +1,4 @@
+import arabic from "./arabic-directory.cjs";
 import { projectContract } from "./contract-publication.mjs";
 import { withFamilyContracts } from "./family-projection.mjs";
 import { kinds } from "./core.mjs";
@@ -14,6 +15,6 @@ export function mergeCatalog(seed, overlays) {
     }
     result[kind] = [...entries.values()];
   }
-  return result;
+  return arabic.entity(result);
 }
 
