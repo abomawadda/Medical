@@ -458,7 +458,7 @@ export function createService({
       const catalog = user.role === "admin" ? all : memberCatalog(all);
       const allowed = targets(catalog);
       const stats = Object.fromEntries(Object.entries(await store.getStats()).filter(([id]) => allowed.has(id)));
-      return {catalog, stats, directoryState: true};
+      return {catalog, stats, directoryState: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
     },
     async memberProfile(token) {
       const s = await authorize(token, "member");

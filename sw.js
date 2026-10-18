@@ -1,25 +1,22 @@
-const CACHE_NAME = "we-medical-v4-5b0c1c3565e27c63";
+const CACHE_NAME = "we-medical-v4-be6727eadc37bb6e";
 const PRECACHE = [
   "./",
   "./index.html",
-  "./manifest.json?v=20261018-nabd",
-  "./css/styles.css?v=20261018-profiles",
+  "./manifest.json?v=20261018-family",
+  "./css/styles.css?v=20261018-family",
   "./js/config.js?v=20261017-live",
   "./css/fonts.css",
   "./js/storage.js",
-  "./js/api.js?v=20261018-profiles",
+  "./js/api.js?v=20261018-family",
   "./js/quality.js?v=20261018-nabd",
   "./js/contacts.js?v=20261018-nabd",
-  "./js/directory-research.js?v=20261018-profiles",
-  "./js/avatar-hints.js?v=20261018-profiles",
-  "./js/app.js?v=20261018-profiles",
+  "./js/directory-research.js?v=20261018-family",
+  "./js/avatar-hints.js?v=20261018-family",
+  "./js/app.js?v=20261018-family",
   "./img/we_logo.webp",
   "./img/nekaba-mark.png",
   "./img/provider-anime.png",
-  "./img/favicon-32.png",
-  "./img/icon-96.png",
-  "./img/icon-192.png",
-  "./img/icon-512.png",
+  "./img/app-icon-family.png",
 ];
 const FONT_ASSETS = ["./img/fonts/3270f0cb47fdabc3.woff2","./img/fonts/40af6d88b63079a0.woff2","./img/fonts/481acf6760031cee.woff2","./img/fonts/6c9f4bab97d6bc5f.woff2","./img/fonts/6d3351fc535f8ef3.woff2","./img/fonts/8ab0af53a3bda9d3.woff2","./img/fonts/8f262393e9249e61.woff2","./img/fonts/9d1f41b13e519d90.woff2","./img/fonts/a005256cb957ecc7.woff2","./img/fonts/c69d345fa1068c2d.woff2","./img/fonts/e8fc56ad5aa556a1.woff2"];
 PRECACHE.push(...FONT_ASSETS);

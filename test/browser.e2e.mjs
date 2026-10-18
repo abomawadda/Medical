@@ -217,6 +217,11 @@ try {
   assert.ok(entrance.y + entrance.height < 844,"Member entry should be reachable without scrolling on a 390x844 screen");
 
   assert.equal((await (await p.request.get(origin + "/manifest.json")).json()).short_name,"نبض النقابة");
+  const installManifest=await (await p.request.get(origin+"/manifest.json")).json();
+  assert.ok(installManifest.icons.every(icon=>icon.src === "img/app-icon-family.png"));
+  assert.equal(installManifest.icons[0].sizes,"1254x1254");
+  assert.equal(await p.locator(".startup-card,.splash-screen,.loading-overlay").count(),0);
+
   assert.equal(await p.locator(".card").count(), 0);
   assert.ok(await p.locator("#main-nav").isHidden());
   assert.ok(!requests.some((u) => u.includes("/v1/catalog")));
@@ -498,9 +503,28 @@ try {
   await g.locator(".login-card form").waitFor();
   assert.equal(await g.locator(".card").count(), 0);
   await memberLogin(g);
+  await g.goto(origin+"/#services");
+  await g.locator(".network-tabs").getByRole("button",{name:"الأسر والمعاشات",exact:true}).click();
+  const familyOnly=seed.records.find(r=>r.source_ref === "family-20261018" && r.source_row===36);
+  await g.goto(origin+"/#entity="+encodeURIComponent("doctor:"+familyOnly.provider_id));
+  await g.locator(".anime-doctor_male").waitFor();
+  assert.ok((await g.locator(".provider-profile").innerText()).includes("شبكة الأسر والمعاشات"));
+  assert.equal(await g.getByText("موقوف مؤقتًا",{exact:true}).count(),0);
+  await g.goto(origin+"/#entity="+encodeURIComponent("hospitals:hosp_kheir"));
+  await g.locator('[data-contact-type="landline"] a[href="tel:0502504066"]').waitFor();
+  assert.equal(await g.locator('.facility-card [data-contact-type="mobile"]').count(),0);
+  await g.goto(origin+"/#services");
+  await g.locator(".network-tabs").getByRole("button",{name:"الموظفون",exact:true}).click();
+  assert.equal(await g.locator('[data-target="pharmacies:family_20261018_010"]').count(),0);
+  await g.goto(origin+"/#entity="+encodeURIComponent("hospitals:hosp_kheir"));
+  // This shared hospital has the same phone in both sheets; its address differs.
+  await g.locator('.facility-card').getByText("شارع قناة السويس",{exact:true}).waitFor();
+  assert.equal(await g.locator('.facility-card').getByText("153 شارع قناة السويس",{exact:true}).count(),0);
+  await g.goto(origin+"/#services");
+  await g.locator(".network-tabs").getByRole("button",{name:"كل الشبكات",exact:true}).click();
   await g.goto(origin + "/#districts");
   await g.locator(".district-card").first().waitFor();
-  assert.equal(await g.locator(".district-card").count(),16);
+  assert.equal(await g.locator(".district-card").count(),17);
   if(process.env.MEDICAL_SCREENSHOT_DIR) await g.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"districts-mobile.png"),fullPage:false});
   await g.locator(".district-card").filter({hasText:"طلخا"}).click();
   await g.getByRole("heading",{name:"الشبكة الطبية · طلخا",exact:true}).waitFor();

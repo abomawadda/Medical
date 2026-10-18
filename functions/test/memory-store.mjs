@@ -1,3 +1,4 @@
+import { withFamilyContracts } from "../src/family-projection.mjs";
 import { ApiError, kinds } from "../src/core.mjs";
 import { reviseReview, decideReview, reviewRevision } from "../src/review-lifecycle.mjs";
 export function fixtureStore(seed) {
@@ -42,7 +43,7 @@ export function fixtureStore(seed) {
         for (const row of overlays.values())
           if (row.kind === k) {
             if (row.deleted) map.delete(row.entityId);
-            else map.set(row.entityId, { ...row.value, _version: row.version });
+            else map.set(row.entityId, { ...withFamilyContracts(map.get(row.entityId),row.value), _version: row.version });
           }
         out[k] = [...map.values()];
       }

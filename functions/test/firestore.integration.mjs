@@ -61,6 +61,7 @@ const before = JSON.stringify(
   (await foreign.collection("employees").get()).docs.map((d) => d.data()),
 );
 const seed = {
+  hospitals:[{id:"family_shared",name:"مستشفى اختبار مشترك",network_members:["employee","family","retiree"],contract_relationships:[{id:"family_contract",source_ref:"family-20261018",route:"family_network",network_members:["family","retiree"],contact_groups:{mobile:[],landline:["0502000001"],shortcode:[]}}]}],
   records: [
     {
       id: 1,
@@ -209,6 +210,14 @@ assert.equal(
   ),
   before,
 );
+await adapters.store.mutateEntity("hospitals","family_shared",{value:{id:"family_shared",name:"مستشفى اختبار مشترك",phone:"0502000002",network_members:["employee"],directory_visibility:"hidden"},deleted:false},0,"fixture",Date.now());
+const retained=(await service.catalog(admin)).catalog.hospitals.find(h=>h.id==="family_shared");
+assert.equal(retained.phone,"0502000002");assert.equal(retained.directory_visibility,"hidden");
+assert.deepEqual(retained.network_members,["employee","family","retiree"]);
+assert.equal(retained.contract_relationships[0].contact_groups.landline[0],"0502000001");
+assert.ok(!(await service.catalog(member)).catalog.hospitals.some(h=>h.id==="family_shared"));
+await service.deleteEntity(admin,"hospitals","family_shared",{expected_version:1});
+assert.ok(!(await service.catalog(admin)).catalog.hospitals.some(h=>h.id==="family_shared"));
 await service.logout(member);
 await assert.rejects(
   () => service.ownReviews(member),

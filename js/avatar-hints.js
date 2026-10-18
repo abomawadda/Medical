@@ -8,7 +8,7 @@
   // Reviewed against the current provider directory. Some names are shared;
   // the owner's requested hint remains overridable by an administrator.
   const female=new Set("ولاء لميس ايمان زينب فاطمة هاديل هديل مني وسام نهال ايناس مروة منال رحاب اماني نورا سارة نجوي".split(" "));
-  const male=new Set("اسامة وليد اشرف عمرو احمد محمد ضياء محمود نبيل سالم ابراهيم علي ماجد جمال عمر عادل علاء رائد ابو هاني اسماعيل عبد هشام ممدوح محسن السيد مختار مسعد تامر رشدي ايهاب حسام ايمن سامر يوسف عاصم طارق طلعت كرم شكري ياسر عمار مصطفي شريف".split(" "));
+  const male=new Set("نشات اسامة وليد اشرف عمرو احمد محمد ضياء محمود نبيل سالم ابراهيم علي ماجد جمال عمر عادل علاء رائد ابو هاني اسماعيل عبد هشام ممدوح محسن السيد مختار مسعد تامر رشدي ايهاب حسام ايمن سامر يوسف عاصم طارق طلعت كرم شكري ياسر عمار مصطفي شريف".split(" "));
   function doctor(name) {
     const text=normalize(name);
     if (/دكتورة|طبيبة|د\.ة/.test(text)) return "doctor_female";

@@ -1,3 +1,4 @@
+import { withFamilyContracts } from "./family-projection.mjs";
 import { createHash } from "node:crypto";
 import {
   initializeApp,
@@ -20,7 +21,7 @@ export function mergeCatalog(seed, overlays) {
     );
     for (const row of overlays.filter((o) => o.kind === kind)) {
       if (row.deleted) entries.delete(row.entityId);
-      else entries.set(row.entityId, { ...row.value, _version: row.version });
+      else entries.set(row.entityId, { ...withFamilyContracts(entries.get(row.entityId),row.value), _version: row.version });
     }
     result[kind] = [...entries.values()];
   }

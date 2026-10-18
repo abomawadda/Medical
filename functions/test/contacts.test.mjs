@@ -52,8 +52,8 @@ test("staff import preserves original identities, all historical review targets 
   for(const id of ["hosp_hekma","hosp_sellab","hosp_kheir"]) assert.equal(allH.filter(h=>h.id===id).length,1);
   assert.deepEqual(allH.find(h=>h.id === "hosp_hekma").network_members,["employee"]);
   assert.deepEqual(allH.find(h=>h.id === "hosp_sellab").network_members,["employee","family","retiree"]);
-  assert.equal(data.records.length,170);
-  assert.equal(new Set(data.records.map(r=>r.id)).size,170);
+  assert.equal(data.records.filter(r=>r.source_ref !== "family-20261018").length,170);
+  assert.equal(new Set(data.records.map(r=>r.id)).size,data.records.length);
   assert.ok(data.records.slice(0,169).every(r=>/^provider_\d+$/.test(r.provider_id)));
   assert.ok(imported.entries.every(e=>!e.entity.coverage_verified));
   assert.ok(!JSON.stringify(imported).includes("موقف التسجيل بالفاتوره"));
