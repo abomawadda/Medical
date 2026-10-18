@@ -1,3 +1,5 @@
+import facilities from "./facility-directory.cjs";
+import {groupedReviewStats} from "./facility-review-stats.mjs";
 import { mergeCatalog } from "./catalog-projection.mjs";
 import { createHash } from "node:crypto";
 import {
@@ -12,6 +14,7 @@ import { ApiError, kinds } from "./core.mjs";
 import { createAdminIdentityVerifier, legacyAdminState } from "./admin-identity.mjs";
 import { reviseReview, decideReview, reviewRevision } from "./review-lifecycle.mjs";
 
+const facilityStatsCache=new Map();
 const key = (value) => createHash("sha256").update(value).digest("hex");
 export { mergeCatalog } from "./catalog-projection.mjs";
 
@@ -239,6 +242,17 @@ export function firebaseAdapters({
           }),
         );
       },
+      async getReview(id){if(!/^[a-f0-9]{64}$/.test(id))throw new ApiError(400,"INVALID_REVIEW","معرف التقييم غير صالح.");return (await reviews.doc(id).get()).data() || null;},
+      async getGroupedStats(groups){
+        const cacheKey=db.projectId+":"+JSON.stringify(groups);const cached=facilityStatsCache.get(cacheKey);
+        if(cached && Date.now()-cached.at<30000)return cached.stats;
+        const rows=[];
+        const ids=[...new Set(groups.flatMap(g=>g.targets))];
+        for(let i=0;i<ids.length;i+=30){const snapshot=await reviews.where("target_id","in",ids.slice(i,i+30)).select("author_id","target_id","rating","status","updated_at").get();rows.push(...snapshot.docs.map(d=>({...d.data(),id:d.id})));}
+        const totals=groupedReviewStats(groups,rows);
+        if(facilityStatsCache.size>=32)facilityStatsCache.clear();
+        facilityStatsCache.set(cacheKey,{at:Date.now(),stats:totals});return totals;
+      },
       async mutateEntities(changes,actor,at) {
         await db.runTransaction(async tx => {
           const refs=changes.map(c=>entities.doc(key(`${c.kind}:${c.id}`)));
@@ -279,18 +293,21 @@ export function firebaseAdapters({
           });
         });
       },
-      async saveReview(review) {
-        const ref = reviews.doc(review.id),
-          stat = stats.doc(key(review.target_id));
-        return db.runTransaction(async (tx) => {
-          const [old, totals] = await Promise.all([tx.get(ref), tx.get(stat)]);
-          const previous = old.data();
-          const next = reviseReview(previous, review);
+      async saveReview(review,candidateIds=[]) {
+        const result=await db.runTransaction(async (tx) => {
+          const candidates=await tx.getAll(...[...new Set([review.id,...candidateIds])].map(id=>reviews.doc(id)));
+          const previous=facilities.latest(candidates.filter(d=>d.exists).map(d=>d.data()));
+          const incoming=previous ? {...review,id:previous.id,target_id:previous.target_id,...(candidateIds.length>1?{branch_id:previous.branch_id}:{})} : review;
+          const ref=reviews.doc(incoming.id),stat=stats.doc(key(incoming.target_id));
+          const totals=await tx.get(stat);
+          const next = reviseReview(previous, incoming);
           if (!next.changed) return { changed: false, status: previous.status, revision: reviewRevision(previous) };
           tx.set(ref, next.review);
           tx.set(stat, adjustStats(totals.data(), previous, next.review));
           return { changed: true, status: next.review.status, revision: next.review.revision };
         });
+        facilityStatsCache.clear();
+        return result;
       },
       async listReviews(filter) {
         const query = filter.author_id
@@ -298,17 +315,20 @@ export function firebaseAdapters({
           : reviews.orderBy("updated_at", "desc");
         const snapshot = await query.limit(500).get();
         return snapshot.docs.map((s) => {
-          const { author_id, ...publicFields } = s.data();
-          return { ...publicFields, revision: reviewRevision(publicFields) };
+          const fields=s.data();
+          return {...fields,revision:reviewRevision(fields)};
         });
       },
-      async moderateReview(id, status, actor, at, expectedRevision) {
+      async moderateReview(id, status, actor, at, expectedRevision,candidateIds=[]) {
         if (!/^[a-f0-9]{64}$/.test(id))
           throw new ApiError(400, "INVALID_REVIEW", "معرف التقييم غير صالح.");
         const ref = reviews.doc(id),
           log = audit.doc();
-        return db.runTransaction(async (tx) => {
-          const old = await tx.get(ref);
+        const result=await db.runTransaction(async (tx) => {
+          const candidates=await tx.getAll(...[...new Set([id,...candidateIds])].map(id=>reviews.doc(id)));
+          const old=candidates.find(d=>d.id===id);
+          const latest=facilities.latest(candidates.filter(d=>d.exists).map(d=>d.data()));
+          if(latest && latest.id!==id)throw new ApiError(409,"REVIEW_CHANGED","توجد تجربة أحدث لنفس العضو والفرع. حدّث قائمة المراجعة.");
           if (!old.exists)
             throw new ApiError(404, "NOT_FOUND", "التقييم غير موجود.");
           const previous = old.data(),
@@ -329,6 +349,8 @@ export function firebaseAdapters({
           });
           return { changed: true, status, revision: next.revision };
         });
+        facilityStatsCache.clear();
+        return result;
       },
     },
   };

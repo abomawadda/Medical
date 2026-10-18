@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "method": "source-address-reviewed",
+  "groups": [
+    {
+      "kind": "labs",
+      "ids": [
+        "staff_2378",
+        "family_20261018_068"
+      ],
+      "signatures": [
+        "3945d005",
+        "61496d07"
+      ],
+      "reason": "نفس تقاطع جيهان والجمهورية ونفس اسم ألفا"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2010",
+        "family_20261018_076"
+      ],
+      "signatures": [
+        "d2246ed2",
+        "146c8967"
+      ],
+      "reason": "كير، شارع أحمد عرابي، ميت غمر"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2546",
+        "family_20261018_099",
+        "family_20261018_102"
+      ],
+      "signatures": [
+        "e2547039",
+        "3aa2a9dd",
+        "ee0a7b75"
+      ],
+      "reason": "كير، شارع جيهان أمام بوابة استاد الجامعة"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2633",
+        "family_20261018_077"
+      ],
+      "signatures": [
+        "e82a2d4e",
+        "1853e7eb"
+      ],
+      "reason": "أورانج، النقراشي أمام بنك مصر وموقف القاهرة بدكرنس"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2649",
+        "family_20261018_107"
+      ],
+      "signatures": [
+        "a789ec6e",
+        "35c7bab8"
+      ],
+      "reason": "أورانج، 70 قناة السويس برج الصديق توريل"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_011",
+        "family_20261018_067"
+      ],
+      "signatures": [
+        "5f16c533",
+        "d26a8ec"
+      ],
+      "reason": "العزبي، الجمهورية وعمارة أبو طوق"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_769",
+        "family_20261018_010"
+      ],
+      "signatures": [
+        "5354f6f3",
+        "c7e470c0"
+      ],
+      "reason": "العزبي، حسني مبارك وبجوار فندق مارشال"
+    }
+  ]
+}

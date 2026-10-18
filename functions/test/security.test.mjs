@@ -700,3 +700,22 @@ test("measured reviews retain private criteria, unchanged saves are idempotent a
  for(const criteria of [{unknown:5},{waiting:9},{reception:'5'},{}])await assert.rejects(()=>f.service.submitReview(t,{...review,criteria},'criteria-ip'),e=>e.code==='INVALID_CRITERIA');
  assert.equal((await f.service.ownReviews(t)).reviews[0].criteria.reception,5);
 });
+
+test('a member reviewing staff/family aliases edits one logical branch experience and grouped stats count it once',async()=>{
+ const data=JSON.parse(await (await import('node:fs/promises')).readFile(new URL('../../data.json',import.meta.url),'utf8'));
+ const f=setup();for(const id of ['staff_2378','family_20261018_068'])await f.store.mutateEntity('labs',id,{value:data.labs.find(r=>r.id===id)},0,'fixture',1);
+ const t=await member(f),a=await admin(f);
+ const body={target_id:'labs:family_20261018_068',branch_id:'family_20261018_068',rating:4,comment:'تجربة فرع اختبار',visited_declared:true};
+ await f.service.submitReview(t,body,'alias-test');
+ const original=[...f.store.reviews.values()][0];assert.equal(original.target_id,'labs:staff_2378');
+ await f.service.moderateReview(a,original.id,{status:'published',revision:1});
+ assert.equal((await f.service.submitReview(t,{...body,target_id:'labs:staff_2378',branch_id:'staff_2378'},'alias-test')).changed,false);
+ assert.equal(f.store.reviews.size,1);
+ const response=await f.service.catalog(t);assert.deepEqual(response.facilityStats['labs:staff_2378'],{count:1,average:4});
+ assert.deepEqual(response.facilityStats['labs:family_20261018_068'],{count:1,average:4});
+ assert.ok(!JSON.stringify(response.facilityStats).includes('author_id'));
+ f.advance(1);
+ await f.service.submitReview(t,{...body,rating:2},'alias-test');
+ assert.equal(f.store.reviews.size,1);assert.equal((await f.service.ownReviews(t)).reviews[0].revision,2);
+ assert.deepEqual((await f.service.catalog(t)).facilityStats['labs:staff_2378'],{count:0,average:null});
+});

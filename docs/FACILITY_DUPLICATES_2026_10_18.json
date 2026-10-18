@@ -1,0 +1,3965 @@
+{
+  "schema": 1,
+  "confirmed": [
+    {
+      "kind": "labs",
+      "ids": [
+        "staff_2378",
+        "family_20261018_068"
+      ],
+      "signatures": [
+        "3945d005",
+        "61496d07"
+      ],
+      "reason": "نفس تقاطع جيهان والجمهورية ونفس اسم ألفا",
+      "rows": [
+        {
+          "id": "staff_2378",
+          "name": "معامل ألفا - المنصورة",
+          "address": "تقاطع شارع جيهان مع شارع الجمهورية",
+          "city": "المنصورة",
+          "markaz": "المنصورة",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "maps_url": "https://maps.app.goo.gl/Heox9pzS89iUQBMfA",
+          "phone": "01101216191 - 01200790566",
+          "contact_groups": {
+            "mobile": [
+              "01101216191",
+              "01200790566"
+            ],
+            "landline": [],
+            "shortcode": []
+          },
+          "contact_evidence": [],
+          "contact_review_required": false,
+          "source_ref": "staff-20261018",
+          "source_row": 68,
+          "staff_provider_code": "2378",
+          "imported_at": "2026-10-18",
+          "network_members": [
+            "employee"
+          ],
+          "contract_type": "direct_we",
+          "contract_entity": "تعاقد مباشر من الشركة WE",
+          "contract_entity_id": "direct_we",
+          "coverage_scope": "unknown",
+          "declared_coverage_scope": "employee_only",
+          "coverage_verified": false,
+          "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+          "category": "معمل تحاليل",
+          "branch_label": "المنصورة · تقاطع شارع جيهان مع شارع الجمهورية",
+          "data_notes": "",
+          "contract_relationships": [
+            {
+              "id": "contract_staff_2378",
+              "route": "direct_we",
+              "network_members": [
+                "employee"
+              ],
+              "source_ref": "staff-20261018",
+              "source_row": 68,
+              "financial_terms_status": "unknown"
+            }
+          ]
+        },
+        {
+          "id": "family_20261018_068",
+          "name": "معامل ألفا للتحاليل الطبية",
+          "category": "معامل تحاليل",
+          "address": "تقاطع شارع جيهان مع شارع الجمهورية",
+          "markaz": "المنصورة",
+          "city": "المنصورة",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "phone": "16191",
+          "contact_groups": {
+            "mobile": [],
+            "landline": [],
+            "shortcode": [
+              "16191"
+            ]
+          },
+          "network_members": [
+            "family",
+            "retiree"
+          ],
+          "contract_type": "family_network",
+          "contract_entity": "شبكة الأسر والمعاشات",
+          "contract_entity_id": "family_network",
+          "coverage_scope": "unknown",
+          "coverage_verified": false,
+          "source_ref": "family-20261018",
+          "source_row": 68,
+          "network_source": "ملف الأسر — الدليل المنقح — 18 أكتوبر 2026",
+          "contact_review_required": false,
+          "maps_url": "https://www.google.com/maps/search/?api=1&query=%D9%85%D8%B9%D8%A7%D9%85%D9%84%20%D8%A3%D9%84%D9%81%D8%A7%20%D9%84%D9%84%D8%AA%D8%AD%D8%A7%D9%84%D9%8A%D9%84%20%D8%A7%D9%84%D8%B7%D8%A8%D9%8A%D8%A9%20%D8%AA%D9%82%D8%A7%D8%B7%D8%B9%20%D8%B4%D8%A7%D8%B1%D8%B9%20%D8%AC%D9%8A%D9%87%D8%A7%D9%86%20%D9%85%D8%B9%20%D8%B4%D8%A7%D8%B1%D8%B9%20%D8%A7%D9%84%D8%AC%D9%85%D9%87%D9%88%D8%B1%D9%8A%D8%A9%20%D8%A7%D9%84%D9%85%D9%86%D8%B5%D9%88%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D9%82%D9%87%D9%84%D9%8A%D8%A9%20%D9%85%D8%B5%D8%B1",
+          "contract_relationships": [
+            {
+              "id": "contract_family_20261018_068",
+              "route": "family_network",
+              "network_members": [
+                "family",
+                "retiree"
+              ],
+              "source_ref": "family-20261018",
+              "source_row": 68,
+              "address": "تقاطع شارع جيهان مع شارع الجمهورية",
+              "contact_groups": {
+                "mobile": [],
+                "landline": [],
+                "shortcode": [
+                  "16191"
+                ]
+              },
+              "financial_terms_status": "unknown"
+            }
+          ],
+          "data_notes": ""
+        }
+      ]
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2010",
+        "family_20261018_076"
+      ],
+      "signatures": [
+        "d2246ed2",
+        "146c8967"
+      ],
+      "reason": "كير، شارع أحمد عرابي، ميت غمر",
+      "rows": [
+        {
+          "id": "staff_2010",
+          "name": "صيدليات كير",
+          "address": "شارع أحمد عرابي",
+          "city": "ميت غمر",
+          "markaz": "ميت غمر",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "maps_url": "https://maps.app.goo.gl/TyLASit8otDMF2Sa7",
+          "phone": "19757",
+          "contact_groups": {
+            "mobile": [],
+            "landline": [],
+            "shortcode": [
+              "19757"
+            ]
+          },
+          "contact_evidence": [],
+          "contact_review_required": false,
+          "source_ref": "staff-20261018",
+          "source_row": 58,
+          "staff_provider_code": "2010",
+          "imported_at": "2026-10-18",
+          "network_members": [
+            "employee"
+          ],
+          "contract_type": "direct_we",
+          "contract_entity": "تعاقد مباشر من الشركة WE",
+          "contract_entity_id": "direct_we",
+          "coverage_scope": "unknown",
+          "declared_coverage_scope": "employee_only",
+          "coverage_verified": false,
+          "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+          "category": "صيدلية",
+          "branch_label": "ميت غمر · شارع أحمد عرابي",
+          "data_notes": "",
+          "contract_relationships": [
+            {
+              "id": "contract_staff_2010",
+              "route": "direct_we",
+              "network_members": [
+                "employee"
+              ],
+              "source_ref": "staff-20261018",
+              "source_row": 58,
+              "financial_terms_status": "unknown"
+            }
+          ]
+        },
+        {
+          "id": "family_20261018_076",
+          "name": "صيدلية كير الفيروز",
+          "category": "صيدليات",
+          "address": "شارع أحمد عرابي",
+          "markaz": "ميت غمر",
+          "city": "ميت غمر",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "phone": "01101833502 - 19757",
+          "contact_groups": {
+            "mobile": [
+              "01101833502"
+            ],
+            "landline": [],
+            "shortcode": [
+              "19757"
+            ]
+          },
+          "network_members": [
+            "family",
+            "retiree"
+          ],
+          "contract_type": "family_network",
+          "contract_entity": "شبكة الأسر والمعاشات",
+          "contract_entity_id": "family_network",
+          "coverage_scope": "unknown",
+          "coverage_verified": false,
+          "source_ref": "family-20261018",
+          "source_row": 76,
+          "network_source": "ملف الأسر — الدليل المنقح — 18 أكتوبر 2026",
+          "contact_review_required": false,
+          "maps_url": "https://www.google.com/maps/search/?api=1&query=%D8%B5%D9%8A%D8%AF%D9%84%D9%8A%D8%A9%20%D9%83%D9%8A%D8%B1%20%D8%A7%D9%84%D9%81%D9%8A%D8%B1%D9%88%D8%B2%20%D8%B4%D8%A7%D8%B1%D8%B9%20%D8%A3%D8%AD%D9%85%D8%AF%20%D8%B9%D8%B1%D8%A7%D8%A8%D9%8A%20%D9%85%D9%8A%D8%AA%20%D8%BA%D9%85%D8%B1%20%D8%A7%D9%84%D8%AF%D9%82%D9%87%D9%84%D9%8A%D8%A9%20%D9%85%D8%B5%D8%B1",
+          "contract_relationships": [
+            {
+              "id": "contract_family_20261018_076",
+              "route": "family_network",
+              "network_members": [
+                "family",
+                "retiree"
+              ],
+              "source_ref": "family-20261018",
+              "source_row": 76,
+              "address": "شارع أحمد عرابي",
+              "contact_groups": {
+                "mobile": [
+                  "01101833502"
+                ],
+                "landline": [],
+                "shortcode": [
+                  "19757"
+                ]
+              },
+              "financial_terms_status": "unknown"
+            }
+          ],
+          "data_notes": ""
+        }
+      ]
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2546",
+        "family_20261018_099",
+        "family_20261018_102"
+      ],
+      "signatures": [
+        "e2547039",
+        "3aa2a9dd",
+        "ee0a7b75"
+      ],
+      "reason": "كير، شارع جيهان أمام بوابة استاد الجامعة",
+      "rows": [
+        {
+          "id": "staff_2546",
+          "name": "صيدليات كير",
+          "address": "2 شارع جيهان أمام بوابة ستاد الجامعه",
+          "city": "المنصورة",
+          "markaz": "المنصورة",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "maps_url": "https://maps.app.goo.gl/F2N8bsQhZxWDWJQB9",
+          "phone": "19757",
+          "contact_groups": {
+            "mobile": [],
+            "landline": [],
+            "shortcode": [
+              "19757"
+            ]
+          },
+          "contact_evidence": [],
+          "contact_review_required": false,
+          "source_ref": "staff-20261018",
+          "source_row": 71,
+          "staff_provider_code": "2546",
+          "imported_at": "2026-10-18",
+          "network_members": [
+            "employee"
+          ],
+          "contract_type": "direct_we",
+          "contract_entity": "تعاقد مباشر من الشركة WE",
+          "contract_entity_id": "direct_we",
+          "coverage_scope": "unknown",
+          "declared_coverage_scope": "employee_only",
+          "coverage_verified": false,
+          "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+          "category": "صيدلية",
+          "branch_label": "المنصورة · 2 شارع جيهان أمام بوابة ستاد الجامعه",
+          "data_notes": "",
+          "contract_relationships": [
+            {
+              "id": "contract_staff_2546",
+              "route": "direct_we",
+              "network_members": [
+                "employee"
+              ],
+              "source_ref": "staff-20261018",
+              "source_row": 71,
+              "financial_terms_status": "unknown"
+            }
+          ]
+        },
+        {
+          "id": "family_20261018_099",
+          "name": "صيدلية كير جيهان",
+          "category": "صيدليات",
+          "address": "شارع - جيهان أمام بوابة استاد الجامعة - المنصورة - الدقهلية",
+          "markaz": "المنصورة",
+          "city": "المنصورة",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "phone": "19757",
+          "contact_groups": {
+            "mobile": [],
+            "landline": [],
+            "shortcode": [
+              "19757"
+            ]
+          },
+          "network_members": [
+            "family",
+            "retiree"
+          ],
+          "contract_type": "family_network",
+          "contract_entity": "شبكة الأسر والمعاشات",
+          "contract_entity_id": "family_network",
+          "coverage_scope": "unknown",
+          "coverage_verified": false,
+          "source_ref": "family-20261018",
+          "source_row": 99,
+          "network_source": "ملف الأسر — الدليل المنقح — 18 أكتوبر 2026",
+          "contact_review_required": false,
+          "maps_url": "https://www.google.com/maps/search/?api=1&query=%D8%B5%D9%8A%D8%AF%D9%84%D9%8A%D8%A9%20%D9%83%D9%8A%D8%B1%20%D8%AC%D9%8A%D9%87%D8%A7%D9%86%20%D8%B4%D8%A7%D8%B1%D8%B9%20-%20%D8%AC%D9%8A%D9%87%D8%A7%D9%86%20%D8%A3%D9%85%D8%A7%D9%85%20%D8%A8%D9%88%D8%A7%D8%A8%D8%A9%20%D8%A7%D8%B3%D8%AA%D8%A7%D8%AF%20%D8%A7%D9%84%D8%AC%D8%A7%D9%85%D8%B9%D8%A9%20-%20%D8%A7%D9%84%D9%85%D9%86%D8%B5%D9%88%D8%B1%D8%A9%20-%20%D8%A7%D9%84%D8%AF%D9%82%D9%87%D9%84%D9%8A%D8%A9%20%D8%A7%D9%84%D9%85%D9%86%D8%B5%D9%88%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D9%82%D9%87%D9%84%D9%8A%D8%A9%20%D9%85%D8%B5%D8%B1",
+          "contract_relationships": [
+            {
+              "id": "contract_family_20261018_099",
+              "route": "family_network",
+              "network_members": [
+                "family",
+                "retiree"
+              ],
+              "source_ref": "family-20261018",
+              "source_row": 99,
+              "address": "شارع - جيهان أمام بوابة استاد الجامعة - المنصورة - الدقهلية",
+              "contact_groups": {
+                "mobile": [],
+                "landline": [],
+                "shortcode": [
+                  "19757"
+                ]
+              },
+              "financial_terms_status": "unknown"
+            }
+          ],
+          "data_notes": ""
+        },
+        {
+          "id": "family_20261018_102",
+          "name": "صيدلية كير المنصورة",
+          "category": "صيدليات",
+          "address": "شارع جيهان أمام بوابة ستاد جامعة المنصورة - المنصورة - الدقهلية",
+          "markaz": "المنصورة",
+          "city": "المنصورة",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "phone": "19757",
+          "contact_groups": {
+            "mobile": [],
+            "landline": [],
+            "shortcode": [
+              "19757"
+            ]
+          },
+          "network_members": [
+            "family",
+            "retiree"
+          ],
+          "contract_type": "family_network",
+          "contract_entity": "شبكة الأسر والمعاشات",
+          "contract_entity_id": "family_network",
+          "coverage_scope": "unknown",
+          "coverage_verified": false,
+          "source_ref": "family-20261018",
+          "source_row": 102,
+          "network_source": "ملف الأسر — الدليل المنقح — 18 أكتوبر 2026",
+          "contact_review_required": false,
+          "maps_url": "https://www.google.com/maps/search/?api=1&query=%D8%B5%D9%8A%D8%AF%D9%84%D9%8A%D8%A9%20%D9%83%D9%8A%D8%B1%20%D8%A7%D9%84%D9%85%D9%86%D8%B5%D9%88%D8%B1%D8%A9%20%D8%B4%D8%A7%D8%B1%D8%B9%20%D8%AC%D9%8A%D9%87%D8%A7%D9%86%20%D8%A3%D9%85%D8%A7%D9%85%20%D8%A8%D9%88%D8%A7%D8%A8%D8%A9%20%D8%B3%D8%AA%D8%A7%D8%AF%20%D8%AC%D8%A7%D9%85%D8%B9%D8%A9%20%D8%A7%D9%84%D9%85%D9%86%D8%B5%D9%88%D8%B1%D8%A9%20-%20%D8%A7%D9%84%D9%85%D9%86%D8%B5%D9%88%D8%B1%D8%A9%20-%20%D8%A7%D9%84%D8%AF%D9%82%D9%87%D9%84%D9%8A%D8%A9%20%D8%A7%D9%84%D9%85%D9%86%D8%B5%D9%88%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D9%82%D9%87%D9%84%D9%8A%D8%A9%20%D9%85%D8%B5%D8%B1",
+          "contract_relationships": [
+            {
+              "id": "contract_family_20261018_102",
+              "route": "family_network",
+              "network_members": [
+                "family",
+                "retiree"
+              ],
+              "source_ref": "family-20261018",
+              "source_row": 102,
+              "address": "شارع جيهان أمام بوابة ستاد جامعة المنصورة - المنصورة - الدقهلية",
+              "contact_groups": {
+                "mobile": [],
+                "landline": [],
+                "shortcode": [
+                  "19757"
+                ]
+              },
+              "financial_terms_status": "unknown"
+            }
+          ],
+          "data_notes": ""
+        }
+      ]
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2633",
+        "family_20261018_077"
+      ],
+      "signatures": [
+        "e82a2d4e",
+        "1853e7eb"
+      ],
+      "reason": "أورانج، النقراشي أمام بنك مصر وموقف القاهرة بدكرنس",
+      "rows": [
+        {
+          "id": "staff_2633",
+          "name": "صيدلية أورانج لإدارة الصيدليات",
+          "address": "شارع النقراشي - أمام بنك مصر - موقف القاهرة - دكرنس - الدقهلية",
+          "city": "دكرنس",
+          "markaz": "دكرنس",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "maps_url": "https://maps.app.goo.gl/bZP3LdoPecUzqPdX8",
+          "phone": "01033337975 - 01004394904 - 0503475309",
+          "contact_groups": {
+            "mobile": [
+              "01033337975",
+              "01004394904"
+            ],
+            "landline": [
+              "0503475309"
+            ],
+            "shortcode": []
+          },
+          "contact_evidence": [],
+          "contact_review_required": false,
+          "source_ref": "staff-20261018",
+          "source_row": 77,
+          "staff_provider_code": "2633",
+          "imported_at": "2026-10-18",
+          "network_members": [
+            "employee"
+          ],
+          "contract_type": "direct_we",
+          "contract_entity": "تعاقد مباشر من الشركة WE",
+          "contract_entity_id": "direct_we",
+          "coverage_scope": "unknown",
+          "declared_coverage_scope": "employee_only",
+          "coverage_verified": false,
+          "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+          "category": "صيدلية",
+          "branch_label": "دكرنس · شارع النقراشي - أمام بنك مصر - موقف القاهرة - دكرنس - الدقهلية",
+          "data_notes": "",
+          "contract_relationships": [
+            {
+              "id": "contract_staff_2633",
+              "route": "direct_we",
+              "network_members": [
+                "employee"
+              ],
+              "source_ref": "staff-20261018",
+              "source_row": 77,
+              "financial_terms_status": "unknown"
+            }
+          ]
+        },
+        {
+          "id": "family_20261018_077",
+          "name": "صيدلية أورانج أحمد محمد رخا",
+          "category": "صيدليات",
+          "address": "شارع النقراشي - أمام بنك مصر - موقف القاهرة - دكرنس - الدقهلية",
+          "markaz": "دكرنس",
+          "city": "دكرنس",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "phone": "19001",
+          "contact_groups": {
+            "mobile": [],
+            "landline": [],
+            "shortcode": [
+              "19001"
+            ]
+          },
+          "network_members": [
+            "family",
+            "retiree"
+          ],
+          "contract_type": "family_network",
+          "contract_entity": "شبكة الأسر والمعاشات",
+          "contract_entity_id": "family_network",
+          "coverage_scope": "unknown",
+          "coverage_verified": false,
+          "source_ref": "family-20261018",
+          "source_row": 77,
+          "network_source": "ملف الأسر — الدليل المنقح — 18 أكتوبر 2026",
+          "contact_review_required": false,
+          "maps_url": "https://www.google.com/maps/search/?api=1&query=%D8%B5%D9%8A%D8%AF%D9%84%D9%8A%D8%A9%20%D8%A3%D9%88%D8%B1%D8%A7%D9%86%D8%AC%20%D8%A3%D8%AD%D9%85%D8%AF%20%D9%85%D8%AD%D9%85%D8%AF%20%D8%B1%D8%AE%D8%A7%20%D8%B4%D8%A7%D8%B1%D8%B9%20%D8%A7%D9%84%D9%86%D9%82%D8%B1%D8%A7%D8%B4%D9%8A%20-%20%D8%A3%D9%85%D8%A7%D9%85%20%D8%A8%D9%86%D9%83%20%D9%85%D8%B5%D8%B1%20-%20%D9%85%D9%88%D9%82%D9%81%20%D8%A7%D9%84%D9%82%D8%A7%D9%87%D8%B1%D8%A9%20-%20%D8%AF%D9%83%D8%B1%D9%86%D8%B3%20-%20%D8%A7%D9%84%D8%AF%D9%82%D9%87%D9%84%D9%8A%D8%A9%20%D8%AF%D9%83%D8%B1%D9%86%D8%B3%20%D8%A7%D9%84%D8%AF%D9%82%D9%87%D9%84%D9%8A%D8%A9%20%D9%85%D8%B5%D8%B1",
+          "contract_relationships": [
+            {
+              "id": "contract_family_20261018_077",
+              "route": "family_network",
+              "network_members": [
+                "family",
+                "retiree"
+              ],
+              "source_ref": "family-20261018",
+              "source_row": 77,
+              "address": "شارع النقراشي - أمام بنك مصر - موقف القاهرة - دكرنس - الدقهلية",
+              "contact_groups": {
+                "mobile": [],
+                "landline": [],
+                "shortcode": [
+                  "19001"
+                ]
+              },
+              "financial_terms_status": "unknown"
+            }
+          ],
+          "data_notes": ""
+        }
+      ]
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2649",
+        "family_20261018_107"
+      ],
+      "signatures": [
+        "a789ec6e",
+        "35c7bab8"
+      ],
+      "reason": "أورانج، 70 قناة السويس برج الصديق توريل",
+      "rows": [
+        {
+          "id": "staff_2649",
+          "name": "صيدلية أورانج لإدارة الصيدليات",
+          "address": "70ش قناة السويس - برج الصديق - توريل - المنصورة - الدقهلية",
+          "city": "المنصورة",
+          "markaz": "المنصورة",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "maps_url": "https://maps.app.goo.gl/Bgqm2cYijeCthiB97",
+          "phone": "01060949391 - 0502316509",
+          "contact_groups": {
+            "mobile": [
+              "01060949391"
+            ],
+            "landline": [
+              "0502316509"
+            ],
+            "shortcode": []
+          },
+          "contact_evidence": [],
+          "contact_review_required": false,
+          "source_ref": "staff-20261018",
+          "source_row": 78,
+          "staff_provider_code": "2649",
+          "imported_at": "2026-10-18",
+          "network_members": [
+            "employee"
+          ],
+          "contract_type": "direct_we",
+          "contract_entity": "تعاقد مباشر من الشركة WE",
+          "contract_entity_id": "direct_we",
+          "coverage_scope": "unknown",
+          "declared_coverage_scope": "employee_only",
+          "coverage_verified": false,
+          "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+          "category": "صيدلية",
+          "branch_label": "المنصورة · 70ش قناة السويس - برج الصديق - توريل - المنصورة - الدقهلية",
+          "data_notes": "",
+          "contract_relationships": [
+            {
+              "id": "contract_staff_2649",
+              "route": "direct_we",
+              "network_members": [
+                "employee"
+              ],
+              "source_ref": "staff-20261018",
+              "source_row": 78,
+              "financial_terms_status": "unknown"
+            }
+          ]
+        },
+        {
+          "id": "family_20261018_107",
+          "name": "صيدلية أورانج - د. طارق محمد فتوح سلامة",
+          "category": "صيدليات",
+          "address": "70 شارع قناة السويس - برج الصديق - توريل - المنصورة - الدقهلية",
+          "markaz": "المنصورة",
+          "city": "المنصورة",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "phone": "19001",
+          "contact_groups": {
+            "mobile": [],
+            "landline": [],
+            "shortcode": [
+              "19001"
+            ]
+          },
+          "network_members": [
+            "family",
+            "retiree"
+          ],
+          "contract_type": "family_network",
+          "contract_entity": "شبكة الأسر والمعاشات",
+          "contract_entity_id": "family_network",
+          "coverage_scope": "unknown",
+          "coverage_verified": false,
+          "source_ref": "family-20261018",
+          "source_row": 107,
+          "network_source": "ملف الأسر — الدليل المنقح — 18 أكتوبر 2026",
+          "contact_review_required": false,
+          "maps_url": "https://www.google.com/maps/search/?api=1&query=%D8%B5%D9%8A%D8%AF%D9%84%D9%8A%D8%A9%20%D8%A3%D9%88%D8%B1%D8%A7%D9%86%D8%AC%20-%20%D8%AF.%20%D8%B7%D8%A7%D8%B1%D9%82%20%D9%85%D8%AD%D9%85%D8%AF%20%D9%81%D8%AA%D9%88%D8%AD%20%D8%B3%D9%84%D8%A7%D9%85%D8%A9%2070%20%D8%B4%D8%A7%D8%B1%D8%B9%20%D9%82%D9%86%D8%A7%D8%A9%20%D8%A7%D9%84%D8%B3%D9%88%D9%8A%D8%B3%20-%20%D8%A8%D8%B1%D8%AC%20%D8%A7%D9%84%D8%B5%D8%AF%D9%8A%D9%82%20-%20%D8%AA%D9%88%D8%B1%D9%8A%D9%84%20-%20%D8%A7%D9%84%D9%85%D9%86%D8%B5%D9%88%D8%B1%D8%A9%20-%20%D8%A7%D9%84%D8%AF%D9%82%D9%87%D9%84%D9%8A%D8%A9%20%D8%A7%D9%84%D9%85%D9%86%D8%B5%D9%88%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D9%82%D9%87%D9%84%D9%8A%D8%A9%20%D9%85%D8%B5%D8%B1",
+          "contract_relationships": [
+            {
+              "id": "contract_family_20261018_107",
+              "route": "family_network",
+              "network_members": [
+                "family",
+                "retiree"
+              ],
+              "source_ref": "family-20261018",
+              "source_row": 107,
+              "address": "70 شارع قناة السويس - برج الصديق - توريل - المنصورة - الدقهلية",
+              "contact_groups": {
+                "mobile": [],
+                "landline": [],
+                "shortcode": [
+                  "19001"
+                ]
+              },
+              "financial_terms_status": "unknown"
+            }
+          ],
+          "data_notes": ""
+        }
+      ]
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_011",
+        "family_20261018_067"
+      ],
+      "signatures": [
+        "5f16c533",
+        "d26a8ec"
+      ],
+      "reason": "العزبي، الجمهورية وعمارة أبو طوق",
+      "rows": [
+        {
+          "id": "family_20261018_011",
+          "name": "صيدلية العزبي",
+          "category": "صيدليات",
+          "address": "شارع الجمهورية - عمارة أبو طوق",
+          "markaz": "المنصورة",
+          "city": "المنصورة",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "phone": "19600",
+          "contact_groups": {
+            "mobile": [],
+            "landline": [],
+            "shortcode": [
+              "19600"
+            ]
+          },
+          "network_members": [
+            "family",
+            "retiree"
+          ],
+          "contract_type": "family_network",
+          "contract_entity": "شبكة الأسر والمعاشات",
+          "contract_entity_id": "family_network",
+          "coverage_scope": "unknown",
+          "coverage_verified": false,
+          "source_ref": "family-20261018",
+          "source_row": 11,
+          "network_source": "ملف الأسر — الدليل المنقح — 18 أكتوبر 2026",
+          "contact_review_required": false,
+          "maps_url": "https://www.google.com/maps/search/?api=1&query=%D8%B5%D9%8A%D8%AF%D9%84%D9%8A%D8%A9%20%D8%A7%D9%84%D8%B9%D8%B2%D8%A8%D9%8A%20%D8%B4%D8%A7%D8%B1%D8%B9%20%D8%A7%D9%84%D8%AC%D9%85%D9%87%D9%88%D8%B1%D9%8A%D8%A9%20-%20%D8%B9%D9%85%D8%A7%D8%B1%D8%A9%20%D8%A3%D8%A8%D9%88%20%D8%B7%D9%88%D9%82%20%D8%A7%D9%84%D9%85%D9%86%D8%B5%D9%88%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D9%82%D9%87%D9%84%D9%8A%D8%A9%20%D9%85%D8%B5%D8%B1",
+          "contract_relationships": [
+            {
+              "id": "contract_family_20261018_011",
+              "route": "family_network",
+              "network_members": [
+                "family",
+                "retiree"
+              ],
+              "source_ref": "family-20261018",
+              "source_row": 11,
+              "address": "شارع الجمهورية - عمارة أبو طوق",
+              "contact_groups": {
+                "mobile": [],
+                "landline": [],
+                "shortcode": [
+                  "19600"
+                ]
+              },
+              "financial_terms_status": "unknown"
+            }
+          ],
+          "data_notes": "تشابه مع جهة الموظفين مع اختلاف معالم العنوان؛ حفظ مقر الأسر مستقلًا لحين المراجعة."
+        },
+        {
+          "id": "family_20261018_067",
+          "name": "صيدلية العزبي",
+          "category": "صيدليات",
+          "address": "شارع الجمهورية المشاية العلوية عمارة أبو طوق أمام بوابة علوم",
+          "markaz": "المنصورة",
+          "city": "المنصورة",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "phone": "19600",
+          "contact_groups": {
+            "mobile": [],
+            "landline": [],
+            "shortcode": [
+              "19600"
+            ]
+          },
+          "network_members": [
+            "family",
+            "retiree"
+          ],
+          "contract_type": "family_network",
+          "contract_entity": "شبكة الأسر والمعاشات",
+          "contract_entity_id": "family_network",
+          "coverage_scope": "unknown",
+          "coverage_verified": false,
+          "source_ref": "family-20261018",
+          "source_row": 67,
+          "network_source": "ملف الأسر — الدليل المنقح — 18 أكتوبر 2026",
+          "contact_review_required": false,
+          "maps_url": "https://www.google.com/maps/search/?api=1&query=%D8%B5%D9%8A%D8%AF%D9%84%D9%8A%D8%A9%20%D8%A7%D9%84%D8%B9%D8%B2%D8%A8%D9%8A%20%D8%B4%D8%A7%D8%B1%D8%B9%20%D8%A7%D9%84%D8%AC%D9%85%D9%87%D9%88%D8%B1%D9%8A%D8%A9%20%D8%A7%D9%84%D9%85%D8%B4%D8%A7%D9%8A%D8%A9%20%D8%A7%D9%84%D8%B9%D9%84%D9%88%D9%8A%D8%A9%20%D8%B9%D9%85%D8%A7%D8%B1%D8%A9%20%D8%A3%D8%A8%D9%88%20%D8%B7%D9%88%D9%82%20%D8%A3%D9%85%D8%A7%D9%85%20%D8%A8%D9%88%D8%A7%D8%A8%D8%A9%20%D8%B9%D9%84%D9%88%D9%85%20%D8%A7%D9%84%D9%85%D9%86%D8%B5%D9%88%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D9%82%D9%87%D9%84%D9%8A%D8%A9%20%D9%85%D8%B5%D8%B1",
+          "contract_relationships": [
+            {
+              "id": "contract_family_20261018_067",
+              "route": "family_network",
+              "network_members": [
+                "family",
+                "retiree"
+              ],
+              "source_ref": "family-20261018",
+              "source_row": 67,
+              "address": "شارع الجمهورية المشاية العلوية عمارة أبو طوق أمام بوابة علوم",
+              "contact_groups": {
+                "mobile": [],
+                "landline": [],
+                "shortcode": [
+                  "19600"
+                ]
+              },
+              "financial_terms_status": "unknown"
+            }
+          ],
+          "data_notes": "أكثر من مرشح للجهة؛ حفظ مقر الأسر مستقلًا دون دمج تخميني."
+        }
+      ]
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_769",
+        "family_20261018_010"
+      ],
+      "signatures": [
+        "5354f6f3",
+        "c7e470c0"
+      ],
+      "reason": "العزبي، حسني مبارك وبجوار فندق مارشال",
+      "rows": [
+        {
+          "id": "staff_769",
+          "name": "صيدلية العزبي",
+          "address": "شارع حسني مبارك - لور كراتشز - بجوار فندق مارشال",
+          "city": "المنصورة",
+          "markaz": "المنصورة",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "maps_url": "https://maps.app.goo.gl/NHY5kVLCJiZgK2WV6?g_st=aw",
+          "phone": "01110079631",
+          "contact_groups": {
+            "mobile": [
+              "01110079631"
+            ],
+            "landline": [],
+            "shortcode": []
+          },
+          "contact_evidence": [],
+          "contact_review_required": false,
+          "source_ref": "staff-20261018",
+          "source_row": 25,
+          "staff_provider_code": "769",
+          "imported_at": "2026-10-18",
+          "network_members": [
+            "employee"
+          ],
+          "contract_type": "direct_we",
+          "contract_entity": "تعاقد مباشر من الشركة WE",
+          "contract_entity_id": "direct_we",
+          "coverage_scope": "unknown",
+          "declared_coverage_scope": "employee_only",
+          "coverage_verified": false,
+          "coverage_label": "مدرج بقائمة الموظفين؛ التغطية والخدمة تحتاجان تأكيدًا",
+          "category": "صيدلية",
+          "branch_label": "المنصورة · شارع حسني مبارك - لور كراتشز - بجوار فندق مارشال",
+          "data_notes": "",
+          "contract_relationships": [
+            {
+              "id": "contract_staff_769",
+              "route": "direct_we",
+              "network_members": [
+                "employee"
+              ],
+              "source_ref": "staff-20261018",
+              "source_row": 25,
+              "financial_terms_status": "unknown"
+            }
+          ],
+          "image_kind": "logo",
+          "image_url": "https://abomawadda.github.io/Medical/img/providers/el-ezaby.png",
+          "image_source_url": "https://elezabypharmacy.com/",
+          "image_verified": true
+        },
+        {
+          "id": "family_20261018_010",
+          "name": "صيدلية العزبي",
+          "category": "صيدليات",
+          "address": "شارع حسني مبارك - المشاية السفلية - برج المعمورة بجوار فندق مارشال",
+          "markaz": "المنصورة",
+          "city": "المنصورة",
+          "country_code": "EG",
+          "governorate": "الدقهلية",
+          "governorate_code": "EG-DK",
+          "phone": "19600",
+          "contact_groups": {
+            "mobile": [],
+            "landline": [],
+            "shortcode": [
+              "19600"
+            ]
+          },
+          "network_members": [
+            "family",
+            "retiree"
+          ],
+          "contract_type": "family_network",
+          "contract_entity": "شبكة الأسر والمعاشات",
+          "contract_entity_id": "family_network",
+          "coverage_scope": "unknown",
+          "coverage_verified": false,
+          "source_ref": "family-20261018",
+          "source_row": 10,
+          "network_source": "ملف الأسر — الدليل المنقح — 18 أكتوبر 2026",
+          "contact_review_required": false,
+          "maps_url": "https://www.google.com/maps/search/?api=1&query=%D8%B5%D9%8A%D8%AF%D9%84%D9%8A%D8%A9%20%D8%A7%D9%84%D8%B9%D8%B2%D8%A8%D9%8A%20%D8%B4%D8%A7%D8%B1%D8%B9%20%D8%AD%D8%B3%D9%86%D9%8A%20%D9%85%D8%A8%D8%A7%D8%B1%D9%83%20-%20%D8%A7%D9%84%D9%85%D8%B4%D8%A7%D9%8A%D8%A9%20%D8%A7%D9%84%D8%B3%D9%81%D9%84%D9%8A%D8%A9%20-%20%D8%A8%D8%B1%D8%AC%20%D8%A7%D9%84%D9%85%D8%B9%D9%85%D9%88%D8%B1%D8%A9%20%D8%A8%D8%AC%D9%88%D8%A7%D8%B1%20%D9%81%D9%86%D8%AF%D9%82%20%D9%85%D8%A7%D8%B1%D8%B4%D8%A7%D9%84%20%D8%A7%D9%84%D9%85%D9%86%D8%B5%D9%88%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D9%82%D9%87%D9%84%D9%8A%D8%A9%20%D9%85%D8%B5%D8%B1",
+          "contract_relationships": [
+            {
+              "id": "contract_family_20261018_010",
+              "route": "family_network",
+              "network_members": [
+                "family",
+                "retiree"
+              ],
+              "source_ref": "family-20261018",
+              "source_row": 10,
+              "address": "شارع حسني مبارك - المشاية السفلية - برج المعمورة بجوار فندق مارشال",
+              "contact_groups": {
+                "mobile": [],
+                "landline": [],
+                "shortcode": [
+                  "19600"
+                ]
+              },
+              "financial_terms_status": "unknown"
+            }
+          ],
+          "data_notes": "أكثر من مرشح للجهة؛ حفظ مقر الأسر مستقلًا دون دمج تخميني."
+        }
+      ]
+    }
+  ],
+  "pending": [
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_016",
+        "staff_1926"
+      ],
+      "reason": "similar_address",
+      "names": [
+        "معمل البرج",
+        "معامل البرج"
+      ],
+      "addresses": [
+        "ميدان مجلس المدينة - بجوار بنك مصر - برج النيل",
+        "ميدان مجلس المدينة - بجوار بنك القاهرة - برج النمس"
+      ],
+      "action": "review_only"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_029",
+        "staff_1930"
+      ],
+      "reason": "similar_address",
+      "names": [
+        "معمل البرج",
+        "معامل البرج"
+      ],
+      "addresses": [
+        "شارع أحمد عرابى - بجوار قنصلية المدينة",
+        "شارع أحمد عرابي - بجانب مجلس المدينة - مقابل شارع الجيش"
+      ],
+      "action": "review_only"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "pharm_2",
+        "staff_748"
+      ],
+      "reason": "similar_address",
+      "names": [
+        "صيدليات الطرشوبي (El-Torshoby) - فرع ش جيهان",
+        "صيدلية الطرشوبى"
+      ],
+      "addresses": [
+        "المنصورة - شارع جيهان حي الجامعة / فروع: ش بورسعيد / السكة الجديدة",
+        "شارع الثورة - السكة الجديدة - المنصورة"
+      ],
+      "action": "review_only"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_075",
+        "staff_2547"
+      ],
+      "reason": "similar_address",
+      "names": [
+        "صيدليات كير",
+        "صيدلية كير د. اسامه فهمي"
+      ],
+      "addresses": [
+        "شارع قناة السويس أمام نادي الناصريه",
+        "شارع قناة السويس"
+      ],
+      "action": "review_only"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2616",
+        "staff_2618"
+      ],
+      "reason": "similar_address",
+      "names": [
+        "صيدلية أورانج لإدارة الصيدليات",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "محلة أنجاق بملك محمد عباس- طريق شربين -",
+        "محلة أنجاق بملك محمد حامد - أمام الجامع الكبير - شربين - الدقهلية"
+      ],
+      "action": "review_only"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2616",
+        "staff_2619"
+      ],
+      "reason": "similar_address",
+      "names": [
+        "صيدلية أورانج لإدارة الصيدليات",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "محلة أنجاق بملك محمد عباس- طريق شربين -",
+        "محلة أنجاق بملك إيمان حمزة - طريق شربين - الدقهلية"
+      ],
+      "action": "review_only"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_052",
+        "family_20261018_053"
+      ],
+      "reason": "similar_address",
+      "names": [
+        "صيدلية محمد الدنف",
+        "صيدلية محمد الدنف"
+      ],
+      "addresses": [
+        "محلة انشاق بجوار المسجد الكبير - شربين",
+        "محلة انشاق - شربين - بجوار الحاج فؤاد - طريق شربين المنصورة"
+      ],
+      "action": "review_only"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_053",
+        "family_20261018_054"
+      ],
+      "reason": "similar_address",
+      "names": [
+        "صيدلية محمد الدنف",
+        "صيدلية محمد الدنف"
+      ],
+      "addresses": [
+        "محلة انشاق - شربين - بجوار الحاج فؤاد - طريق شربين المنصورة",
+        "طريق شربين المنصورة"
+      ],
+      "action": "review_only"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "lab_1",
+        "staff_1220"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل المختبر (Al-Mokhtabar) - فرع المنصورة الرئيسي",
+        "معمل المختبر"
+      ],
+      "addresses": [
+        "المنصورة - برج المختبر أمام ديوان عام المحافظة / فرع ش جيهان أمام الجامعة",
+        "شارع الجمهورية - بجوار بنك مصر"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "lab_1",
+        "staff_1221"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل المختبر (Al-Mokhtabar) - فرع المنصورة الرئيسي",
+        "معمل المختبر"
+      ],
+      "addresses": [
+        "المنصورة - برج المختبر أمام ديوان عام المحافظة / فرع ش جيهان أمام الجامعة",
+        "شارع الجيش – أمام مبنى المحافظة – فوق بنك أبو ظبى الوطنى"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "lab_1",
+        "staff_1222"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل المختبر (Al-Mokhtabar) - فرع المنصورة الرئيسي",
+        "معمل المختبر"
+      ],
+      "addresses": [
+        "المنصورة - برج المختبر أمام ديوان عام المحافظة / فرع ش جيهان أمام الجامعة",
+        "شارع عاطف المنجي - من شارع الجمهورية - أمام السلاب"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "lab_1_talkha",
+        "staff_1400"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل المختبر (Al-Mokhtabar) - فرع طلخا",
+        "معمل المختبر"
+      ],
+      "addresses": [
+        "طلخا - طريق المعاهد أمام مسجد الشهيد / برج النور",
+        "شارع صلاح سالم - برج خفاجة - بجوار وكالة المنصورة وصيدلية الطرشوبى د1 علوى"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "lab_1_mitghamr",
+        "staff_1224"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل المختبر (Al-Mokhtabar) - فرع ميت غمر",
+        "معمل المختبر"
+      ],
+      "addresses": [
+        "ميت غمر - شارع بورسعيد بجوار بنك الإسكندرية وميدان المحطة",
+        "شارع الجيش"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "lab_1_dikirnis",
+        "staff_1223"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل المختبر (Al-Mokhtabar) - فرع دكرنس",
+        "معمل المختبر"
+      ],
+      "addresses": [
+        "دكرنس - شارع مجلس المدينة أمام بنك مصر",
+        "برج الامراء - بجوار البنك الأهلي"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "lab_2",
+        "staff_1927"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل البرج (Al-Borg Laboratories) - فرع المنصورة الاستاد",
+        "معمل البرج"
+      ],
+      "addresses": [
+        "المنصورة - شارع الجيش أمام استاد المنصورة الرياضي",
+        "شارع الجلاء - أمام مدخل الجامعة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "lab_2",
+        "staff_1928"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل البرج (Al-Borg Laboratories) - فرع المنصورة الاستاد",
+        "معمل البرج"
+      ],
+      "addresses": [
+        "المنصورة - شارع الجيش أمام استاد المنصورة الرياضي",
+        "ميدان المحافظة — تفاصيل المقر تحتاج تأكيدًا"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "lab_2_simbillawein",
+        "staff_1926"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل البرج (Al-Borg) - فرع السنبلاوين",
+        "معمل البرج"
+      ],
+      "addresses": [
+        "السنبلاوين - شارع بورسعيد برج الأطباء بجوار محطة القطار",
+        "ميدان مجلس المدينة - بجوار بنك مصر - برج النيل"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "lab_2_bilqas",
+        "staff_1924"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل البرج (Al-Borg) - فرع بلقاس",
+        "معمل البرج"
+      ],
+      "addresses": [
+        "بلقاس - ميدان المحطة بجوار صيدلية الإسعاف",
+        "شارع الحرية (أبو رجيلة) بجانب بنك مصر"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "lab_3",
+        "staff_760"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل ألفا لاب (Alfa Laboratories) - المنصورة",
+        "معمل ألفا لاب"
+      ],
+      "addresses": [
+        "المنصورة - شارع الجمهورية برج التحرير أمام كلية الطب",
+        "شارع عاطف المنجى من شارع الجمهورية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "lab_3",
+        "staff_2378"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل ألفا لاب (Alfa Laboratories) - المنصورة",
+        "معامل ألفا - المنصورة"
+      ],
+      "addresses": [
+        "المنصورة - شارع الجمهورية برج التحرير أمام كلية الطب",
+        "تقاطع شارع جيهان مع شارع الجمهورية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "staff_1220",
+        "staff_1221"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معمل المختبر",
+        "معمل المختبر"
+      ],
+      "addresses": [
+        "شارع الجمهورية - بجوار بنك مصر",
+        "شارع الجيش – أمام مبنى المحافظة – فوق بنك أبو ظبى الوطنى"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "staff_1220",
+        "staff_1222"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معمل المختبر",
+        "معمل المختبر"
+      ],
+      "addresses": [
+        "شارع الجمهورية - بجوار بنك مصر",
+        "شارع عاطف المنجي - من شارع الجمهورية - أمام السلاب"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "staff_1221",
+        "staff_1222"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معمل المختبر",
+        "معمل المختبر"
+      ],
+      "addresses": [
+        "شارع الجيش – أمام مبنى المحافظة – فوق بنك أبو ظبى الوطنى",
+        "شارع عاطف المنجي - من شارع الجمهورية - أمام السلاب"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "staff_1927",
+        "staff_1928"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معمل البرج",
+        "معمل البرج"
+      ],
+      "addresses": [
+        "شارع الجلاء - أمام مدخل الجامعة",
+        "ميدان المحافظة — تفاصيل المقر تحتاج تأكيدًا"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "staff_2378",
+        "staff_760"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل ألفا - المنصورة",
+        "معمل ألفا لاب"
+      ],
+      "addresses": [
+        "تقاطع شارع جيهان مع شارع الجمهورية",
+        "شارع عاطف المنجى من شارع الجمهورية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_016",
+        "lab_2_simbillawein"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل البرج",
+        "معامل البرج (Al-Borg) - فرع السنبلاوين"
+      ],
+      "addresses": [
+        "ميدان مجلس المدينة - بجوار بنك القاهرة - برج النمس",
+        "السنبلاوين - شارع بورسعيد برج الأطباء بجوار محطة القطار"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_021",
+        "lab_2"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل البرج",
+        "معامل البرج (Al-Borg Laboratories) - فرع المنصورة الاستاد"
+      ],
+      "addresses": [
+        "1 شارع الجلاء - أمام بوابة كلية التربية",
+        "المنصورة - شارع الجيش أمام استاد المنصورة الرياضي"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_021",
+        "staff_1927"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل البرج",
+        "معمل البرج"
+      ],
+      "addresses": [
+        "1 شارع الجلاء - أمام بوابة كلية التربية",
+        "شارع الجلاء - أمام مدخل الجامعة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_021",
+        "staff_1928"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل البرج",
+        "معمل البرج"
+      ],
+      "addresses": [
+        "1 شارع الجلاء - أمام بوابة كلية التربية",
+        "ميدان المحافظة — تفاصيل المقر تحتاج تأكيدًا"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_025",
+        "lab_1_dikirnis"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل المختبر",
+        "معامل المختبر (Al-Mokhtabar) - فرع دكرنس"
+      ],
+      "addresses": [
+        "شارع العروبة برج التحرير أمام مركز شرطة دكرنس",
+        "دكرنس - شارع مجلس المدينة أمام بنك مصر"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_025",
+        "staff_1223"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل المختبر",
+        "معمل المختبر"
+      ],
+      "addresses": [
+        "شارع العروبة برج التحرير أمام مركز شرطة دكرنس",
+        "برج الامراء - بجوار البنك الأهلي"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_028",
+        "lab_1_mitghamr"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل المختبر",
+        "معامل المختبر (Al-Mokhtabar) - فرع ميت غمر"
+      ],
+      "addresses": [
+        "7 شارع الجيش",
+        "ميت غمر - شارع بورسعيد بجوار بنك الإسكندرية وميدان المحطة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_028",
+        "staff_1224"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل المختبر",
+        "معمل المختبر"
+      ],
+      "addresses": [
+        "7 شارع الجيش",
+        "شارع الجيش"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_068",
+        "lab_3"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل ألفا للتحاليل الطبية",
+        "معامل ألفا لاب (Alfa Laboratories) - المنصورة"
+      ],
+      "addresses": [
+        "تقاطع شارع جيهان مع شارع الجمهورية",
+        "المنصورة - شارع الجمهورية برج التحرير أمام كلية الطب"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_068",
+        "staff_760"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل ألفا للتحاليل الطبية",
+        "معمل ألفا لاب"
+      ],
+      "addresses": [
+        "تقاطع شارع جيهان مع شارع الجمهورية",
+        "شارع عاطف المنجى من شارع الجمهورية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_081",
+        "family_20261018_082"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل النحاس",
+        "معامل النحاس"
+      ],
+      "addresses": [
+        "3 شارع الأشقر - متفرع من شارع الجمهورية - المنصورة",
+        "شارع بنك مصر - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_081",
+        "family_20261018_085"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل النحاس",
+        "معامل النحاس"
+      ],
+      "addresses": [
+        "3 شارع الأشقر - متفرع من شارع الجمهورية - المنصورة",
+        "برج النوارجى الجديد - شارع قناة السويس - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_081",
+        "family_20261018_086"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل النحاس",
+        "معامل النحاس"
+      ],
+      "addresses": [
+        "3 شارع الأشقر - متفرع من شارع الجمهورية - المنصورة",
+        "برج زينة - حي الجامعة - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_082",
+        "family_20261018_085"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل النحاس",
+        "معامل النحاس"
+      ],
+      "addresses": [
+        "شارع بنك مصر - المنصورة",
+        "برج النوارجى الجديد - شارع قناة السويس - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_082",
+        "family_20261018_086"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل النحاس",
+        "معامل النحاس"
+      ],
+      "addresses": [
+        "شارع بنك مصر - المنصورة",
+        "برج زينة - حي الجامعة - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_083",
+        "family_20261018_084"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل النحاس",
+        "معامل النحاس"
+      ],
+      "addresses": [
+        "برج صلاح سالم - شارع صلاح سالم - طلخا",
+        "برج السهم الأول - شارع المعاهدة - طلخا"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "labs",
+      "ids": [
+        "family_20261018_085",
+        "family_20261018_086"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "معامل النحاس",
+        "معامل النحاس"
+      ],
+      "addresses": [
+        "برج النوارجى الجديد - شارع قناة السويس - المنصورة",
+        "برج زينة - حي الجامعة - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "pharm_2",
+        "staff_749"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات الطرشوبي (El-Torshoby) - فرع ش جيهان",
+        "صيدلية الطرشوبى"
+      ],
+      "addresses": [
+        "المنصورة - شارع جيهان حي الجامعة / فروع: ش بورسعيد / السكة الجديدة",
+        "شارع صبرى أبو علم - من شارع البحر - خلف عمر افندى"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "pharm_2",
+        "staff_2372"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات الطرشوبي (El-Torshoby) - فرع ش جيهان",
+        "صيدليات د مصطفى الطرشوبي"
+      ],
+      "addresses": [
+        "المنصورة - شارع جيهان حي الجامعة / فروع: ش بورسعيد / السكة الجديدة",
+        "ميدان المحطة _ برج الرواد بجوار فندق مارشال"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "pharm_2",
+        "staff_2373"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات الطرشوبي (El-Torshoby) - فرع ش جيهان",
+        "صيدليات د مصطفى الطرشوبي"
+      ],
+      "addresses": [
+        "المنصورة - شارع جيهان حي الجامعة / فروع: ش بورسعيد / السكة الجديدة",
+        "30 شارع قناة السويس"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "pharm_2",
+        "staff_2374"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات الطرشوبي (El-Torshoby) - فرع ش جيهان",
+        "صيدليات د مصطفى الطرشوبي"
+      ],
+      "addresses": [
+        "المنصورة - شارع جيهان حي الجامعة / فروع: ش بورسعيد / السكة الجديدة",
+        "ميدان مشعل أسفل مستشفى مصر"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "pharm_2_mitghamr",
+        "staff_1500"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات الطرشوبي (El-Torshoby) - فرع ميت غمر",
+        "صيدلية الطرشوبى"
+      ],
+      "addresses": [
+        "ميت غمر - شارع الحرية أمام بنك مصر",
+        "ميت غمر - شارع بورسعيد من ناحية ميدان فاطمة الزهراء"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "pharm_2_mitghamr",
+        "staff_2375"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات الطرشوبي (El-Torshoby) - فرع ميت غمر",
+        "صيدليات د مصطفى الطرشوبي"
+      ],
+      "addresses": [
+        "ميت غمر - شارع الحرية أمام بنك مصر",
+        "شارع الجيش _ برج طلبة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "pharm_4",
+        "staff_769"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات العزبي (El-Ezaby Pharmacy) - المشاية السفلية",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "المنصورة - المشاية السفلية أمام فندق رمادا / فرع ش الجمهورية",
+        "شارع حسني مبارك - لور كراتشز - بجوار فندق مارشال"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "pharm_4",
+        "staff_770"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات العزبي (El-Ezaby Pharmacy) - المشاية السفلية",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "المنصورة - المشاية السفلية أمام فندق رمادا / فرع ش الجمهورية",
+        "شارع الجمهورية - مبني أبو طارق"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "pharm_4",
+        "staff_771"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات العزبي (El-Ezaby Pharmacy) - المشاية السفلية",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "المنصورة - المشاية السفلية أمام فندق رمادا / فرع ش الجمهورية",
+        "شارع قناة السويس - برج النور"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "pharm_4",
+        "staff_1665"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات العزبي (El-Ezaby Pharmacy) - المشاية السفلية",
+        "صيدليات العزبي - شارع جيهان-المنصورة"
+      ],
+      "addresses": [
+        "المنصورة - المشاية السفلية أمام فندق رمادا / فرع ش الجمهورية",
+        "برج الفتح الإسلامي -امتداد شارع جيهان-شارع 4 ارض الخماسية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_748",
+        "staff_749"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية الطرشوبى",
+        "صيدلية الطرشوبى"
+      ],
+      "addresses": [
+        "شارع الثورة - السكة الجديدة - المنصورة",
+        "شارع صبرى أبو علم - من شارع البحر - خلف عمر افندى"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_769",
+        "staff_770"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع حسني مبارك - لور كراتشز - بجوار فندق مارشال",
+        "شارع الجمهورية - مبني أبو طارق"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_769",
+        "staff_771"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع حسني مبارك - لور كراتشز - بجوار فندق مارشال",
+        "شارع قناة السويس - برج النور"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_770",
+        "staff_771"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع الجمهورية - مبني أبو طارق",
+        "شارع قناة السويس - برج النور"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_1500",
+        "staff_2375"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية الطرشوبى",
+        "صيدليات د مصطفى الطرشوبي"
+      ],
+      "addresses": [
+        "ميت غمر - شارع بورسعيد من ناحية ميدان فاطمة الزهراء",
+        "شارع الجيش _ برج طلبة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_1665",
+        "staff_769"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات العزبي - شارع جيهان-المنصورة",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "برج الفتح الإسلامي -امتداد شارع جيهان-شارع 4 ارض الخماسية",
+        "شارع حسني مبارك - لور كراتشز - بجوار فندق مارشال"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_1665",
+        "staff_770"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات العزبي - شارع جيهان-المنصورة",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "برج الفتح الإسلامي -امتداد شارع جيهان-شارع 4 ارض الخماسية",
+        "شارع الجمهورية - مبني أبو طارق"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_1665",
+        "staff_771"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات العزبي - شارع جيهان-المنصورة",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "برج الفتح الإسلامي -امتداد شارع جيهان-شارع 4 ارض الخماسية",
+        "شارع قناة السويس - برج النور"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2372",
+        "staff_748"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات د مصطفى الطرشوبي",
+        "صيدلية الطرشوبى"
+      ],
+      "addresses": [
+        "ميدان المحطة _ برج الرواد بجوار فندق مارشال",
+        "شارع الثورة - السكة الجديدة - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2372",
+        "staff_749"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات د مصطفى الطرشوبي",
+        "صيدلية الطرشوبى"
+      ],
+      "addresses": [
+        "ميدان المحطة _ برج الرواد بجوار فندق مارشال",
+        "شارع صبرى أبو علم - من شارع البحر - خلف عمر افندى"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2372",
+        "staff_2373"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات د مصطفى الطرشوبي",
+        "صيدليات د مصطفى الطرشوبي"
+      ],
+      "addresses": [
+        "ميدان المحطة _ برج الرواد بجوار فندق مارشال",
+        "30 شارع قناة السويس"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2372",
+        "staff_2374"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات د مصطفى الطرشوبي",
+        "صيدليات د مصطفى الطرشوبي"
+      ],
+      "addresses": [
+        "ميدان المحطة _ برج الرواد بجوار فندق مارشال",
+        "ميدان مشعل أسفل مستشفى مصر"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2373",
+        "staff_748"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات د مصطفى الطرشوبي",
+        "صيدلية الطرشوبى"
+      ],
+      "addresses": [
+        "30 شارع قناة السويس",
+        "شارع الثورة - السكة الجديدة - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2373",
+        "staff_749"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات د مصطفى الطرشوبي",
+        "صيدلية الطرشوبى"
+      ],
+      "addresses": [
+        "30 شارع قناة السويس",
+        "شارع صبرى أبو علم - من شارع البحر - خلف عمر افندى"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2373",
+        "staff_2374"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات د مصطفى الطرشوبي",
+        "صيدليات د مصطفى الطرشوبي"
+      ],
+      "addresses": [
+        "30 شارع قناة السويس",
+        "ميدان مشعل أسفل مستشفى مصر"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2374",
+        "staff_748"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات د مصطفى الطرشوبي",
+        "صيدلية الطرشوبى"
+      ],
+      "addresses": [
+        "ميدان مشعل أسفل مستشفى مصر",
+        "شارع الثورة - السكة الجديدة - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2374",
+        "staff_749"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات د مصطفى الطرشوبي",
+        "صيدلية الطرشوبى"
+      ],
+      "addresses": [
+        "ميدان مشعل أسفل مستشفى مصر",
+        "شارع صبرى أبو علم - من شارع البحر - خلف عمر افندى"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2546",
+        "staff_2547"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدليات كير",
+        "صيدليات كير"
+      ],
+      "addresses": [
+        "2 شارع جيهان أمام بوابة ستاد الجامعه",
+        "شارع قناة السويس أمام نادي الناصريه"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2616",
+        "staff_2617"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج لإدارة الصيدليات",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "محلة أنجاق بملك محمد عباس- طريق شربين -",
+        "شارع القومية العربية - أمام التأمينات بجوار مسجد عصر - شربين - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2617",
+        "staff_2618"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج لإدارة الصيدليات",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "شارع القومية العربية - أمام التأمينات بجوار مسجد عصر - شربين - الدقهلية",
+        "محلة أنجاق بملك محمد حامد - أمام الجامع الكبير - شربين - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2617",
+        "staff_2619"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج لإدارة الصيدليات",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "شارع القومية العربية - أمام التأمينات بجوار مسجد عصر - شربين - الدقهلية",
+        "محلة أنجاق بملك إيمان حمزة - طريق شربين - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "staff_2618",
+        "staff_2619"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج لإدارة الصيدليات",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "محلة أنجاق بملك محمد حامد - أمام الجامع الكبير - شربين - الدقهلية",
+        "محلة أنجاق بملك إيمان حمزة - طريق شربين - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_010",
+        "pharm_4"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدليات العزبي (El-Ezaby Pharmacy) - المشاية السفلية"
+      ],
+      "addresses": [
+        "شارع حسني مبارك - المشاية السفلية - برج المعمورة بجوار فندق مارشال",
+        "المنصورة - المشاية السفلية أمام فندق رمادا / فرع ش الجمهورية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_010",
+        "staff_770"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع حسني مبارك - المشاية السفلية - برج المعمورة بجوار فندق مارشال",
+        "شارع الجمهورية - مبني أبو طارق"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_010",
+        "staff_771"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع حسني مبارك - المشاية السفلية - برج المعمورة بجوار فندق مارشال",
+        "شارع قناة السويس - برج النور"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_010",
+        "staff_1665"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدليات العزبي - شارع جيهان-المنصورة"
+      ],
+      "addresses": [
+        "شارع حسني مبارك - المشاية السفلية - برج المعمورة بجوار فندق مارشال",
+        "برج الفتح الإسلامي -امتداد شارع جيهان-شارع 4 ارض الخماسية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_010",
+        "family_20261018_011"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع حسني مبارك - المشاية السفلية - برج المعمورة بجوار فندق مارشال",
+        "شارع الجمهورية - عمارة أبو طوق"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_010",
+        "family_20261018_049"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع حسني مبارك - المشاية السفلية - برج المعمورة بجوار فندق مارشال",
+        "شارع بنك مصر المنصورة عمارة رقم 17 - الانوار المحمدية - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_010",
+        "family_20261018_067"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع حسني مبارك - المشاية السفلية - برج المعمورة بجوار فندق مارشال",
+        "شارع الجمهورية المشاية العلوية عمارة أبو طوق أمام بوابة علوم"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_010",
+        "family_20261018_070"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع حسني مبارك - المشاية السفلية - برج المعمورة بجوار فندق مارشال",
+        "شارع عبد المنعم رياض - مركز دكرنس - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_010",
+        "family_20261018_104"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع حسني مبارك - المشاية السفلية - برج المعمورة بجوار فندق مارشال",
+        "شارع عبد السلام عارف - مدينة السلام - المنصورة ثان - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_010",
+        "family_20261018_106"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع حسني مبارك - المشاية السفلية - برج المعمورة بجوار فندق مارشال",
+        "المحل الكائن في المنصورة - بجوار الاستاد - مجمع أبراج جولدن سيتي - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_011",
+        "pharm_4"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدليات العزبي (El-Ezaby Pharmacy) - المشاية السفلية"
+      ],
+      "addresses": [
+        "شارع الجمهورية - عمارة أبو طوق",
+        "المنصورة - المشاية السفلية أمام فندق رمادا / فرع ش الجمهورية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_011",
+        "staff_769"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع الجمهورية - عمارة أبو طوق",
+        "شارع حسني مبارك - لور كراتشز - بجوار فندق مارشال"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_011",
+        "staff_770"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع الجمهورية - عمارة أبو طوق",
+        "شارع الجمهورية - مبني أبو طارق"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_011",
+        "staff_771"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع الجمهورية - عمارة أبو طوق",
+        "شارع قناة السويس - برج النور"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_011",
+        "staff_1665"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدليات العزبي - شارع جيهان-المنصورة"
+      ],
+      "addresses": [
+        "شارع الجمهورية - عمارة أبو طوق",
+        "برج الفتح الإسلامي -امتداد شارع جيهان-شارع 4 ارض الخماسية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_011",
+        "family_20261018_049"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع الجمهورية - عمارة أبو طوق",
+        "شارع بنك مصر المنصورة عمارة رقم 17 - الانوار المحمدية - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_011",
+        "family_20261018_070"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع الجمهورية - عمارة أبو طوق",
+        "شارع عبد المنعم رياض - مركز دكرنس - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_011",
+        "family_20261018_104"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع الجمهورية - عمارة أبو طوق",
+        "شارع عبد السلام عارف - مدينة السلام - المنصورة ثان - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_011",
+        "family_20261018_106"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع الجمهورية - عمارة أبو طوق",
+        "المحل الكائن في المنصورة - بجوار الاستاد - مجمع أبراج جولدن سيتي - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_049",
+        "pharm_4"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدليات العزبي (El-Ezaby Pharmacy) - المشاية السفلية"
+      ],
+      "addresses": [
+        "شارع بنك مصر المنصورة عمارة رقم 17 - الانوار المحمدية - المنصورة",
+        "المنصورة - المشاية السفلية أمام فندق رمادا / فرع ش الجمهورية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_049",
+        "staff_769"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع بنك مصر المنصورة عمارة رقم 17 - الانوار المحمدية - المنصورة",
+        "شارع حسني مبارك - لور كراتشز - بجوار فندق مارشال"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_049",
+        "staff_770"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع بنك مصر المنصورة عمارة رقم 17 - الانوار المحمدية - المنصورة",
+        "شارع الجمهورية - مبني أبو طارق"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_049",
+        "staff_771"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع بنك مصر المنصورة عمارة رقم 17 - الانوار المحمدية - المنصورة",
+        "شارع قناة السويس - برج النور"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_049",
+        "staff_1665"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدليات العزبي - شارع جيهان-المنصورة"
+      ],
+      "addresses": [
+        "شارع بنك مصر المنصورة عمارة رقم 17 - الانوار المحمدية - المنصورة",
+        "برج الفتح الإسلامي -امتداد شارع جيهان-شارع 4 ارض الخماسية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_049",
+        "family_20261018_067"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع بنك مصر المنصورة عمارة رقم 17 - الانوار المحمدية - المنصورة",
+        "شارع الجمهورية المشاية العلوية عمارة أبو طوق أمام بوابة علوم"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_049",
+        "family_20261018_070"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع بنك مصر المنصورة عمارة رقم 17 - الانوار المحمدية - المنصورة",
+        "شارع عبد المنعم رياض - مركز دكرنس - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_049",
+        "family_20261018_104"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع بنك مصر المنصورة عمارة رقم 17 - الانوار المحمدية - المنصورة",
+        "شارع عبد السلام عارف - مدينة السلام - المنصورة ثان - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_049",
+        "family_20261018_106"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع بنك مصر المنصورة عمارة رقم 17 - الانوار المحمدية - المنصورة",
+        "المحل الكائن في المنصورة - بجوار الاستاد - مجمع أبراج جولدن سيتي - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_067",
+        "pharm_4"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدليات العزبي (El-Ezaby Pharmacy) - المشاية السفلية"
+      ],
+      "addresses": [
+        "شارع الجمهورية المشاية العلوية عمارة أبو طوق أمام بوابة علوم",
+        "المنصورة - المشاية السفلية أمام فندق رمادا / فرع ش الجمهورية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_067",
+        "staff_769"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع الجمهورية المشاية العلوية عمارة أبو طوق أمام بوابة علوم",
+        "شارع حسني مبارك - لور كراتشز - بجوار فندق مارشال"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_067",
+        "staff_770"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع الجمهورية المشاية العلوية عمارة أبو طوق أمام بوابة علوم",
+        "شارع الجمهورية - مبني أبو طارق"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_067",
+        "staff_771"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع الجمهورية المشاية العلوية عمارة أبو طوق أمام بوابة علوم",
+        "شارع قناة السويس - برج النور"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_067",
+        "staff_1665"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدليات العزبي - شارع جيهان-المنصورة"
+      ],
+      "addresses": [
+        "شارع الجمهورية المشاية العلوية عمارة أبو طوق أمام بوابة علوم",
+        "برج الفتح الإسلامي -امتداد شارع جيهان-شارع 4 ارض الخماسية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_067",
+        "family_20261018_070"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع الجمهورية المشاية العلوية عمارة أبو طوق أمام بوابة علوم",
+        "شارع عبد المنعم رياض - مركز دكرنس - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_067",
+        "family_20261018_104"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع الجمهورية المشاية العلوية عمارة أبو طوق أمام بوابة علوم",
+        "شارع عبد السلام عارف - مدينة السلام - المنصورة ثان - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_067",
+        "family_20261018_106"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع الجمهورية المشاية العلوية عمارة أبو طوق أمام بوابة علوم",
+        "المحل الكائن في المنصورة - بجوار الاستاد - مجمع أبراج جولدن سيتي - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_070",
+        "pharm_4"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدليات العزبي (El-Ezaby Pharmacy) - المشاية السفلية"
+      ],
+      "addresses": [
+        "شارع عبد المنعم رياض - مركز دكرنس - الدقهلية",
+        "المنصورة - المشاية السفلية أمام فندق رمادا / فرع ش الجمهورية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_070",
+        "staff_769"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع عبد المنعم رياض - مركز دكرنس - الدقهلية",
+        "شارع حسني مبارك - لور كراتشز - بجوار فندق مارشال"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_070",
+        "staff_770"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع عبد المنعم رياض - مركز دكرنس - الدقهلية",
+        "شارع الجمهورية - مبني أبو طارق"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_070",
+        "staff_771"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع عبد المنعم رياض - مركز دكرنس - الدقهلية",
+        "شارع قناة السويس - برج النور"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_070",
+        "staff_1665"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدليات العزبي - شارع جيهان-المنصورة"
+      ],
+      "addresses": [
+        "شارع عبد المنعم رياض - مركز دكرنس - الدقهلية",
+        "برج الفتح الإسلامي -امتداد شارع جيهان-شارع 4 ارض الخماسية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_070",
+        "family_20261018_104"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع عبد المنعم رياض - مركز دكرنس - الدقهلية",
+        "شارع عبد السلام عارف - مدينة السلام - المنصورة ثان - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_070",
+        "family_20261018_106"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع عبد المنعم رياض - مركز دكرنس - الدقهلية",
+        "المحل الكائن في المنصورة - بجوار الاستاد - مجمع أبراج جولدن سيتي - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_071",
+        "staff_2546"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير عوض الله الجديدة",
+        "صيدليات كير"
+      ],
+      "addresses": [
+        "شارع عاطف منجي - جزيرة الورد",
+        "2 شارع جيهان أمام بوابة ستاد الجامعه"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_071",
+        "staff_2547"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير عوض الله الجديدة",
+        "صيدليات كير"
+      ],
+      "addresses": [
+        "شارع عاطف منجي - جزيرة الورد",
+        "شارع قناة السويس أمام نادي الناصريه"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_071",
+        "family_20261018_072"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير عوض الله الجديدة",
+        "صيدلية كير صالح"
+      ],
+      "addresses": [
+        "شارع عاطف منجي - جزيرة الورد",
+        "ميدان الشعلة ( الهابي لاند ) - محل رقم 1 - قسم ثاني"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_071",
+        "family_20261018_073"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير عوض الله الجديدة",
+        "صيدلية كير اللواء الجديدة"
+      ],
+      "addresses": [
+        "شارع عاطف منجي - جزيرة الورد",
+        "شارع حسين بك"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_071",
+        "family_20261018_074"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير عوض الله الجديدة",
+        "صيدلية كير محمد وأحمد"
+      ],
+      "addresses": [
+        "شارع عاطف منجي - جزيرة الورد",
+        "عقار 28 عاطفه الدقاق - 4 شارع سوق التجار الشرقي المتفرع من شارع الثورة السكة الجديدة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_071",
+        "family_20261018_075"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير عوض الله الجديدة",
+        "صيدلية كير د. اسامه فهمي"
+      ],
+      "addresses": [
+        "شارع عاطف منجي - جزيرة الورد",
+        "شارع قناة السويس"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_071",
+        "family_20261018_098"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير عوض الله الجديدة",
+        "صيدلية كير د. إسلام صبحي"
+      ],
+      "addresses": [
+        "شارع عاطف منجي - جزيرة الورد",
+        "6 شارع الخلفاء الراشدين - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_071",
+        "family_20261018_099"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير عوض الله الجديدة",
+        "صيدلية كير جيهان"
+      ],
+      "addresses": [
+        "شارع عاطف منجي - جزيرة الورد",
+        "شارع - جيهان أمام بوابة استاد الجامعة - المنصورة - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_071",
+        "family_20261018_102"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير عوض الله الجديدة",
+        "صيدلية كير المنصورة"
+      ],
+      "addresses": [
+        "شارع عاطف منجي - جزيرة الورد",
+        "شارع جيهان أمام بوابة ستاد جامعة المنصورة - المنصورة - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_072",
+        "staff_2546"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير صالح",
+        "صيدليات كير"
+      ],
+      "addresses": [
+        "ميدان الشعلة ( الهابي لاند ) - محل رقم 1 - قسم ثاني",
+        "2 شارع جيهان أمام بوابة ستاد الجامعه"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_072",
+        "staff_2547"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير صالح",
+        "صيدليات كير"
+      ],
+      "addresses": [
+        "ميدان الشعلة ( الهابي لاند ) - محل رقم 1 - قسم ثاني",
+        "شارع قناة السويس أمام نادي الناصريه"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_072",
+        "family_20261018_073"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير صالح",
+        "صيدلية كير اللواء الجديدة"
+      ],
+      "addresses": [
+        "ميدان الشعلة ( الهابي لاند ) - محل رقم 1 - قسم ثاني",
+        "شارع حسين بك"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_072",
+        "family_20261018_074"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير صالح",
+        "صيدلية كير محمد وأحمد"
+      ],
+      "addresses": [
+        "ميدان الشعلة ( الهابي لاند ) - محل رقم 1 - قسم ثاني",
+        "عقار 28 عاطفه الدقاق - 4 شارع سوق التجار الشرقي المتفرع من شارع الثورة السكة الجديدة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_072",
+        "family_20261018_075"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير صالح",
+        "صيدلية كير د. اسامه فهمي"
+      ],
+      "addresses": [
+        "ميدان الشعلة ( الهابي لاند ) - محل رقم 1 - قسم ثاني",
+        "شارع قناة السويس"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_072",
+        "family_20261018_098"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير صالح",
+        "صيدلية كير د. إسلام صبحي"
+      ],
+      "addresses": [
+        "ميدان الشعلة ( الهابي لاند ) - محل رقم 1 - قسم ثاني",
+        "6 شارع الخلفاء الراشدين - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_072",
+        "family_20261018_099"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير صالح",
+        "صيدلية كير جيهان"
+      ],
+      "addresses": [
+        "ميدان الشعلة ( الهابي لاند ) - محل رقم 1 - قسم ثاني",
+        "شارع - جيهان أمام بوابة استاد الجامعة - المنصورة - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_072",
+        "family_20261018_102"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير صالح",
+        "صيدلية كير المنصورة"
+      ],
+      "addresses": [
+        "ميدان الشعلة ( الهابي لاند ) - محل رقم 1 - قسم ثاني",
+        "شارع جيهان أمام بوابة ستاد جامعة المنصورة - المنصورة - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_073",
+        "staff_2546"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير اللواء الجديدة",
+        "صيدليات كير"
+      ],
+      "addresses": [
+        "شارع حسين بك",
+        "2 شارع جيهان أمام بوابة ستاد الجامعه"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_073",
+        "staff_2547"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير اللواء الجديدة",
+        "صيدليات كير"
+      ],
+      "addresses": [
+        "شارع حسين بك",
+        "شارع قناة السويس أمام نادي الناصريه"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_073",
+        "family_20261018_074"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير اللواء الجديدة",
+        "صيدلية كير محمد وأحمد"
+      ],
+      "addresses": [
+        "شارع حسين بك",
+        "عقار 28 عاطفه الدقاق - 4 شارع سوق التجار الشرقي المتفرع من شارع الثورة السكة الجديدة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_073",
+        "family_20261018_075"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير اللواء الجديدة",
+        "صيدلية كير د. اسامه فهمي"
+      ],
+      "addresses": [
+        "شارع حسين بك",
+        "شارع قناة السويس"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_073",
+        "family_20261018_098"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير اللواء الجديدة",
+        "صيدلية كير د. إسلام صبحي"
+      ],
+      "addresses": [
+        "شارع حسين بك",
+        "6 شارع الخلفاء الراشدين - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_073",
+        "family_20261018_099"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير اللواء الجديدة",
+        "صيدلية كير جيهان"
+      ],
+      "addresses": [
+        "شارع حسين بك",
+        "شارع - جيهان أمام بوابة استاد الجامعة - المنصورة - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_073",
+        "family_20261018_102"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير اللواء الجديدة",
+        "صيدلية كير المنصورة"
+      ],
+      "addresses": [
+        "شارع حسين بك",
+        "شارع جيهان أمام بوابة ستاد جامعة المنصورة - المنصورة - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_074",
+        "staff_2546"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير محمد وأحمد",
+        "صيدليات كير"
+      ],
+      "addresses": [
+        "عقار 28 عاطفه الدقاق - 4 شارع سوق التجار الشرقي المتفرع من شارع الثورة السكة الجديدة",
+        "2 شارع جيهان أمام بوابة ستاد الجامعه"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_074",
+        "staff_2547"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير محمد وأحمد",
+        "صيدليات كير"
+      ],
+      "addresses": [
+        "عقار 28 عاطفه الدقاق - 4 شارع سوق التجار الشرقي المتفرع من شارع الثورة السكة الجديدة",
+        "شارع قناة السويس أمام نادي الناصريه"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_074",
+        "family_20261018_075"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير محمد وأحمد",
+        "صيدلية كير د. اسامه فهمي"
+      ],
+      "addresses": [
+        "عقار 28 عاطفه الدقاق - 4 شارع سوق التجار الشرقي المتفرع من شارع الثورة السكة الجديدة",
+        "شارع قناة السويس"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_074",
+        "family_20261018_098"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير محمد وأحمد",
+        "صيدلية كير د. إسلام صبحي"
+      ],
+      "addresses": [
+        "عقار 28 عاطفه الدقاق - 4 شارع سوق التجار الشرقي المتفرع من شارع الثورة السكة الجديدة",
+        "6 شارع الخلفاء الراشدين - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_074",
+        "family_20261018_099"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير محمد وأحمد",
+        "صيدلية كير جيهان"
+      ],
+      "addresses": [
+        "عقار 28 عاطفه الدقاق - 4 شارع سوق التجار الشرقي المتفرع من شارع الثورة السكة الجديدة",
+        "شارع - جيهان أمام بوابة استاد الجامعة - المنصورة - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_074",
+        "family_20261018_102"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير محمد وأحمد",
+        "صيدلية كير المنصورة"
+      ],
+      "addresses": [
+        "عقار 28 عاطفه الدقاق - 4 شارع سوق التجار الشرقي المتفرع من شارع الثورة السكة الجديدة",
+        "شارع جيهان أمام بوابة ستاد جامعة المنصورة - المنصورة - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_075",
+        "staff_2546"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير د. اسامه فهمي",
+        "صيدليات كير"
+      ],
+      "addresses": [
+        "شارع قناة السويس",
+        "2 شارع جيهان أمام بوابة ستاد الجامعه"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_075",
+        "family_20261018_098"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير د. اسامه فهمي",
+        "صيدلية كير د. إسلام صبحي"
+      ],
+      "addresses": [
+        "شارع قناة السويس",
+        "6 شارع الخلفاء الراشدين - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_075",
+        "family_20261018_099"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير د. اسامه فهمي",
+        "صيدلية كير جيهان"
+      ],
+      "addresses": [
+        "شارع قناة السويس",
+        "شارع - جيهان أمام بوابة استاد الجامعة - المنصورة - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_075",
+        "family_20261018_102"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير د. اسامه فهمي",
+        "صيدلية كير المنصورة"
+      ],
+      "addresses": [
+        "شارع قناة السويس",
+        "شارع جيهان أمام بوابة ستاد جامعة المنصورة - المنصورة - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_077",
+        "family_20261018_078"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج أحمد محمد رخا",
+        "صيدلية أورانج امنية محمد رخا"
+      ],
+      "addresses": [
+        "شارع النقراشي - أمام بنك مصر - موقف القاهرة - دكرنس - الدقهلية",
+        "شارع البحر - بجوار الإسعاف - دكرنس - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_078",
+        "staff_2633"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج امنية محمد رخا",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "شارع البحر - بجوار الإسعاف - دكرنس - الدقهلية",
+        "شارع النقراشي - أمام بنك مصر - موقف القاهرة - دكرنس - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_079",
+        "staff_2616"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج حسن علي البط",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "شارع السد العالي بملك / عبد المنعم عبدالرحمن بجوار فودافون - شربين - الدقهلية",
+        "محلة أنجاق بملك محمد عباس- طريق شربين -"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_079",
+        "staff_2617"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج حسن علي البط",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "شارع السد العالي بملك / عبد المنعم عبدالرحمن بجوار فودافون - شربين - الدقهلية",
+        "شارع القومية العربية - أمام التأمينات بجوار مسجد عصر - شربين - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_079",
+        "staff_2618"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج حسن علي البط",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "شارع السد العالي بملك / عبد المنعم عبدالرحمن بجوار فودافون - شربين - الدقهلية",
+        "محلة أنجاق بملك محمد حامد - أمام الجامع الكبير - شربين - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_079",
+        "staff_2619"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج حسن علي البط",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "شارع السد العالي بملك / عبد المنعم عبدالرحمن بجوار فودافون - شربين - الدقهلية",
+        "محلة أنجاق بملك إيمان حمزة - طريق شربين - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_079",
+        "family_20261018_080"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج حسن علي البط",
+        "صيدلية أورانج حسن علي البط الجديدة"
+      ],
+      "addresses": [
+        "شارع السد العالي بملك / عبد المنعم عبدالرحمن بجوار فودافون - شربين - الدقهلية",
+        "شارع ترعة البلامون بملك /علي حسن محمد البط - شربين - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_080",
+        "staff_2616"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج حسن علي البط الجديدة",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "شارع ترعة البلامون بملك /علي حسن محمد البط - شربين - الدقهلية",
+        "محلة أنجاق بملك محمد عباس- طريق شربين -"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_080",
+        "staff_2617"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج حسن علي البط الجديدة",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "شارع ترعة البلامون بملك /علي حسن محمد البط - شربين - الدقهلية",
+        "شارع القومية العربية - أمام التأمينات بجوار مسجد عصر - شربين - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_080",
+        "staff_2618"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج حسن علي البط الجديدة",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "شارع ترعة البلامون بملك /علي حسن محمد البط - شربين - الدقهلية",
+        "محلة أنجاق بملك محمد حامد - أمام الجامع الكبير - شربين - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_080",
+        "staff_2619"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية أورانج حسن علي البط الجديدة",
+        "صيدلية أورانج لإدارة الصيدليات"
+      ],
+      "addresses": [
+        "شارع ترعة البلامون بملك /علي حسن محمد البط - شربين - الدقهلية",
+        "محلة أنجاق بملك إيمان حمزة - طريق شربين - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_098",
+        "staff_2546"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير د. إسلام صبحي",
+        "صيدليات كير"
+      ],
+      "addresses": [
+        "6 شارع الخلفاء الراشدين - المنصورة",
+        "2 شارع جيهان أمام بوابة ستاد الجامعه"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_098",
+        "staff_2547"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير د. إسلام صبحي",
+        "صيدليات كير"
+      ],
+      "addresses": [
+        "6 شارع الخلفاء الراشدين - المنصورة",
+        "شارع قناة السويس أمام نادي الناصريه"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_098",
+        "family_20261018_099"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير د. إسلام صبحي",
+        "صيدلية كير جيهان"
+      ],
+      "addresses": [
+        "6 شارع الخلفاء الراشدين - المنصورة",
+        "شارع - جيهان أمام بوابة استاد الجامعة - المنصورة - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_098",
+        "family_20261018_102"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير د. إسلام صبحي",
+        "صيدلية كير المنصورة"
+      ],
+      "addresses": [
+        "6 شارع الخلفاء الراشدين - المنصورة",
+        "شارع جيهان أمام بوابة ستاد جامعة المنصورة - المنصورة - الدقهلية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_099",
+        "staff_2547"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير جيهان",
+        "صيدليات كير"
+      ],
+      "addresses": [
+        "شارع - جيهان أمام بوابة استاد الجامعة - المنصورة - الدقهلية",
+        "شارع قناة السويس أمام نادي الناصريه"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_102",
+        "staff_2547"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية كير المنصورة",
+        "صيدليات كير"
+      ],
+      "addresses": [
+        "شارع جيهان أمام بوابة ستاد جامعة المنصورة - المنصورة - الدقهلية",
+        "شارع قناة السويس أمام نادي الناصريه"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_104",
+        "pharm_4"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدليات العزبي (El-Ezaby Pharmacy) - المشاية السفلية"
+      ],
+      "addresses": [
+        "شارع عبد السلام عارف - مدينة السلام - المنصورة ثان - الدقهلية",
+        "المنصورة - المشاية السفلية أمام فندق رمادا / فرع ش الجمهورية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_104",
+        "staff_769"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع عبد السلام عارف - مدينة السلام - المنصورة ثان - الدقهلية",
+        "شارع حسني مبارك - لور كراتشز - بجوار فندق مارشال"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_104",
+        "staff_770"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع عبد السلام عارف - مدينة السلام - المنصورة ثان - الدقهلية",
+        "شارع الجمهورية - مبني أبو طارق"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_104",
+        "staff_771"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع عبد السلام عارف - مدينة السلام - المنصورة ثان - الدقهلية",
+        "شارع قناة السويس - برج النور"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_104",
+        "staff_1665"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدليات العزبي - شارع جيهان-المنصورة"
+      ],
+      "addresses": [
+        "شارع عبد السلام عارف - مدينة السلام - المنصورة ثان - الدقهلية",
+        "برج الفتح الإسلامي -امتداد شارع جيهان-شارع 4 ارض الخماسية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_104",
+        "family_20261018_106"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "شارع عبد السلام عارف - مدينة السلام - المنصورة ثان - الدقهلية",
+        "المحل الكائن في المنصورة - بجوار الاستاد - مجمع أبراج جولدن سيتي - المنصورة"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_106",
+        "pharm_4"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدليات العزبي (El-Ezaby Pharmacy) - المشاية السفلية"
+      ],
+      "addresses": [
+        "المحل الكائن في المنصورة - بجوار الاستاد - مجمع أبراج جولدن سيتي - المنصورة",
+        "المنصورة - المشاية السفلية أمام فندق رمادا / فرع ش الجمهورية"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_106",
+        "staff_769"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "المحل الكائن في المنصورة - بجوار الاستاد - مجمع أبراج جولدن سيتي - المنصورة",
+        "شارع حسني مبارك - لور كراتشز - بجوار فندق مارشال"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_106",
+        "staff_770"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "المحل الكائن في المنصورة - بجوار الاستاد - مجمع أبراج جولدن سيتي - المنصورة",
+        "شارع الجمهورية - مبني أبو طارق"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_106",
+        "staff_771"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدلية العزبي"
+      ],
+      "addresses": [
+        "المحل الكائن في المنصورة - بجوار الاستاد - مجمع أبراج جولدن سيتي - المنصورة",
+        "شارع قناة السويس - برج النور"
+      ],
+      "action": "keep_separate"
+    },
+    {
+      "kind": "pharmacies",
+      "ids": [
+        "family_20261018_106",
+        "staff_1665"
+      ],
+      "reason": "same_brand_city_not_identity",
+      "names": [
+        "صيدلية العزبي",
+        "صيدليات العزبي - شارع جيهان-المنصورة"
+      ],
+      "addresses": [
+        "المحل الكائن في المنصورة - بجوار الاستاد - مجمع أبراج جولدن سيتي - المنصورة",
+        "برج الفتح الإسلامي -امتداد شارع جيهان-شارع 4 ارض الخماسية"
+      ],
+      "action": "keep_separate"
+    }
+  ],
+  "summary": {
+    "confirmedGroups": 7,
+    "redundantCards": 8,
+    "pendingPairs": 8,
+    "separateBranchPairs": 171
+  }
+}

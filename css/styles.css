@@ -1281,3 +1281,15 @@ html { overflow-anchor:none; scroll-behavior:auto; }
 @media(max-width:360px){.app-header {padding-inline:10px;gap:6px}.header-actions {gap:3px}.header-actions .icon-button {width:30px;min-width:30px;height:34px;padding:4px}.app-header .brand img {width:27px;height:27px}.app-header .brand strong {font-size:.81rem}.app-header .brand small {font-size:.53rem}.header-actions #member-button {max-width:32vw;padding:7px;font-size:.71rem}}
 @media(max-width:560px){.header-actions #member-button {flex-shrink:0;min-width:70px}.app-header .brand>span {overflow-wrap:anywhere}}
 #member-button {display:block;text-align:center}
+/* A facility is one organization with distinct branches and contract sources. */
+.facility-group-card {padding:18px;border-radius:24px;min-width:0}
+.facility-group-heading {display:flex;gap:12px;align-items:center;border-bottom:1px solid var(--border);padding-bottom:12px}
+.facility-group-heading h3 {margin:3px 0}.facility-group-heading p {margin:3px 0;font-size:.8rem}
+.facility-group-details .facility-card {margin:0;border:0;box-shadow:none;padding:12px 0 0;background:transparent}
+.facility-group-details .card-top .provider-avatar {display:none}
+.facility-branch-picker {margin:14px 0}.facility-branch-picker summary {cursor:pointer;font-weight:700;color:var(--primary);padding:10px 0}
+.facility-branches {max-height:310px;overflow:auto;padding:2px 3px 8px;scrollbar-width:thin}
+.facility-branches .branch-option .network-badge {font-size:.65rem;margin:2px 0;padding:4px;flex-wrap:wrap}
+.branch-network-options {display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.branch-network-options button {font-size:.78rem}.branch-network-options [aria-pressed="true"] {background:var(--primary-soft);border-color:var(--primary)}
+.duplicate-warning {border:1px solid #d3a247;background:var(--card);border-radius:12px;padding:12px;display:grid;gap:8px}

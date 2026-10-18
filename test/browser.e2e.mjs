@@ -197,7 +197,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"نبض النقابة - رعاية أقرب لك ولأسرتك · الإصدار 4.1.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"نبض النقابة - رعاية أقرب لك ولأسرتك · الإصدار 4.2.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -270,6 +270,26 @@ try {
   for(const width of [320,390]){await named.setViewportSize({width,height:844});assert.ok(await named.evaluate(()=>document.documentElement.scrollWidth)<=width,"Greeting and notification bell fit at "+width);}
   assert.ok(!(await named.evaluate(()=>JSON.stringify(localStorage))).includes("أبو النجا"));
   await namesContext.close();
+  const facilitiesContext=await context(true,"block",await memberContext.storageState());
+  const facility=await facilitiesContext.newPage();
+  await facility.goto(origin+'/#entity='+encodeURIComponent('labs:family_20261018_068'));
+  await facility.locator('.facility-group-card').waitFor();
+  assert.equal(await facility.locator('.facility-group-heading h3').textContent(),'معامل ألفا');
+  assert.equal(await facility.locator('[data-facility-branch="staff_2378"]').count(),1);
+  assert.equal(await facility.locator('[data-facility-branch]').count(),2); // Other address is a separate branch.
+  await facility.locator('.branch-network-options').getByRole('button',{name:'الموظفون',exact:true}).click();
+  assert.ok((await facility.locator('.facility-group-details').innerText()).includes('01101216191'));
+  assert.equal(await facility.locator('.facility-group-details a[href="tel:16191"]').count(),0); // Hotline belongs to family source.
+  await facility.locator('.branch-network-options').getByRole('button',{name:'الأسر والمعاشات',exact:true}).click();
+  assert.ok(await facility.locator('.facility-group-details a[href="tel:16191"]').isVisible());
+  await facility.getByRole('button',{name:'حفظ في المفضلة على هذا الجهاز',exact:true}).click();
+  await facility.goto(origin+'/#favorites');
+  assert.equal(await facility.locator('[data-facility-branch]').count(),0); // The merged favorite is one logical branch.
+  await facility.locator('.facility-group-card').waitFor();
+  assert.equal(await facility.getByRole('button',{name:'حفظ في المفضلة على هذا الجهاز',exact:true}).getAttribute('aria-pressed'),'true');
+  for(const width of [320,390,1440]){await facility.setViewportSize({width,height:900});assert.ok(await facility.evaluate(()=>document.documentElement.scrollWidth)<=width);}
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await facility.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'unified-facility-branch.png'),fullPage:true,style:'#toast{visibility:hidden}'});
+  await facilitiesContext.close();
   await p.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
   await p.reload();
   await p.locator('#main[data-catalog-ready="true"]').waitFor();
@@ -333,7 +353,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.1.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.2.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -372,6 +392,22 @@ try {
   await a.getByText("الصلاحية",{exact:true}).waitFor();
   await a.getByRole("button",{name:"فتح لوحة الإدارة",exact:true}).click();
   await a.getByRole("heading",{name:"مركز إدارة نبض النقابة",exact:true}).waitFor();
+  await a.getByRole('button',{name:'الفروع والتكرار',exact:true}).click();
+  await a.getByRole('heading',{name:'مراجعة الفروع والتكرار',exact:true}).waitFor();
+  assert.ok(await a.locator('.duplicate-candidate').count()>0);
+  await a.getByRole('button',{name:'إغلاق النافذة',exact:true}).click();
+  await a.getByLabel('نوع السجلات',{exact:true}).selectOption('labs');
+  await a.getByRole('button',{name:'إضافة سجل',exact:true}).click();
+  await a.getByLabel('الاسم',{exact:true}).fill('معامل ألفا');
+  await a.getByLabel('المركز / المدينة',{exact:true}).selectOption('المنصورة');
+  await a.getByLabel('العنوان',{exact:true}).fill('تقاطع شارع جيهان مع شارع الجمهورية');
+  await a.locator('.duplicate-warning').waitFor();
+  await a.getByLabel('المستفيدون',{exact:true}).selectOption('employee');
+  await a.getByLabel('مسار التعاقد',{exact:true}).selectOption('direct_we');
+  await a.getByRole('button',{name:'حفظ التغييرات',exact:true}).click();
+  await a.locator('.form-error').getByText(/يوجد فرع مشابه/).waitFor();
+  await a.getByRole('button',{name:'إغلاق النافذة',exact:true}).click();
+  await a.getByLabel('نوع السجلات',{exact:true}).selectOption('records');
   await a.setViewportSize({width:1440,height:1000});
   const sidebar=await a.locator('#main-nav').boundingBox();
   assert.ok(sidebar.height>700 && sidebar.width<250);

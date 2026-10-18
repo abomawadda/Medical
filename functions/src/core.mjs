@@ -5,6 +5,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import contacts from "./contacts.cjs";
+import facilities from "./facility-directory.cjs";
 import criteria from "./review-criteria.cjs";
 
 export class ApiError extends Error {
@@ -97,6 +98,10 @@ export function targets(catalog) {
   ]) {
     for (const r of catalog[kind] || [])
       map.set(`${kind}:${r.id}`, { name: r.name, branches: [String(r.id)] });
+  }
+  for(const group of facilities.reviewGroups(catalog)) {
+    const branches=group.targets.map(t=>t.slice(t.indexOf(":")+1));
+    for(const id of group.targets)if(map.has(id))map.get(id).branches=branches;
   }
   return map;
 }
@@ -484,7 +489,7 @@ export function createService({
       const catalog = user.role === "admin" ? all : memberCatalog(all,now());
       const allowed = targets(catalog);
       const stats = Object.fromEntries(Object.entries(await store.getStats()).filter(([id]) => allowed.has(id)));
-      return {catalog, stats, reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
+      return {catalog, stats, facilityBranches: true, facilityStats: await store.getGroupedStats(facilities.reviewGroups(catalog)), reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
     },
     async adminProfile(token) {
       const session=await authorize(token,"admin");
@@ -519,7 +524,9 @@ export function createService({
       // Only this authenticated member can write the content of their review.
       const s = await authorize(token, "member");
       await rate(ip, "review", 20);
-      const target = targets(memberCatalog(await store.catalog(),now())).get(body.target_id);
+      const catalog=memberCatalog(await store.catalog(),now());
+      const group=facilities.reviewGroup(facilities.reviewGroups(catalog),body.target_id);
+      const target = targets(catalog).get(body.target_id);
       const branch = String(body.branch_id ?? "");
       if (!target || !target.branches.includes(branch))
         fail(400, "INVALID_TARGET", "مقر الزيارة غير متاح في الدليل.");
@@ -532,10 +539,10 @@ export function createService({
       let measured;
       try { measured = criteria.parse(body.criteria); }
       catch { fail(400,"INVALID_CRITERIA","اختر درجة من 1 إلى 5 للعناصر التي جربتها فقط."); }
-      const id = digest(`${s.subject}|${body.target_id}`);
+      const id = digest(`${s.subject}|${group.target}`);
       const review = {
         id,
-        target_id: body.target_id,
+        target_id: group.target,
         branch_id: branch,
         target_name: target.name,
         author_id: s.subject,
@@ -547,7 +554,7 @@ export function createService({
         status: "pending",
         updated_at: now(),
       };
-      const saved = await store.saveReview(review);
+      const saved = await store.saveReview(review,group.targets.map(target=>digest(`${s.subject}|${target}`)));
       return {
         success: true,
         ...saved,
@@ -558,11 +565,14 @@ export function createService({
     },
     async ownReviews(token) {
       const s = await authorize(token, "member");
-      return { reviews: await store.listReviews({ author_id: s.subject }) };
+      const groups=facilities.reviewGroups(await store.catalog());
+      const rows=facilities.uniqueReviews(await store.listReviews({author_id:s.subject}),groups,true);
+      return {reviews:rows.map(({author_id,...row})=>row)};
     },
     async adminReviews(token) {
       await authorize(token, "admin");
-      return { reviews: await store.listReviews({}) };
+      const groups=facilities.reviewGroups(await store.catalog());
+      return {reviews:facilities.uniqueReviews(await store.listReviews({}),groups).map(({author_id,...row})=>row)};
     },
     async moderateReview(token, id, body) {
       const s = await authorize(token, "admin");
@@ -570,7 +580,11 @@ export function createService({
         fail(400, "INVALID_STATUS", "حالة المراجعة غير صالحة.");
       if (!Number.isInteger(body.revision) || body.revision < 1)
         fail(409, "REVIEW_CHANGED", "حدّث التطبيق وقائمة التقييمات قبل الاعتماد.");
-      const result = await store.moderateReview(id, body.status, s.sourceId, now(), body.revision);
+      const previous=await store.getReview(id);
+      if(!previous)fail(404,"NOT_FOUND","التقييم غير موجود.");
+      const group=facilities.reviewGroup(facilities.reviewGroups(await store.catalog()),previous.target_id);
+      const candidates=group.targets.map(target=>digest(`${previous.author_id}|${target}`));
+      const result = await store.moderateReview(id, body.status, s.sourceId, now(), body.revision,candidates);
       return { success: true, ...result };
     },
     async setEntityState(token,kind,id,body) {

@@ -1,3 +1,5 @@
+import facilities from "../src/facility-directory.cjs";
+import {groupedReviewStats} from "../src/facility-review-stats.mjs";
 import { projectContract } from "../src/contract-publication.mjs";
 import { withFamilyContracts } from "../src/family-projection.mjs";
 import { ApiError, kinds } from "../src/core.mjs";
@@ -53,6 +55,8 @@ export function fixtureStore(seed) {
       }
       return out;
     },
+    async getReview(id){return reviews.get(id)||null;},
+    async getGroupedStats(groups){return groupedReviewStats(groups,[...reviews.values()]);},
     async getStats() {
       const out = {};
       for (const r of reviews.values())
@@ -82,18 +86,22 @@ export function fixtureStore(seed) {
       overlays.set(k, { kind, entityId: id, ...change, version: expected + 1 });
       audit.push({ kind, id, actor, at });
     },
-    async saveReview(r) {
-      const next = reviseReview(reviews.get(r.id), r);
-      if (next.changed) reviews.set(r.id, structuredClone(next.review));
+    async saveReview(r,candidateIds=[]) {
+      const previous=facilities.latest([...new Set([r.id,...candidateIds])].map(id=>reviews.get(id)).filter(Boolean));
+      const incoming=previous ? {...r,id:previous.id,target_id:previous.target_id,...(candidateIds.length>1?{branch_id:previous.branch_id}:{})} : r;
+      const next = reviseReview(previous, incoming);
+      if (next.changed) reviews.set(next.review.id, structuredClone(next.review));
       return { changed: next.changed, status: next.review.status, revision: reviewRevision(next.review) };
     },
     async listReviews(filter) {
       return [...reviews.values()]
         .filter((r) => !filter.author_id || filter.author_id === r.author_id)
-        .map(({ author_id, ...rest }) => ({...rest, revision: reviewRevision(rest)}));
+        .map(rest => ({...rest, revision: reviewRevision(rest)}));
     },
-    async moderateReview(id, status, actor, at, expectedRevision) {
+    async moderateReview(id, status, actor, at, expectedRevision,candidateIds=[]) {
       const r = reviews.get(id);
+      const latest=facilities.latest([...new Set([id,...candidateIds])].map(id=>reviews.get(id)).filter(Boolean));
+      if(latest && latest.id!==id)throw new ApiError(409,"REVIEW_CHANGED","تقييم أحدث");
       if (!r) throw new ApiError(404, "NOT_FOUND", "غير موجود");
       const decision = decideReview(r, status, expectedRevision, at);
       if (decision.changed) {

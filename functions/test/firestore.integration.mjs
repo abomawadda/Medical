@@ -1,6 +1,6 @@
 // Real Firestore SDK/transaction integration against a local emulator only.
 import assert from "node:assert/strict";
-import { generateKeyPairSync, createHash } from "node:crypto";
+import { generateKeyPairSync, createHash, createHmac } from "node:crypto";
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { firebaseAdapters } from "../src/firebase-adapters.mjs";
@@ -72,6 +72,8 @@ const seed = {
     },
   ],
 };
+const directoryData=JSON.parse(await (await import('node:fs/promises')).readFile(new URL('../../data.json',import.meta.url),'utf8'));
+seed.labs=directoryData.labs.filter(r=>['staff_2378','family_20261018_068'].includes(r.id)).map(r=>({...r,contract_listing:true}));
 const adapters = firebaseAdapters({
   medicalProjectId: ownId,
   sourceCredentials: credentials,
@@ -184,6 +186,26 @@ await service.moderateReview(admin,id,{status:"published",revision:3});
 assert.equal((await service.catalog(admin)).stats["doctor:p1"].average,3);
 assert.deepEqual((await service.ownReviews(member)).reviews[0].criteria,{reception:5,waiting:2});
 assert.equal((await service.submitReview(member,{target_id:"doctor:p1",branch_id:"1",rating:3,criteria:{waiting:2,reception:5},comment:"نسخة جديدة من العضو",visited_declared:true},"same-criteria")).changed,false);
+// Duplicate imported aliases: retain historical documents, count the newest
+// authored experience once and edit it transactionally from either source ID.
+const aliasBody={target_id:'labs:family_20261018_068',branch_id:'family_20261018_068',rating:4,comment:'تجربة فرع محلية مصطنعة',visited_declared:true};
+await service.submitReview(member,aliasBody,'branch-member');
+const current=(await service.ownReviews(member)).reviews.find(r=>r.target_id==='labs:staff_2378');
+const currentDoc=(await ownDbForAudits.collection('medical_reviews').doc(current.id).get()).data();
+const legacyId=createHmac('sha256','emulator-only-test-secret-1234567890abc').update(currentDoc.author_id+'|labs:family_20261018_068').digest('hex');
+await ownDbForAudits.collection('medical_reviews').doc(current.id).update({status:'published',updated_at:Date.now()-2000});
+await ownDbForAudits.collection('medical_reviews').doc(legacyId).set({...currentDoc,id:legacyId,target_id:'labs:family_20261018_068',status:'published',rating:2,updated_at:Date.now()-1000});
+// Invalidate aggregate cache after deliberately seeding a legacy fixture.
+await adapters.store.moderateReview(legacyId,'published','fixture',Date.now(),1);
+assert.deepEqual((await service.catalog(member)).facilityStats['labs:staff_2378'],{count:1,average:2});
+assert.equal((await service.ownReviews(member)).reviews.filter(r=>r.target_id.startsWith('labs:')).length,1);
+await assert.rejects(()=>service.moderateReview(admin,current.id,{status:'published',revision:1}),e=>e.code==='REVIEW_CHANGED');
+await service.submitReview(member,{...aliasBody,target_id:'labs:staff_2378',branch_id:'staff_2378',rating:3},'branch-edit');
+assert.equal((await ownDbForAudits.collection('medical_reviews').doc(legacyId).get()).data().rating,3);
+assert.equal((await ownDbForAudits.collection('medical_reviews').doc(current.id).get()).exists,true);
+assert.deepEqual((await service.catalog(member)).facilityStats['labs:family_20261018_068'],{count:0,average:null});
+await service.moderateReview(admin,legacyId,{status:'published',revision:2});
+assert.deepEqual((await service.catalog(member)).facilityStats['labs:staff_2378'],{count:1,average:3});
 const attempts = await Promise.allSettled([
   service.putEntity(admin, "records", "1", {
     entity: { ...seed.records[0], name: "تعديل أ" },

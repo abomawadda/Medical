@@ -8,7 +8,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const output = resolve(root, "dist");
 // Serve exactly the parser used by the backend; this contains no directory data.
 await cp(resolve(root, "functions/src/contacts.cjs"), resolve(root, "js/contacts.js"));
-for (const module of ["arabic-directory", "review-criteria"])
+for (const module of ["arabic-directory", "review-criteria", "facility-directory"])
   await cp(resolve(root, "functions/src/"+module+".cjs"), resolve(root, "js/"+module+".js"));
 // Publish only application assets; keep spreadsheets, reports and tooling out.
 const assets = ["index.html", "manifest.json", "sw.js", "css", "js", "img"];

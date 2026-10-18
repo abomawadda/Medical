@@ -13,6 +13,7 @@
   const API = window.MedicalAPI,
     prefs = window.MedicalStorage;
   const SEARCH = window.MedicalSearch;
+  const FACILITIES = window.MedicalFacilities;
   const CRITERIA = window.MedicalReviewCriteria;
   let waitingUpdate = null;
   document.querySelector("#app-version").textContent = "الإصدار " + window.MedicalRelease.version;
@@ -282,6 +283,8 @@
       throw new Error("تعذر قراءة بيانات الدليل.");
     state.catalog = window.MedicalArabic.entity(cleanDisplay(result.catalog));
     state.reviewCriteria = result.reviewCriteria === true;
+    state.facilityBranches = result.facilityBranches === true;
+    state.facilityStats = result.facilityStats || {};
     state.directoryState = result.directoryState === true;
     state.familyDirectory = result.familyDirectory === true;
     state.contractDirectory = result.contractDirectory === true;
@@ -349,10 +352,9 @@
       const scored=matched.map(b=>({branch:b,...SEARCH.match(state.query,{name:p.name,tags:[p.specialty,"طبيب عيادة"],details:[b.hospital,b.address,b.markaz,b.raw_phone]})})).filter(r=>r.score>0).sort((a,b)=>b.score-a.score);
       if(scored.length)found.push({...scored[0],name:p.name,key:"doctor:"+p.id,render:()=>doctorCard({...p,matched:scored.map(r=>r.branch)})});
     }
-    for(const kind of ["hospitals","labs","radiology","pharmacies","specialized_centers"])for(const r of state.catalog[kind]) {
-      if(!matchesBranch(r))continue;
-      const result=SEARCH.match(state.query,{name:r.name,tags:[labels[kind],r.category,r.services],details:[r.address,r.markaz,r.phone]});
-      if(result.score>0)found.push({...result,name:r.name,key:kind+":"+r.id,render:()=>facilityCard(kind,r)});
+    for(const kind of ["hospitals","labs","radiology","pharmacies","specialized_centers"])for(const org of facilityGroups(kind)) {
+      const scored=org.branches.flatMap(b=>b.entries).filter(matchesBranch).map(r=>({row:r,...SEARCH.match(state.query,{name:r.name,tags:[org.name,labels[kind],r.category,r.services],details:[r.address,r.markaz,r.phone]})})).filter(r=>r.score>0).sort((a,b)=>b.score-a.score);
+      if(scored.length){const matched=facilityGroups(kind,scored.map(s=>s.row))[0];found.push({...scored[0],name:org.name,key:org.key,render:()=>facilityOrganizationCard(kind,matched,scored[0].row.id)});}
     }
     for(const r of state.catalog.emergency_services) {
       if(state.markaz && r.markaz !== state.markaz)continue;
@@ -394,20 +396,24 @@
           (!state.specialty || p.specialty === state.specialty),
       );
   }
-  function rating(target) {
-    const stats = state.stats[target];
+  function rating(target,override) {
+    const stats = override || state.stats[target];
     const count = Number(stats?.count);
     const average = stats?.average == null || stats.average === "" ? NaN : Number(stats.average);
     if (Number.isInteger(count) && count > 0 && Number.isFinite(average) && average >= 1 && average <= 5)
       return el("div", {class:"rating"}, el("strong",{},"★ " + average.toFixed(1)), el("span",{class:"muted"},`${count} تقييم منشور`));
     return el("p",{class:"rating-empty"},"لا يوجد تقييم متاح بعد · شارك تجربتك");
   }
-  function favorite(target) {
+  function favorite(target,aliases=[]) {
+    const keys=[...new Set([target,...aliases])];
+    const saved=()=>keys.some(key=>prefs.getFavorites().includes(key));
     const b = button(
-      prefs.getFavorites().includes(target) ? "♥" : "♡",
+      saved() ? "♥" : "♡",
       () => {
         try {
-          const active = prefs.toggleFavorite(target);
+          const active=!saved();
+          if(active)prefs.toggleFavorite(target);
+          else for(const key of keys)if(prefs.getFavorites().includes(key))prefs.toggleFavorite(key);
           b.textContent = active ? "♥" : "♡";
           b.classList.toggle("active", active);
           b.setAttribute("aria-pressed", String(active));
@@ -418,11 +424,11 @@
       },
       "favorite",
     );
-    b.classList.toggle("active", prefs.getFavorites().includes(target));
+    b.classList.toggle("active", saved());
     b.setAttribute("aria-label", "حفظ في المفضلة على هذا الجهاز");
     b.setAttribute(
       "aria-pressed",
-      String(prefs.getFavorites().includes(target)),
+      String(saved()),
     );
     return b;
   }
@@ -548,8 +554,9 @@
     renderBranch();
     return card;
   }
-  function facilityCard(kind, original) {
+  function facilityCard(kind, original, context=null) {
     const r=publicBranch(original,kind);
+    if(context)r.network_members=context.branch.network_members;
     const facts=kind === "hospitals" ? RESEARCH.hospital(original) : null;
     const target = kind + ":" + r.id;
     return el(
@@ -567,7 +574,7 @@
           el("p", {}, (r.category && r.source_ref ? r.category : labels[kind]) + " · " + (r.markaz || r.city || "")),
           isAdmin() && r.image_verified ? link(r.image_kind === "logo" ? "شعار الجهة · المصدر" : "مصدر الصورة",r.image_source_url,"image-source") : null,
         ),
-        favorite(target),
+        favorite(target,context ? context.branch.entries.map(r=>kind+":"+r.id) : []),
       ),
       statusBadge(r),
       locationDetails(r),
@@ -580,7 +587,7 @@
       isAdmin() && !usable(r.working_hours) && !facts?.hours ? el("p",{class:"data-note"},"مواعيد استقبال موثقة مطلوبة") : null,
       coverage(r),
       companionPreview ? beforeVisit(r) : null,
-      rating(target),
+      rating(target,context && state.facilityBranches ? state.facilityStats[kind+":"+context.branch.id] : undefined),
       el(
         "div",
         { class: "card-actions" },
@@ -593,6 +600,38 @@
       ),
       button("مشاركة الجهة", () => share(target, r.name), "text-button"),
     );
+  }
+  function facilityGroups(kind,rows=state.catalog[kind]) {
+    return FACILITIES.organizations(kind,rows);
+  }
+  function facilityOrganizationCard(kind,org,initialId="") {
+    if(org.branches.length===1 && org.branches[0].entries.length===1)return facilityCard(kind,org.branches[0].entries[0]);
+    let branch=org.branches.find(b=>b.entries.some(r=>String(r.id)===String(initialId))) || org.branches[0];
+    let entry=branch.entries.find(r=>String(r.id)===String(initialId)) || branch.entries.find(r=>r.id===branch.id) || branch.entries[0];
+    const content=el("div",{class:"facility-group-details"}),networks=el("div",{class:"branch-network-options",role:"group","aria-label":"تفاصيل شبكات الفرع"});
+    const choices=el("div",{class:"branch-options facility-branches",role:"group","aria-label":"فروع "+org.name});
+    const buttons=[];
+    const renderEntry=()=>{
+      for(const [b,n] of buttons)n.setAttribute("aria-pressed",String(b===branch));
+      for(const [b,n] of buttons)n.classList.toggle("active",b===branch);
+      const byNetwork=new Map();for(const r of branch.entries){const key=(r.network_members || []).join(","),old=byNetwork.get(key);if(!old || r.service_status==='suspended')byNetwork.set(key,r);}
+      const sourceNetworks=[...byNetwork.values()];
+      const selected=byNetwork.get((entry.network_members || []).join(","));if(selected?.service_status==='suspended')entry=selected;
+      replaceNodes(networks,sourceNetworks.length>1 ? sourceNetworks.map(r=>{
+        const b=button((r.network_members || []).includes("employee") ? (r.network_members.length>1?"كل المستفيدين":"الموظفون") : "الأسر والمعاشات",()=>{entry=r;renderEntry();},"button outline");
+        if(r.service_status==='suspended')b.append(statusBadge(r));
+        b.setAttribute("aria-pressed",String(r===entry || (r.network_members || []).join(",")===(entry.network_members || []).join(",")));return b;
+      }) : []);
+      replaceNodes(content,facilityCard(kind,entry,{branch}));
+    };
+    for(const b of org.branches){const r=b.entries.find(r=>r.id===b.id)||b.entries[0];const control=button("",()=>{branch=b;entry=b.entries.find(r=>r.network_members?.includes(state.network)) || b.entries.find(r=>r.id===b.id)||b.entries[0];renderEntry();},"branch-option");
+      control.dataset.facilityBranch=b.id;
+      control.append(el("strong",{},r.markaz || r.city || "الفرع"),el("span",{class:"branch-address"},usable(publicBranch(r,kind).address)),coverage({network_members:b.network_members}),b.entries.every(r=>r.service_status==='suspended') ? statusBadge({service_status:'suspended'}) : b.entries.some(r=>r.service_status==='suspended') ? el("small",{class:"muted"},"توقف مؤقت لبعض خيارات الخدمة") : null);buttons.push([b,control]);choices.append(control);}
+    const card=el("article",{class:"card facility-group-card","data-organization":org.key},el("div",{class:"facility-group-heading"},providerAvatar(entry,kind==='pharmacies'?'pharmacy':'clinic'),el("div",{},el("span",{class:"card-eyebrow"},labels[kind]),el("h3",{},org.name),el("p",{class:"muted"},org.branches.length===1?"تفاصيل الفرع وشبكات الاستفادة":"الفروع المتاحة: "+org.branches.length))),org.branches.length>1 ? el("details",{class:"facility-branch-picker",open:initialId?null:""},el("summary",{},"اختر الفرع المناسب"),choices) : null,networks,content);
+    // A hidden/filtered source is never borrowed to enrich a visible branch.
+    const all=facilityGroups(kind).find(g=>g.key===org.key);
+    if(all && all.branches.length>org.branches.length)card.append(el("a",{class:"text-button",href:"#entity="+encodeURIComponent(kind+":"+entry.id)},"عرض جميع الفروع ("+all.branches.length+")"));
+    renderEntry();return card;
   }
   function heading(title, subtitle) {
     return el(
@@ -990,7 +1029,7 @@
       main.append(heading("شبكتك في مراكز الدقهلية", "اختر المركز لاستعراض الأطباء والمستشفيات والخدمات المرتبطة به."));
       main.append(el("div",{class:"district-grid"}, dakahliaCenters.map(name => {
         const records = state.catalog.records.filter(r => (r.markaz || r.city) === name && (!state.network || r.network_members?.includes(state.network)));
-        const facilities = ["hospitals","labs","radiology","pharmacies","specialized_centers"].flatMap(k => state.catalog[k].filter(r => (r.markaz || r.city) === name && (!state.network || r.network_members?.includes(state.network))));
+        const facilities = ["hospitals","labs","radiology","pharmacies","specialized_centers"].flatMap(k => FACILITIES.branches(k,state.catalog[k].filter(r => (r.markaz || r.city) === name && (!state.network || r.network_members?.includes(state.network)))));
         const b = button("", () => {
           state.markaz=name; state.hospital=""; state.specialty=""; state.contractType=""; state.coverage=""; state.query="";
           $("#search-input").value=""; go("district-network",{markaz:name});
@@ -1102,15 +1141,15 @@
             : [];
     for (const kind of facilityKinds)
       cards.push(
-        ...state.catalog[kind]
+        ...facilityGroups(kind,state.catalog[kind]
           .filter(
             (r) =>
               matchesBranch(r) &&
               (state.tab !== "dental" || isDental(r)) &&
               matchesText([r.name,labels[kind],r.category,...[r.services].flat().filter(Boolean),r.address,r.markaz,r.phone]) &&
-              (state.tab !== "favorites" || favs.includes(kind + ":" + r.id)),
-          )
-          .map((r) => facilityCard(kind, r)),
+              (state.tab !== "favorites" || favs.includes(kind + ":" + r.id) || FACILITIES.branches(kind,state.catalog[kind]).some(b=>b.entries.some(e=>e.id===r.id) && b.entries.some(e=>favs.includes(kind+":"+e.id)))),
+          ))
+          .map(org => facilityOrganizationCard(kind,org)),
       );
     main.append(
       heading(
@@ -1205,7 +1244,6 @@
     state.tab = "profile";
     renderFilters();
     const navTarget=target.startsWith("doctor:") ? "#doctors" : "#services";
-    $("#main-nav").append(el("a",{href:"#account",class:"nav-item desktop-nav-item"},el("span",{},"◎"),el("span",{},"حسابي")),el("a",{href:"#admin",class:"nav-item desktop-nav-item desktop-admin-link",hidden:!isAdmin()},el("span",{},"⚙"),el("span",{},"إدارة المنظومة")));
   $("#main-nav").querySelectorAll("a").forEach(a=>{const active=a.getAttribute("href") === navTarget;a.classList.toggle("active",active);if(active)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");});
     main.replaceChildren();
     if (target.startsWith("doctor:")) {
@@ -1220,7 +1258,8 @@
         kind = target.slice(0, at),
         id = target.slice(at + 1),
         r = state.catalog[kind]?.find((r) => String(r.id) === id);
-      main.append(heading("الجهة الطبية"),r ? facilityCard(kind, r) : empty("الجهة لم تعد متاحة."));
+      const org=r && facilityGroups(kind).find(org=>org.branches.some(b=>b.entries.some(e=>String(e.id)===id)));
+      main.append(heading("الجهة الطبية"),r ? facilityOrganizationCard(kind,org,id) : empty("الجهة لم تعد متاحة."));
     }
   }
   function doctorProfile(p) {
@@ -1573,7 +1612,7 @@
       ["لم تُراجع بعد",all.filter(({r})=>!r.admin_reviewed_at).length,()=>{state.adminWorklist="pending";filter("all");}],
     ].map(([label,count,action])=>el("article",{},button(String(count),action,"admin-metric-count"),el("span",{},label)))));
     main.append(el("div",{class:"admin-section-tabs","aria-label":"أقسام الإدارة"},kinds.map(kind=>button(labels[kind]+" · "+state.catalog[kind].length,()=>filter(kind),"button "+(state.adminKind===kind?"primary":"outline")))));
-    main.append(el("div",{class:"admin-tools"},button("مراجعة التقييمات",adminReviewDialog,"button outline"),button("إضافة تعليمات",()=>editDialog("medical_guidelines"),"button outline"),button("إضافة خبر",()=>editDialog("medical_guidelines",null,"news"),"button outline"),button("جودة بيانات الدليل",qualityDialog,"text-button"),button("مراجعة المواقع والمواعيد",researchDialog,"text-button"),button("تصدير بيانات الدليل",exportCatalog,"text-button")));
+    main.append(el("div",{class:"admin-tools"},button("مراجعة التقييمات",adminReviewDialog,"button outline"),button("إضافة تعليمات",()=>editDialog("medical_guidelines"),"button outline"),button("إضافة خبر",()=>editDialog("medical_guidelines",null,"news"),"button outline"),button("جودة بيانات الدليل",qualityDialog,"text-button"),button("الفروع والتكرار",facilityDuplicatesDialog,"text-button"),button("مراجعة المواقع والمواعيد",researchDialog,"text-button"),button("تصدير بيانات الدليل",exportCatalog,"text-button")));
     const kindSelect=selectField("نوع السجلات","admin-kind",[["all","كل الأقسام"],...kinds.map(k=>[k,labels[k]])],state.adminKind);
     const statusSelect=selectField("حالة العرض والخدمة","admin-state",[["","كل الحالات"],["visible","ظاهرة"],["hidden","مخفية ومحجوبة"],["suspended","موقوفة مؤقتًا"]],state.adminState);
     const worklist=selectField("قائمة العمل","admin-worklist",[["pending","بانتظار المراجعة"],["all","جميع السجلات بما فيها المحدّثة"]],state.adminWorklist);
@@ -1596,6 +1635,20 @@
     main.append(el("div",{class:"table-wrap admin-records"},el("table",{},el("thead",{},el("tr",{},["الجهة / المعرّف","القسم / الموقع","حالة النشر","جهة التعاقد / المصدر","الإجراءات"].map(t=>el("th",{},t)))),body)));
     if(!rows.length)main.append(empty("لا توجد سجلات ضمن الاختيار. اختر جميع السجلات أو غيّر البحث."));
     if(rows.length>state.limit)main.append(button("عرض المزيد",()=>{state.limit+=24;renderMain();},"button outline load-more"));
+  }
+  function facilityDuplicatesDialog() {
+    const box=el("div",{class:"facility-audit"},el("p",{class:"muted"},"التجميع للعرض يحافظ على سجلات المصدر. تشابه الاسم أو الخط الساخن لا يثبت تطابق الفرع. تعديل عنوان سجل مرتبط يستدعي مراجعة الربط."));
+    for(const kind of ['labs','pharmacies']) {
+      const groups=FACILITIES.branches(kind,state.catalog[kind]).filter(b=>b.entries.length>1);
+      box.append(el("h3",{},labels[kind]+" · "+groups.length+" فروع مجمعة"));
+      for(const b of groups)box.append(el("details",{class:"card"},el("summary",{},b.entries[0].name+" · "+(b.entries[0].markaz || "")),...b.entries.map(r=>el("div",{class:"audit-source"},el("strong",{},r.id),el("p",{},r.address),coverage(r),contactGroups(r),button("تحرير سجل المصدر",()=>editDialog(kind,r),"text-button")))));
+      const seen=new Set();
+      for(const r of state.catalog[kind])for(const {row,reason} of FACILITIES.candidates(kind,r,state.catalog[kind])) {
+        const key=[r.id,row.id].sort().join('|');if(seen.has(key) || FACILITIES.branchKey(kind,r)===FACILITIES.branchKey(kind,row))continue;seen.add(key);
+        box.append(el("details",{class:"card duplicate-candidate"},el("summary",{},"للمراجعة: "+r.name+" / "+row.name),el("p",{class:"notice"},reason==='same_address'?"العنوان متطابق؛ راجع هوية الجهة قبل توحيد بياناتها.":"توجد معالم مشتركة، ولم تُدمج السجلات تلقائيًا."),...[r,row].map(e=>el("div",{class:"audit-source"},el("strong",{},e.id),el("p",{},e.address),coverage(e),button("فتح السجل",()=>editDialog(kind,e),"text-button")))));
+      }
+    }
+    dialog("مراجعة الفروع والتكرار",box);
   }
   function researchDialog() {
     if(!isAdmin()) return;
@@ -1841,6 +1894,13 @@
       for(const value of state.options["category_"+kind] || [])if(![...categorySelect.options].some(o=>o.value===value))categorySelect.append(el("option",{value},value));
       addListControl(form,categorySelect.closest(".form-field"),"category","نوع الجهة","category_"+kind);
     }
+    if(!original && ['labs','pharmacies'].includes(kind)) {
+      const duplicateBox=el("section",{class:"duplicate-warning",hidden:true,"aria-live":"polite"});
+      const confirm=el("label",{class:"remember-option"},el("input",{type:"checkbox",name:"distinct_branch"})," راجعت التشابه وأؤكد أن هذا فرع مختلف");
+      form.append(duplicateBox);
+      const check=()=>{const data=Object.fromEntries(new FormData(form));const rows=FACILITIES.candidates(kind,{...data,id,city:data.markaz},state.catalog[kind]);duplicateBox.hidden=!rows.length;replaceNodes(duplicateBox,el("strong",{},"يوجد فرع مشابه — تجنب إنشاء نسخة جديدة"),...rows.slice(0,5).map(({row})=>el("div",{},el("p",{},row.name+" · "+row.address),button("تعديل الفرع الموجود",()=>editDialog(kind,row),"text-button"))),confirm);};
+      for(const key of ['name','address','markaz'])form.querySelector('[name="'+key+'"]').addEventListener('input',check);
+    }
     form.save = async (data) => {
       const entity = { ...r, ...data, id };
       if(kind === "medical_guidelines") {
@@ -1908,6 +1968,10 @@
         both: "العاملون والأسر",
       }[entity.coverage_scope];
       if(data.approve_contract === "on" && !state.adminWorkspace)throw new Error("اعتماد الإظهار يحتاج تحديث Firebase أولًا.");
+      if(!original && ['labs','pharmacies'].includes(kind)) {
+        const candidates=FACILITIES.candidates(kind,entity,state.catalog[kind]);
+        if(candidates.length && data.distinct_branch !== 'on')throw new Error("يوجد فرع مشابه. راجع التنبيه واختر تعديل الموجود، أو أكد أنه فرع مختلف قبل الحفظ.");
+      }
       const draft=(!original || r.contract_listing === false) && data.approve_contract !== "on" && kind !== "medical_guidelines";
       if(draft)entity.directory_visibility="hidden";
       await API.save(kind, entity, r._version || 0,data.approve_contract === "on");
