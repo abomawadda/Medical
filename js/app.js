@@ -1311,11 +1311,15 @@
           )
         : null,
       field("كود الموظف", "employee_code", "text", "", {
+        placeholder: "اكتب كود العامل بالأرقام الإنجليزية",
+        inputmode: "numeric",
+        dir: "ltr",
         required: true,
         maxlength: 40,
         autocomplete: "off",
       }),
       field("رقم الموبايل المسجل", "phone", "tel", "", {
+        placeholder: "رقمك الأساسي 015… بالأرقام الإنجليزية",
         required: true,
         inputmode: "tel",
         maxlength: 20,
@@ -1323,6 +1327,8 @@
         dir: "ltr",
       }),
       field("آخر ٤ أرقام من الرقم القومي", "last4", "password", "", {
+        placeholder: "آخر 4 أرقام بالأرقام الإنجليزية",
+        dir: "ltr",
         required: true,
         inputmode: "numeric",
         minlength: 4,
@@ -1350,6 +1356,13 @@
       );
     };
     formAction(form, "تحقق وادخل");
+    form.append(el("a", {
+      class: "login-support",
+      href: "https://wa.me/201550100025?text=" + encodeURIComponent("تعذّر عليّ تسجيل الدخول إلى تطبيق رعايتي. أرجو المساعدة."),
+      target: "_blank", rel: "noopener noreferrer",
+      "aria-label": "تعذّر الدخول؟ تواصل عبر واتساب على 01550100025",
+    }, el("span", {}, "إن تعذّر الدخول، تواصل عبر واتساب"), el("strong", {dir:"ltr"}, "01550100025")));
+
     if (!API.configured)
       form.querySelector("button[type=submit]").disabled = true;
     return form;

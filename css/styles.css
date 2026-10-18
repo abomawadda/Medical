@@ -1300,3 +1300,12 @@ html { overflow-anchor:none; scroll-behavior:auto; }
 .branch-editor legend {font-weight:700;color:var(--primary)}.new-branches-panel {border-block:1px solid var(--border);padding:12px 0}
 .batch-data-editor {border:1px solid var(--border);border-radius:16px;padding:14px;min-width:0;display:grid;gap:12px}
 .batch-data-preview {max-height:310px;overflow:auto}.batch-change-row {border-bottom:1px solid var(--border);padding:10px 0;font-size:.82rem;overflow-wrap:anywhere}.batch-change-row p {margin:5px 0}
+
+/* Keep guidance inside the inputs and support within the compact entrance. */
+.login-card input::placeholder{direction:rtl;text-align:right;unicode-bidi:plaintext;color:var(--muted);opacity:1;font-size:.73rem;letter-spacing:0}
+.login-support{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:2px 8px;min-height:44px;padding:5px 8px;border-radius:10px;background:var(--primary-soft);color:var(--primary);text-align:center;text-decoration:none;font-size:.72rem;line-height:1.5}
+.login-support:hover{text-decoration:underline;text-underline-offset:3px}
+.login-support:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+.login-support strong{font-size:.78rem}
+@media(max-width:560px){.login-card .form-stack{gap:6px}.login-card .brand-pair img{width:40px;height:40px}.login-view .app-header{padding-top:6px;padding-bottom:6px}}
+@media(max-width:360px){.login-card h1{font-size:1.02rem}.login-card input::placeholder{font-size:.67rem}.login-support{font-size:.68rem}.login-card .creator-credit{column-gap:8px}}
