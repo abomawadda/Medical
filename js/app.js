@@ -354,10 +354,9 @@
     return label ? el("div",{class:"network-badge"},label) : null;
   }
   function providerAvatar(entity, type) {
-    const defaultType = type === "doctor" ? (/دكتورة|د\.ة/.test(entity.name || "") ? "doctor_female" : "doctor_team") : type === "pharmacy" ? "pharmacy" : "clinic";
+    const defaultType = type === "doctor" ? window.MedicalAvatarHints.doctor(entity.name) : type === "pharmacy" ? "pharmacy" : "clinic";
     const illustration = ["doctor_male","doctor_female","clinic","pharmacy"].includes(entity.avatar_type) ? entity.avatar_type : defaultType;
     const placeholder = el("span", {class:"anime-avatar anime-" + illustration,role:"img","aria-label":"رسم تعبيري " + ({doctor_male:"لطبيب",doctor_female:"لطبيبة",clinic:"لمركز طبي",pharmacy:"لصيدلية"}[illustration]),title:"رسم تعبيري، وليس صورة شخصية"});
-    if (illustration === "doctor_team") { placeholder.replaceChildren(el("span",{class:"anime-avatar anime-doctor_male"}),el("span",{class:"anime-avatar anime-doctor_female"})); placeholder.setAttribute("aria-label","رسم تعبيري لفريق طبي"); }
     const avatar = el("div", {class:"provider-avatar" + (entity.image_kind === "logo" ? " provider-logo" : "") + (String(entity.image_url || "").includes("el-ezaby.png") ? " provider-logo-light" : "")}, placeholder);
     const url = !entity.avatar_type && entity.image_verified === true && entity.image_kind !== "logo" && safeUrl(entity.image_url);
     if (url && safeUrl(entity.image_source_url)) {
@@ -791,7 +790,11 @@
     previewNotice.hidden = !isAdmin();
     $(".search-panel").hidden = !signedIn || (companionPreview && ["home", "account"].includes(state.tab));
     $("#main-nav").hidden = !signedIn;
-    if (!signedIn) return renderLogin(main);
+    if (!signedIn) {
+      document.documentElement.classList.add("login-view");
+      return renderLogin(main);
+    }
+    document.documentElement.classList.remove("login-view");
     if (!state.remote) {
       main.append(
         heading("تحميل الدليل الطبي"),
@@ -1076,7 +1079,7 @@
       el(
         "p",
         { class: "muted" },
-        "أدخل بياناتك المسجلة لدى النقابة للاطلاع على الدليل وتقييم زيارتك. لا تحتاج إنشاء حساب.",
+        "أدخل بياناتك للدخول",
       ),
       !API.configured
         ? el(
@@ -1110,11 +1113,6 @@
         el("input", { type: "checkbox", name: "remember" }),
         "تذكّر دخولي على هذا الجهاز لمدة ٣٠ يومًا",
       ),
-      el(
-        "p",
-        { class: "muted" },
-        "اختر التذكّر على جهازك الشخصي فقط. لن نحفظ بيانات التحقق الثلاثة.",
-      ),
     );
     form.save = async (data) => {
       await API.login("member", { ...data, remember: data.remember === "on" });
@@ -1138,13 +1136,11 @@
       "section",
       { class: "login-card" },
       el("div", {class:"brand-pair", "aria-label":"اللجنة النقابية والمصرية للاتصالات"},
-        el("img",{src:"img/nekaba_logo.png",alt:"شعار اللجنة النقابية",width:90,height:90}),
+        el("img",{src:"img/nekaba-mark.png",alt:"شعار اللجنة النقابية",width:90,height:90}),
         el("span",{class:"brand-divider","aria-hidden":"true"}),
         el("img",{src:"img/we_logo.webp",alt:"شعار WE",width:130,height:80})),
-      el("p", { class: "eyebrow" }, "خدمة أعضاء النقابة · المصرية للاتصالات"),
-      el("h1", {}, "مرحبًا بك في نبض النقابة"),
-      el("p", {class:"login-tagline"}, "رفيقك للرعاية والخدمات النقابية — WE"),
-      el("p", {class:"login-region"}, "رعايتك أقرب · الدقهلية وجميع مراكزها"),
+      el("h1", {}, "دليل الرعاية الطبية بالدقهلية"),
+      el("p", {class:"login-tagline"}, "الشبكة الطبية للموظفين والأسر والمعاشات"),
       el("p", {class:"creator-credit"}, el("strong",{},"إعداد وتنفيذ أ / محمود العراقي"),el("a",{href:"tel:01550100025",dir:"ltr"},"01550100025")),
     );
     if (state.restoring)
@@ -1177,6 +1173,11 @@
     $("#main").focus({preventScroll:true});
     startOfPage();
   }
+  $(".admin-link").addEventListener("click",event=>{
+    event.preventDefault();
+    if (isAdmin()) return go("admin");
+    adminDialog();
+  });
   function adminDialog() {
     const form = el(
       "form",
@@ -1298,12 +1299,12 @@
           ["مكان العمل", profile.workplace], ["آخر دخول إلى الدليل الطبي", date(profile.lastLoginAt)],
           ["الدخول السابق إلى الدليل الطبي", date(profile.previousLoginAt)],
         ];
-        profileBox.replaceChildren(el("div",{class:"member-card-heading"},el("img",{src:"img/nekaba_logo.png",alt:"",onError:e=>e.target.hidden=true}),el("div",{},el("small",{},"نبض النقابة · WE"),el("h2", {}, "بطاقتي النقابية")),el("span",{class:"member-lock"},"بيانات شخصية")),
+        profileBox.replaceChildren(el("div",{class:"member-card-heading"},el("img",{src:"img/nekaba-mark.png",alt:"",onError:e=>e.target.hidden=true}),el("div",{},el("small",{},"نبض النقابة · WE"),el("h2", {}, "بطاقتي النقابية")),el("span",{class:"member-lock"},"بيانات شخصية")),
           el("dl", {class:"profile-grid"}, ...fields.map(([label,value]) =>
             el("div", {}, el("dt", {}, label), el("dd", {}, value || "غير مسجل لدى النقابة")))),
           el("p", {class:"muted"}, "بياناتك للعرض لك وحدك من سجل النقابة. تحديثها يتم لدى النقابة."));
       } catch (error) {
-        profileBox.replaceChildren(el("div",{class:"member-card-heading"},el("img",{src:"img/nekaba_logo.png",alt:"",onError:e=>e.target.hidden=true}),el("div",{},el("small",{},"نبض النقابة · WE"),el("h2", {}, "بطاقتي النقابية")),el("span",{class:"member-lock"},"بيانات شخصية")),
+        profileBox.replaceChildren(el("div",{class:"member-card-heading"},el("img",{src:"img/nekaba-mark.png",alt:"",onError:e=>e.target.hidden=true}),el("div",{},el("small",{},"نبض النقابة · WE"),el("h2", {}, "بطاقتي النقابية")),el("span",{class:"member-lock"},"بيانات شخصية")),
           el("p", {class:"notice warning"}, error.code === "NOT_FOUND"
             ? "تعذر عرض بياناتك حاليًا. يمكنك المتابعة والمحاولة لاحقًا."
             : error.message));

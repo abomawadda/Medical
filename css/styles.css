@@ -1009,8 +1009,6 @@ html { overflow-anchor:none; scroll-behavior:auto; }
 .hero-compact .hero-stat strong {font-size:1.5rem}
 .service-status {display:inline-flex;align-items:center;padding:5px 12px;border-radius:30px;font-size:.8rem;font-weight:700;background:var(--primary-soft);color:var(--text)}
 .service-status.suspended {background:#fff0d4;color:#825000;border:1px solid #edcd8a;margin:6px 0}
-.anime-avatar.anime-doctor_team {display:flex;background:none;align-items:center;justify-content:center;width:100%;height:100%;gap:0}
-.anime-doctor_team > .anime-avatar {width:50%;height:auto;aspect-ratio:1;flex:0 0 50%;background-size:200% 200%;border-radius:12px}
 .member-profile {position:relative;overflow:hidden;border-radius:28px;padding:clamp(20px,4vw,36px);border:1px solid var(--border);background:linear-gradient(125deg,var(--card) 62%,#7841ac12);box-shadow:0 12px 34px #28143b0c}
 .member-card-heading {display:flex;align-items:center;gap:14px;padding-bottom:22px;border-bottom:1px solid var(--border);margin-bottom:22px}
 .member-card-heading img {width:62px;height:62px;object-fit:contain}
@@ -1069,4 +1067,43 @@ html { overflow-anchor:none; scroll-behavior:auto; }
  .table-wrap td:nth-child(2) {color:var(--muted);font-size:.85rem}
  .table-wrap td:last-child {display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid var(--border);padding-top:10px;margin-top:6px}
  .table-wrap td:last-child button {padding:8px 12px;border:1px solid var(--border);border-radius:10px;min-height:44px}
+}
+
+/* Compact, accessible member entrance with the two partner emblems intact. */
+.login-view .page-shell {padding-bottom:18px}
+.login-card {max-width:520px;padding:22px 26px;margin:14px auto;border-radius:26px;box-shadow:0 14px 44px #4523640d}
+.login-card .brand-pair {background:transparent;padding:0;margin:0 0 10px;gap:22px}
+.login-card .brand-pair img {width:64px;height:64px;object-fit:contain;mix-blend-mode:normal;clip-path:none}
+.login-card .brand-pair img:last-child {object-fit:cover;clip-path:circle(45% at 50% 50%)}
+.brand-pair img:first-child {object-fit:contain;clip-path:none;mix-blend-mode:normal}
+.login-card .brand-divider {height:38px}
+.login-card h1 {font-size:clamp(1.22rem,4.4vw,1.6rem);line-height:1.5;margin:8px 0 4px}
+.login-card .login-tagline {font-size:.8rem;margin:0 0 8px;font-weight:600}
+.login-card .creator-credit {padding:0;margin:8px 0;gap:0;font-size:.76rem;line-height:1.5}
+.login-card .creator-credit a {min-height:36px;font-size:.88rem}
+.login-card .form-stack {gap:10px}
+.login-card .form-stack>.muted {margin:0;font-size:.82rem}
+.login-card .form-field {gap:4px;font-size:.8rem}
+.login-card .form-field input {min-height:44px;padding:8px 12px}
+.login-card .remember-option {min-height:44px;font-size:.76rem;gap:8px;line-height:1.5}
+.login-card .form-stack>.button {min-height:46px;margin:0}
+.login-card .login-links {margin-top:10px;padding-top:8px;min-height:44px}
+.login-card .login-links a,.login-card .login-links button {min-height:44px;display:inline-flex;align-items:center}
+.login-view .app-footer {padding:8px 0;margin-top:10px;border:0}
+.startup-card .brand-pair img:first-child {width:88px;height:88px;object-fit:contain;clip-path:none}
+.startup-card .brand-pair {background:transparent}
+.form-error:empty {display:none}
+@media(max-width:560px) {
+ .login-view .page-shell {padding:8px 12px 14px}
+ .login-card {padding:16px 18px;margin:6px auto}
+ .login-card .brand-pair img {width:56px;height:56px}
+ .login-card h1 {font-size:1.26rem}
+ .login-card .creator-credit {flex-direction:row;justify-content:center;flex-wrap:wrap;column-gap:12px;margin:6px 0}
+ .login-card .creator-credit a {min-height:36px}
+ .login-card .login-links {margin-top:8px;padding-top:4px}
+}
+@media(max-height:720px) and (min-width:561px) {
+ .login-card {margin:6px auto;padding:16px 24px}
+ .login-card .brand-pair img {width:48px;height:48px}
+ .login-card .creator-credit {flex-direction:row;justify-content:center;gap:14px}
 }

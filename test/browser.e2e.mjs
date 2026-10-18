@@ -195,8 +195,27 @@ try {
   await p.goto(origin + "/#doctors");
   await p.locator(".login-card form").waitFor();
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
-  assert.ok(await p.getByRole("heading",{name:"مرحبًا بك في نبض النقابة",exact:true}).isVisible());
+  assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
+  assert.equal(await p.locator(".app-footer").innerText(),"نبض النقابة - رعاية أقرب لك ولأسرتك");
+  assert.ok(!(await p.locator("body").innerText()).includes("اختر التذكّر"));
+  assert.ok(!(await p.locator("body").innerText()).includes("رعايتك أقرب ·"));
+  await p.getByText("الشبكة الطبية للموظفين والأسر والمعاشات",{exact:true}).waitFor();
+  await p.getByText("أدخل بياناتك للدخول",{exact:true}).waitFor();
+  // The actual header action must open administrator credentials from the member gate.
+  await p.locator(".admin-link").click();
+  await p.getByRole("heading",{name:"دخول المدير",exact:true}).waitFor();
+  await p.getByLabel("بريد حساب المدير أو اسم المستخدم",{exact:true}).waitFor();
+  await p.getByRole("button",{name:"إغلاق النافذة",exact:true}).click();
+  if(process.env.MEDICAL_SCREENSHOT_DIR) {
+    await p.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"login-refined-light.png"),fullPage:true});
+    await p.getByRole("button",{name:"تبديل المظهر",exact:true}).click();
+    await p.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"login-refined-dark.png"),fullPage:true});
+    await p.getByRole("button",{name:"تبديل المظهر",exact:true}).click();
+  }
+  const entrance = await p.getByRole("button",{name:"تحقق وادخل",exact:true}).boundingBox();
+  assert.ok(entrance.y + entrance.height < 844,"Member entry should be reachable without scrolling on a 390x844 screen");
+
   assert.equal((await (await p.request.get(origin + "/manifest.json")).json()).short_name,"نبض النقابة");
   assert.equal(await p.locator(".card").count(), 0);
   assert.ok(await p.locator("#main-nav").isHidden());
@@ -290,7 +309,7 @@ try {
   const adminContext = await context(),
     a = await adminContext.newPage();
   await a.goto(origin + "/#admin");
-  await a.getByRole("button", { name: "دخول المدير", exact: true }).click();
+  await a.locator(".admin-link").click();
   await a
     .getByLabel("بريد حساب المدير أو اسم المستخدم", { exact: true })
     .fill("admin@example.invalid");
@@ -492,8 +511,12 @@ try {
   await g.locator(".facility-card").first().waitFor();
   assert.ok(!(await g.locator("#main").innerText()).includes("اتصل لمعرفة المواعيد"));
   await g.goto(origin+"/#doctors");
-  await g.locator(".anime-doctor_team").first().waitFor();
-  assert.ok(await g.locator(".anime-doctor_team .anime-doctor_female").count()>0);
+  await g.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_7"));
+  await g.locator(".anime-doctor_female").waitFor();
+  assert.equal(await g.locator(".anime-doctor_male").count(),0);
+  await g.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_1"));
+  await g.locator(".anime-doctor_male").waitFor();
+  assert.equal(await g.locator(".anime-doctor_female,.anime-doctor_team").count(),0);
   await g.goto(origin + "/#hospitals");
   if (!await g.locator("#filter-panel").evaluate(n=>n.open)) await g.locator("#filter-panel summary").click();
   const districtOptions = await g.getByLabel("المركز / المدينة",{exact:true}).locator("option").allTextContents();
