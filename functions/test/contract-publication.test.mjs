@@ -36,10 +36,22 @@ test('prepared production seed keeps supplied hospital doctors and imported cont
  const seed=JSON.parse(await readFile(new URL('../seed/catalog.json',import.meta.url),'utf8'));
  const all=mergeCatalog(seed,[]), visible=memberCatalog(all);
  assert.equal(visible.records.length,185);
- assert.equal(visible.emergency_services.length,7);
- assert.equal(all.emergency_services.length-visible.emergency_services.length,28);
- assert.ok(!visible.emergency_services.some(r=>r.id==='em_mans_intl_hosp'));
+ assert.equal(visible.emergency_services.length,34);
+ assert.equal(all.emergency_services.length-visible.emergency_services.length,1);
+ assert.ok(visible.emergency_services.some(r=>r.id==='em_mans_intl_hosp' && r.emergency_group==='public_state'));
+ assert.equal(visible.emergency_services.filter(r=>r.emergency_group==='public_state').length,27);
+ assert.ok(!visible.emergency_services.some(r=>r.id==='em_gm'));
+ const hospital=seed.hospitals.find(r=>r.id==='hosp_hekma');
+ const hidden=memberCatalog(mergeCatalog(seed,[{kind:'hospitals',entityId:'hosp_hekma',version:1,value:{...hospital,directory_visibility:'hidden'}}]));
+ assert.equal(hidden.emergency_services.filter(r=>r.emergency_group==='public_state').length,27);
+ assert.ok(!hidden.emergency_services.some(r=>r.id==='em_mans_hekma_priv'));
  assert.ok(visible.emergency_services.some(r=>r.id==='em_1'));
+ const government=seed.emergency_services.find(r=>r.id==='em_mans_intl_hosp');
+ const edited=mergeCatalog(seed,[{kind:'emergency_services',entityId:government.id,version:1,value:{...government,emergency_group:'contracted'}}]);
+ assert.equal(edited.emergency_services.find(r=>r.id===government.id).emergency_group,'public_state');
+ assert.equal(edited.emergency_services.find(r=>r.id===government.id).number,government.number);
+ const hiddenGovernment=memberCatalog(mergeCatalog(seed,[{kind:'emergency_services',entityId:government.id,version:1,value:{...government,directory_visibility:'hidden'}}]));
+ assert.ok(!hiddenGovernment.emergency_services.some(r=>r.id===government.id));
  const counts={hospitals:17,labs:36,radiology:7,pharmacies:70,specialized_centers:20};
  for(const [kind,count] of Object.entries(counts))assert.equal(visible[kind].length,count,kind);
  const providers=['records',...Object.keys(counts)];
@@ -48,7 +60,7 @@ test('prepared production seed keeps supplied hospital doctors and imported cont
 
 test('emergency hospital cards inherit parent restrictions; public helplines cannot be spoofed in an overlay',()=>{
  const seed={hospitals:[approved],emergency_services:[{id:'linked',name:'استقبال اختبار',contract_listing:true,contract_parent_id:'listed'},{id:'public_line',name:'خط اختبار',contract_listing:true}]};
- const all=mergeCatalog(seed,[{kind:'hospitals',entityId:'listed',version:1,value:{...approved,directory_visibility:'hidden'}},{kind:'emergency_services',entityId:'invented',version:1,value:{id:'invented',name:'غير مسند',contract_listing:true,contract_parent_id:'listed'}}]);
+ const all=mergeCatalog(seed,[{kind:'hospitals',entityId:'listed',version:1,value:{...approved,directory_visibility:'hidden'}},{kind:'emergency_services',entityId:'invented',version:1,value:{id:'invented',name:'غير مسند',contract_listing:true,contract_parent_id:'listed',emergency_group:'public_state'}}]);
  assert.deepEqual(memberCatalog(all).emergency_services.map(r=>r.id),['public_line']);
  assert.equal(all.emergency_services.length,3);
 });

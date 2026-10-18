@@ -922,10 +922,11 @@
         el("a",{class:"care-hotline",href:"tel:"+telephone(r.tel || r.number)},el("span",{class:"care-icon","aria-hidden":"true"},"✚"),el("span",{class:"care-caption"},"الخط الساخن للرعاية الطبية"),el("h2",{},r.id === "em_we_employee" ? "الموظفون" : "الأسر والمعاشات"),el("strong",{dir:"ltr"},r.number || r.tel)))));
       main.append(el("section",{class:"ambulance-call"},el("div",{},el("span",{class:"card-eyebrow"},"الاتصال العاجل"),el("h2",{},"الإسعاف المصري")),el("a",{href:"tel:123",class:"button danger",dir:"ltr"},"123")));
       const selected=rows.filter(r=>!["em_we_employee","em_we_family","em_1"].includes(r.id) && (!state.markaz || r.markaz === state.markaz) && matchesText([r.name,r.markaz,r.description]));
-      main.append(heading("الاستقبال والمستشفيات والخدمات"),gridCards(selected.map(r=>{
+      const emergencyCard=r=>{
         const facts=RESEARCH.urgent(r);
         return el("article",{class:"card emergency-card","data-emergency":r.id},
           el("div",{class:"emergency-card-title"},el("span",{"aria-hidden":"true",class:"emergency-icon"},"✚"),el("h3",{},r.name)),
+          r.emergency_group === "public_state" ? el("span",{class:"card-eyebrow"},"جهة حكومية") : null,
           statusBadge(r),
           detail("⌖",usable(r.address) || usable(r.markaz)),
           detail("◷",facts?.hours),
@@ -935,7 +936,16 @@
           isAdmin() ? el("p",{class:"coverage unknown"},r.verified && r.source_url ? "آخر تحقق: "+(display(r.verification_date)||"غير مسجل") : "رقم منشور بالدليل · راجع حداثة البيانات") : null,
           el("div",{class:"card-actions"},telephone(r.tel || r.number) ? el("a",{class:"button danger",href:"tel:"+telephone(r.tel || r.number)},"اتصال "+(r.number || r.tel)) : null,
             link("الخريطة","https://www.google.com/maps/search/?api=1&query="+encodeURIComponent([r.name,r.address,r.markaz,"الدقهلية","مصر"].map(display).filter(Boolean).join(" ")))));
-      })));
+      };
+      const publicState=r=>r.emergency_group ? r.emergency_group === "public_state" : ["جامعة المنصورة","أمانة المراكز الطبية المتخصصة","وزارة الصحة","مراكز خدمات نقل الدم القومية"].includes(r.affiliation);
+      const contracted=selected.filter(r=>r.emergency_group ? r.emergency_group === "contracted" : !!r.contract_parent_id || /خاص متعاقد/.test(r.affiliation || ""));
+      const publicRows=selected.filter(r=>publicState(r) || r.id === "em_moh_icu");
+      if(contracted.length) main.append(heading("استقبال المستشفيات المتعاقدة"),gridCards(contracted.map(emergencyCard)));
+      main.append(el("section",{class:"public-emergency","aria-label":"الطوارئ العامة بالدولة"},
+        heading("الطوارئ العامة بالدولة","المستشفيات والمراكز الحكومية داخل محافظة الدقهلية"),
+        publicRows.length ? gridCards(publicRows.map(emergencyCard)) : empty("لا توجد جهات حكومية مطابقة للبحث الحالي.")));
+      const other=selected.filter(r=>!contracted.includes(r) && !publicRows.includes(r));
+      if(isAdmin() && other.length) main.append(heading("سجلات أخرى للمراجعة"),gridCards(other.map(emergencyCard)));
       return;
     }
     if (["services","dental"].includes(state.tab))

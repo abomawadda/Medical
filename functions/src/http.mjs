@@ -24,7 +24,7 @@ export function createHandler({ getService, origins, logger = console }) {
     if (req.method === "GET" && path === "/v1/health") {
       try {
         getService();
-        return res.json({ configured: true, capabilities: ["member-profile", "review-revisions", "staff-directory", "provider-images", "provider-illustrations", "directory-state-v1", "family-directory-v1", "directory-content-v1", "contract-directory-v1"] });
+        return res.json({ configured: true, capabilities: ["member-profile", "review-revisions", "staff-directory", "provider-images", "provider-illustrations", "directory-state-v1", "family-directory-v1", "directory-content-v1", "contract-directory-v1", "public-emergency-v1"] });
       } catch {
         return res.status(503).json({
           configured: false,

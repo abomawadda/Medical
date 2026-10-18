@@ -596,7 +596,11 @@ try {
   const careBottom=await g.locator(".care-hotlines").evaluate(n=>n.getBoundingClientRect().bottom);
   const ambulanceTop=await g.locator(".ambulance-call").evaluate(n=>n.getBoundingClientRect().top);
   assert.ok(careBottom < ambulanceTop);
-  assert.equal(await g.locator('[data-emergency="em_mans_intl_hosp"]').count(),0);
+  await g.getByRole("heading",{name:"الطوارئ العامة بالدولة",exact:true}).waitFor();
+  assert.equal(await g.locator('.public-emergency [data-emergency]').count(),28);
+  await g.locator('.public-emergency [data-emergency="em_mans_intl_hosp"]').waitFor();
+  assert.equal(await g.locator('.public-emergency [data-emergency="em_mans_kheir_cath"]').count(),0);
+  assert.equal(await g.locator('[data-emergency="em_gm"]').count(),0);
   await g.locator('[data-emergency="em_mans_kheir_cath"]').getByText("استقبال الطوارئ على مدار 24 ساعة",{exact:true}).waitFor();
   if(process.env.MEDICAL_SCREENSHOT_DIR) await g.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"emergency-refined-mobile.png"),fullPage:false});
   await g.goto(origin+"/#entity="+encodeURIComponent("hospitals:staff_754"));
