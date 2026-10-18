@@ -34,6 +34,14 @@ if(createHash("sha256").update(await readFile(resolve(root,original.source_file)
 for (const id of original.record_ids) approved.add("records:"+id);
 for (const kind of keys.filter(k=>!["medical_guidelines","emergency_services"].includes(k)))
   for (const r of catalog[kind]) r.contract_listing=approved.has(kind+":"+r.id);
+// Hospital cards in emergency views follow the same source restriction.
+// National ambulance/health coordination and the owner's care lines remain utilities.
+const emergencyParents={em_mans_sellab_priv:"hosp_sellab",em_mans_kheir_cath:"hosp_kheir",em_mans_hekma_priv:"hosp_hekma"};
+const publicHelplines=new Set(["em_1","em_moh_icu","em_we_employee","em_we_family"]);
+for (const r of catalog.emergency_services) {
+  r.contract_parent_id=emergencyParents[r.id] || null;
+  r.contract_listing=publicHelplines.has(r.id) || !!r.contract_parent_id;
+}
 if (catalog.records.some((r) => !r.provider_id))
   throw new Error("Rebuild the public dataset before preparing the API seed.");
 await mkdir(resolve(root, "functions/seed"), { recursive: true });

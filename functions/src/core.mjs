@@ -63,10 +63,19 @@ export function publishedDocument(r, at=Date.now()) {
 }
 export function memberCatalog(catalog, at=Date.now()) {
   const hospitals = catalog.hospitals || [];
-  const parent = (r) => hospitals.find(h => r.contract_entity_id === h.id || (r.hospital && [h.name,h.short_name].includes(r.hospital)));
+  const parent = r => hospitals.find(h => (r.contract_parent_id || r.contract_entity_id) === h.id || (r.hospital && [h.name,h.short_name].includes(r.hospital)));
+  const dependsOnHospital = (kind,r) => kind === "records" || (kind === "emergency_services" && !!r.contract_parent_id);
   return Object.fromEntries(kinds.map(kind => [kind, (catalog[kind] || [])
-    .filter(r => r.contract_listing !== false && r.directory_visibility !== "hidden" && !(kind === "records" && (parent(r)?.directory_visibility === "hidden" || parent(r)?.contract_listing === false || (r.contract_type === "hospital" && !parent(r)))) && (kind !== "medical_guidelines" || publishedDocument(r,at)))
-    .map(r => ({...r, service_status: r.service_status === "suspended" || (kind === "records" && parent(r)?.service_status === "suspended") ? "suspended" : "active"}))]));
+    .filter(r => {
+      if (r.contract_listing === false || r.directory_visibility === "hidden") return false;
+      if (dependsOnHospital(kind,r)) {
+        const hospital=parent(r);
+        if (hospital?.directory_visibility === "hidden" || hospital?.contract_listing === false) return false;
+        if ((r.contract_type === "hospital" || r.contract_parent_id) && !hospital) return false;
+      }
+      return kind !== "medical_guidelines" || publishedDocument(r,at);
+    })
+    .map(r => ({...r, service_status: r.service_status === "suspended" || (dependsOnHospital(kind,r) && parent(r)?.service_status === "suspended") ? "suspended" : "active"}))]));
 }
 
 export function targets(catalog) {

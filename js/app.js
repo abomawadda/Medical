@@ -926,6 +926,7 @@
         const facts=RESEARCH.urgent(r);
         return el("article",{class:"card emergency-card","data-emergency":r.id},
           el("div",{class:"emergency-card-title"},el("span",{"aria-hidden":"true",class:"emergency-icon"},"✚"),el("h3",{},r.name)),
+          statusBadge(r),
           detail("⌖",usable(r.address) || usable(r.markaz)),
           detail("◷",facts?.hours),
           facts?.hoursSource ? link("مصدر ساعات العمل",facts.hoursSource,"fact-source") : null,

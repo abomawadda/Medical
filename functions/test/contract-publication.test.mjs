@@ -36,8 +36,19 @@ test('prepared production seed keeps supplied hospital doctors and imported cont
  const seed=JSON.parse(await readFile(new URL('../seed/catalog.json',import.meta.url),'utf8'));
  const all=mergeCatalog(seed,[]), visible=memberCatalog(all);
  assert.equal(visible.records.length,185);
+ assert.equal(visible.emergency_services.length,7);
+ assert.equal(all.emergency_services.length-visible.emergency_services.length,28);
+ assert.ok(!visible.emergency_services.some(r=>r.id==='em_mans_intl_hosp'));
+ assert.ok(visible.emergency_services.some(r=>r.id==='em_1'));
  const counts={hospitals:17,labs:36,radiology:7,pharmacies:70,specialized_centers:20};
  for(const [kind,count] of Object.entries(counts))assert.equal(visible[kind].length,count,kind);
  const providers=['records',...Object.keys(counts)];
  assert.equal(providers.reduce((n,k)=>n+all[k].length-visible[k].length,0),24);
+});
+
+test('emergency hospital cards inherit parent restrictions; public helplines cannot be spoofed in an overlay',()=>{
+ const seed={hospitals:[approved],emergency_services:[{id:'linked',name:'استقبال اختبار',contract_listing:true,contract_parent_id:'listed'},{id:'public_line',name:'خط اختبار',contract_listing:true}]};
+ const all=mergeCatalog(seed,[{kind:'hospitals',entityId:'listed',version:1,value:{...approved,directory_visibility:'hidden'}},{kind:'emergency_services',entityId:'invented',version:1,value:{id:'invented',name:'غير مسند',contract_listing:true,contract_parent_id:'listed'}}]);
+ assert.deepEqual(memberCatalog(all).emergency_services.map(r=>r.id),['public_line']);
+ assert.equal(all.emergency_services.length,3);
 });
