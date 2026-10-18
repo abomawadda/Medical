@@ -197,7 +197,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.5.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.5.1");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -280,6 +280,7 @@ try {
   assert.equal(await facility.locator('.facility-group-heading h3').textContent(),'معامل ألفا');
   assert.equal(await facility.locator('[data-facility-branch="staff_2378"]').count(),1);
   assert.equal(await facility.locator('[data-facility-branch]').count(),2); // Other address is a separate branch.
+  assert.doesNotMatch(await facility.locator('.facility-branches').textContent(), /\b(?:null|undefined|nan)\b/i, 'Optional branch status must not render as text below the address, including collapsed choices');
   await facility.locator('.branch-network-options').getByRole('button',{name:'الموظفون',exact:true}).click();
   assert.ok((await facility.locator('.facility-group-details').innerText()).includes('01101216191'));
   assert.equal(await facility.locator('.facility-group-details a[href="tel:16191"]').count(),0); // Hotline belongs to family source.
@@ -356,7 +357,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.5.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.5.1');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
