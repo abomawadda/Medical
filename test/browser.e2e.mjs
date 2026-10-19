@@ -1073,7 +1073,7 @@ try {
   await sectionMemberContext.close();
   // Synthetic published totals exercise confidence ranking, filter scoping and return navigation.
   const recAdmin=await a.evaluate(()=>JSON.parse(sessionStorage.getItem('medical_session_v1')).token);
-  const recDefinitions=[['a','المنصورة','باطنة تجريبية',['employee'],5,5],['b','طلخا','باطنة تجريبية',['employee'],20,4.8],['c','المنصورة','جلدية تجريبية',['family','retiree'],6,4.5],['d','المنصورة','أطفال تجريبية',['employee'],10,4.4]];
+  const recDefinitions=[['a','المنصورة','الاطفال تجريبية',['employee'],5,5],['b','طلخا','الاطفال تجريبية',['employee'],20,4.8],['c','المنصورة','جلدية تجريبية',['family','retiree'],6,4.5],['d','المنصورة','عيون تجريبية',['employee'],10,4.4]];
   const recRows=[];
   for(const [key,city,specialty,network,count,average] of recDefinitions){
     const id='recommend_fixture_'+key;
@@ -1100,7 +1100,7 @@ try {
   await recPage.setViewportSize({width:390,height:844});
   await recPage.goto(origin+'/#doctors');await recPage.locator('.recommendation-inline').waitFor();
   await recPage.locator('#filter-panel summary').click();
-  await recPage.getByLabel('التخصص',{exact:true}).selectOption('باطنة تجريبية');
+  await recPage.getByLabel('التخصص',{exact:true}).selectOption('الأطفال تجريبية');
   await recPage.getByLabel('المركز / المدينة',{exact:true}).selectOption('المنصورة');
   await recPage.locator('[data-recommendation="doctor:'+recRows[0].provider_id+'"]').waitFor();
   assert.equal(await recPage.locator('.recommendation-card').count(),1);
@@ -1108,7 +1108,7 @@ try {
   await recPage.locator('#search-input').fill('');await recPage.locator('.recommendation-inline').waitFor();
   await recPage.locator('.recommendation-card').getByRole('button',{name:'عرض التفاصيل',exact:true}).click();await recPage.locator('.doctor-profile-page').waitFor();
   await recPage.getByRole('button',{name:'العودة إلى النتائج',exact:true}).click();await recPage.locator('.recommendation-inline').waitFor();
-  assert.equal(await recPage.getByLabel('التخصص',{exact:true}).inputValue(),'باطنة تجريبية');assert.equal(await recPage.getByLabel('المركز / المدينة',{exact:true}).inputValue(),'المنصورة');
+  assert.equal(await recPage.getByLabel('التخصص',{exact:true}).inputValue(),'الأطفال تجريبية');assert.equal(await recPage.getByLabel('المركز / المدينة',{exact:true}).inputValue(),'المنصورة');
   await recPage.locator('.network-tab').filter({hasText:'الأسر والمعاشات'}).click();assert.equal(await recPage.locator('.recommendation-card').count(),0);
   await recPage.getByLabel('التخصص',{exact:true}).selectOption('');await recPage.locator('[data-recommendation="doctor:'+recRows[2].provider_id+'"]').waitFor();
   await recContext.close();

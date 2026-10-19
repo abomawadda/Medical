@@ -947,12 +947,13 @@
   function recommendationSection(home){
     if(isAdmin() || !session() || !state.remote || !window.MedicalRecommendations)return null;
     if(!home && !['doctors','hospitals','services','dental','district-network'].includes(state.tab))return null;
-    const choices=[];
+    const choices=[],specialties=new Map(providers().map(p=>["doctor:"+p.id,p.specialty]));
     for(const item of state.recommendations || []){
+      const specialty=specialties.get(item.target) || item.specialty;
       let rows=(state.catalog[item.kind] || []).filter(r=>item.ids.includes(String(r.id)) && r.service_status!=='suspended' && r.directory_visibility!=='hidden' && r.contract_listing!==false && matchesBranch(r));
       if(item.kind==='records'){
-        if(state.specialty && item.specialty!==state.specialty)continue;
-        rows=rows.filter(r=>matchesText([r.display_name || r.name,'الأطباء والعيادات',item.specialty,r.hospital,r.address,r.markaz,r.raw_phone]));
+        if(state.specialty && specialty!==state.specialty)continue;
+        rows=rows.filter(r=>matchesText([r.display_name || r.name,'الأطباء والعيادات',specialty,r.hospital,r.address,r.markaz,r.raw_phone]));
       }else{
         if(state.specialty)continue;
         rows=rows.filter(r=>matchesText([r.name,labels[facilitySection(item.kind,r)],r.category,...[r.services].flat().filter(Boolean),r.address,r.markaz,r.phone]));
@@ -968,7 +969,7 @@
       });
       if(!rows.length)continue;
       const row=rows[0];
-      choices.push({...item,row,name:row.display_name || row.name,selectedTarget:item.kind==='records'?item.target:entityTarget(item.kind,row),location:row.markaz || row.city || ''});
+      choices.push({...item,label:item.kind==='records'?(specialty || item.label):(usable(row.category) || item.label),row,name:row.display_name || row.name,selectedTarget:item.kind==='records'?item.target:entityTarget(item.kind,row),location:row.markaz || row.city || ''});
     }
     const selected=window.MedicalRecommendations.select(choices,{limit:home?3:1,diverse:home});
     if(!selected.length)return null;
