@@ -916,6 +916,13 @@
       dental:["M12 4C5-1 1 5 4 12c1 2 1 9 4 10 2 0 1-7 4-7s2 7 4 7c3-1 3-8 4-10 3-7-1-13-8-8Z"],
       guidelines:["M6 3h13v18H5V4M8 8h8M8 12h8M8 16h5"],
       emergency:["M12 21 3 12C-3 5 6-1 12 6c6-7 15-1 9 6Z","M5 11h4l2-4 3 9 2-5h4"],
+      search:["M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14M15 15l6 6"],
+      phone:["M5 3h4l2 5-3 2a15 15 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 21 3 14 3 5a2 2 0 0 1 2-2Z"],
+      clock:["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M12 7v5l3 2"],
+      star:["m12 3 2.8 5.8 6.4.9-4.6 4.5 1.1 6.4-5.7-3-5.7 3 1.1-6.4-4.6-4.5 6.4-.9Z"],
+      users:["M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M2 21v-2a6 6 0 0 1 12 0v2M16 4a4 4 0 0 1 0 8M17 15a5 5 0 0 1 5 5v1"],
+      arrow:["M20 12H4m6-6-6 6 6 6"],
+      info:["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M12 11v6M12 7h.01"],
     };
     const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
     for(const [key,value] of Object.entries({viewBox:"0 0 24 24",fill:"none",stroke:"currentColor","stroke-width":"1.6","stroke-linecap":"round","stroke-linejoin":"round","aria-hidden":"true"}))svg.setAttribute(key,value);
@@ -1024,7 +1031,7 @@
   function renderDevelopmentLab(main){
     if(!isAdmin()){main.append(heading("المعاينة متاحة للإدارة فقط"),button("العودة للرئيسية",()=>go("home"),"button primary"));return;}
     const epoch=state.identityEpoch,root=el("section",{class:"development-lab","aria-label":"معمل التطوير الخاص"});main.append(root);
-    labView=window.MedicalDevelopmentLab.mount({root,api:API,el,button,replaceNodes,notice:toast,review:reviewLabFeature,exit:()=>go("admin"),allowed:()=>isAdmin()&&epoch===state.identityEpoch});
+    labView=window.MedicalDevelopmentLab.mount({root,api:API,el,button,replaceNodes,icon:careIcon,notice:toast,review:reviewLabFeature,exit:()=>go("admin"),allowed:()=>isAdmin()&&epoch===state.identityEpoch});
   }
   function reviewLabFeature(feature,reload){
     if(!isAdmin())return;const epoch=state.identityEpoch;

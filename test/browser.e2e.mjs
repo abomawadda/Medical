@@ -231,7 +231,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.13.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.13.1");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -445,7 +445,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.13.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.13.1');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1056,6 +1056,10 @@ try {
   await a.reload();await labFeature('compact_home').locator('blockquote').getByText('البحث واضح — ملاحظة اختبار فقط',{exact:true}).waitFor();
   await labFeature('compact_home').getByRole('button',{name:'فتح المعاينة',exact:true}).click();
   await a.locator('[data-lab-preview="compact_home"]').waitFor();
+  await a.locator('.lab-home-hero img[alt="شعار تطبيق رعايتي"]').waitFor();
+  assert.ok(await a.locator('.lab-hero-logo').evaluate(img=>img.complete&&img.naturalWidth>0),'The existing Rayati logo loads inside the purple hero');
+  assert.equal(await a.locator('.lab-shortcuts button .lab-icon svg').count(),6);
+  assert.equal(await a.locator('.lab-demo-search button .lab-icon[aria-hidden="true"]').count(),1);
   await a.getByLabel('البحث في نموذج المعمل',{exact:true}).fill('غير موجود');
   await a.locator('.lab-demo-search').getByRole('button',{name:'ابحث',exact:true}).click();
   await a.getByText('لا يوجد تطابق في البيانات التوضيحية. جرّب «الباطنة» أو «المنصورة».',{exact:true}).waitFor();
@@ -1073,6 +1077,7 @@ try {
   await saveLabDecision('provider_card',{previewEnabled:true});
   await labFeature('provider_card').getByRole('button',{name:'فتح المعاينة',exact:true}).click();await a.locator('[data-lab-preview="provider_card"]').waitFor();
   await a.getByRole('button',{name:'عرض التفاصيل',exact:true}).click();await a.locator('[data-lab-preview="provider_details"]').waitFor();
+  assert.equal(await a.locator('.lab-detail-tabs button .lab-icon svg').count(),3);assert.equal(await a.locator('.lab-detail-actions button .lab-icon svg').count(),2);
   await a.getByRole('tab',{name:'التفاصيل',exact:true}).focus();await a.keyboard.press('ArrowLeft');assert.equal(await a.getByRole('tab',{name:'الفروع',exact:true}).getAttribute('aria-selected'),'true');await a.getByRole('button',{name:'المقر الثاني',exact:true}).click();
   await a.getByText('عنوان آخر توضيحي غير مخصص للزيارة',{exact:true}).waitFor();
   await a.getByRole('tab',{name:'تجارب الأعضاء',exact:true}).click();
