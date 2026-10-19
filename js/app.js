@@ -8,8 +8,13 @@
     scrollFrame = requestAnimationFrame(() => window.scrollTo({top:0,left:0,behavior:"instant"}));
   }
   const isAdmin = () => session()?.role === "admin";
-  const companionPreview = new URL(location.href).searchParams.get("experience") === "companion";
-  document.documentElement.classList.toggle("companion-preview", companionPreview);
+  // Retire the public opt-in URL: a query string never grants preview access.
+  const launchUrl = new URL(location.href);
+  if (launchUrl.searchParams.get("experience") === "companion") {
+    launchUrl.searchParams.delete("experience");launchUrl.hash="lab";
+    history.replaceState(history.state,"",launchUrl);
+  }
+  document.documentElement.classList.remove("companion-preview");
   const API = window.MedicalAPI,
     prefs = window.MedicalStorage;
   const SEARCH = window.MedicalSearch;
@@ -112,15 +117,6 @@
   }
   const button = (text, action, classes = "button") =>
     el("button", { type: "button", class: classes, onClick: action }, text);
-  const previewNotice = el("aside", {class:"preview-notice"},
-    el("span", {}, "معاينة تجربة رفيق الموظف"));
-  if (companionPreview) {
-    const current = new URL(location.href);
-    current.searchParams.delete("experience");
-    previewNotice.append(el("a", {href:current.href}, "العودة للتصميم الحالي"));
-    previewNotice.hidden = true;
-    document.querySelector("#connection-status").after(previewNotice);
-  }
   const empty = (text) => el("div", { class: "empty" }, text);
   const detail = (symbol, text) =>
     display(text)
@@ -342,6 +338,8 @@
     updateNotifications();
     connection();
     renderFilters();
+    // The lab owns its guarded view; background catalog loading must not reset a review.
+    if(state.tab === "lab" && labView && isAdmin() && epoch===state.identityEpoch){$("#main").dataset.catalogReady="true";return;}
     if (location.hash.startsWith("#entity=")) route();
     else renderMain();
   }
@@ -554,18 +552,6 @@
         .catch(() => toast("تعذر نسخ الرابط."));
     else dialog("رابط الجهة", el("p", {}, url.href));
   }
-  function beforeVisit(branch) {
-    return el("details", {class:"before-visit"},
-      el("summary", {}, "قبل ما تتحرك"),
-      isAdmin() ? el("p", {class:"muted"}, "راجع تفاصيل هذا المقر قبل الزيارة.") : null,
-      el("dl", {class:"visit-checklist"},
-        usable(branch.address) || isAdmin() ? el("div", {}, el("dt", {}, "العنوان"), el("dd", {}, usable(branch.address) || "العنوان يحتاج استكمالًا")) : null,
-        usable(branch.schedule || branch.working_hours) || isAdmin() ? el("div", {}, el("dt", {}, "المواعيد"), el("dd", {}, usable(branch.schedule || branch.working_hours) || "المواعيد تحتاج استكمالًا")) : null,
-        coverage(branch) || isAdmin() ? el("div", {}, el("dt", {}, "الشبكة"), el("dd", {}, coverage(branch) || "تصنيف الشبكة يحتاج مراجعة")) : null,
-        isAdmin() ? el("div", {}, el("dt", {}, "تاريخ التحقق"), el("dd", {}, branch.verified_at || "غير مسجل في الدليل")) : null),
-      isAdmin() && branch.source_url ? link("مصدر المعلومة", branch.source_url, "text-button") : null,
-      isAdmin() ? el("p", {class:"notice"}, "اتصل بالمقر لمعرفة المواعيد وإجراء الزيارة.") : null);
-  }
   function doctorCard(p,full = false) {
     const target = "doctor:" + p.id;
     let branch = p.matched[0];
@@ -585,8 +571,7 @@
         statusBadge(branch),
         locationDetails(shown),
         detail("◷",usable(branch.schedule) || (isAdmin() ? "المواعيد تحتاج استكمالًا" : "")),
-        coverage(shown),
-        companionPreview ? beforeVisit(publicBranch(branch,"records")) : null);
+        coverage(shown));
       replaceNodes(actions,...actionLinks(shown), button("قيّم الزيارة",()=>reviewDialog(target,p.name,String(branch.id)),"button primary"));
     };
     const card = el("article",{class:"card doctor-card"+(full ? " provider-profile" : ""),"data-target":target},
@@ -647,7 +632,6 @@
       isAdmin() && facts?.note ? el("p",{class:"data-note"},facts.note) : null,
       isAdmin() && !usable(r.working_hours) && !facts?.hours ? el("p",{class:"data-note"},"مواعيد استقبال موثقة مطلوبة") : null,
       coverage(r),
-      companionPreview ? beforeVisit(r) : null,
       rating(target,context && state.facilityBranches ? state.facilityStats[kind+":"+context.branch.id] : undefined),
       el(
         "div",
@@ -821,52 +805,6 @@
       ),
     );
   }
-  function renderCompanionHome(main) {
-    const user = session();
-    const find = (tab) => {
-      state.query = "";
-      $("#search-input").value = "";
-      go(tab);
-    };
-    const search = el("form", {class:"companion-search",role:"search"},
-      el("label", {for:"companion-query"}, "ابحث عن طبيب أو جهة أو تخصص"),
-      el("div", {},
-        el("input", {id:"companion-query",name:"query",type:"search",maxlength:120,placeholder:"اسم الطبيب، التخصص أو المنطقة…",value:state.query}),
-        el("button", {type:"submit",class:"button primary"}, "ابحث الآن")));
-    search.addEventListener("submit", (event) => {
-      event.preventDefault();
-      state.query = search.querySelector("input").value.trim();
-      $("#search-input").value = state.query;
-      go("search",{query:state.query});
-    });
-    main.append(el("section", {class:"companion-welcome"},
-      el("div", {class:"eyebrow"}, "تطبيق رعايتي · معك خطوة بخطوة"),
-      el("h1", {}, "مرحبًا، " + user.name),
-      el("p", {}, "معلومة واضحة، وجهة مناسبة، وخطوة تالية أسهل."), search,
-      el("div", {class:"companion-hero-footer"},
-        el("span", {}, "الجهات والتقييمات من الدليل النقابي"),
-        el("a", {href:"tel:123",class:"emergency-shortcut"}, "الإسعاف 123"))));
-    const shortcuts = [
-      ["الخدمات الطبية", "تحاليل وأشعة وصيدليات ومراكز", "✚", () => find("services")],
-      ["جهاتي المفضلة", "الجهات التي حفظتها على جهازك", "♡", () => find("favorites")],
-      [user.role === "member" ? "بطاقتي وتقييماتي" : "إدارة الدليل", "بياناتك وإجراءاتك في مكان واحد", "◎", () => go(user.role === "member" ? "account" : "admin")],
-      ["التعليمات والإجراءات", "راجع الخطوات مع مسؤول الرعاية", "≡", () => find("guidelines")],
-    ];
-    main.append(el("section", {class:"companion-shortcuts","aria-label":"اختصارات خدمتك"},
-      ...shortcuts.map(([name,description,symbol,action]) => el("button", {type:"button",class:"companion-shortcut",onClick:action},
-        el("span", {class:"shortcut-symbol","aria-hidden":"true"}, symbol),
-        el("span", {}, el("strong", {}, name), el("small", {}, description)),
-        el("span", {"aria-hidden":"true"}, "←")))));
-    main.append(el("section", {class:"companion-next"},
-      el("div", {}, el("p", {class:"eyebrow"}, "زيارتك تبدأ قبل الوصول"), el("h2", {}, "قبل ما تتحرك"),
-        el("p", {class:"muted"}, "اختر المقر، راجع العنوان والمواعيد، وتأكد من التغطية مباشرةً. ستجد ملخص التجهيز داخل بطاقة الجهة.")),
-      button("استعرض الجهات الطبية", () => find("doctors"), "button primary")));
-    main.append(el("section", {class:"companion-guide"}, el("h2", {}, "ثلاث خطوات لزيارة أوضح"),
-      el("ol", {},
-        el("li", {}, el("strong", {}, "اختر الجهة والمقر"), el("p", {}, "ابحث حسب حاجتك وموقع الجهة، ثم اختر مقر الخدمة المناسب.")),
-        el("li", {}, el("strong", {}, "تأكد قبل الزيارة"), el("p", {}, "اتصل للتأكد من المواعيد والخدمة والتغطية والإجراءات.")),
-        el("li", {}, el("strong", {}, "شارك تجربتك بعد الزيارة"), el("p", {}, "قيّم التجربة، وتابع حالتها من صفحتك. يمكنك اختيار مشاركة ملاحظتك دون اسم بعد مراجعتها.")))));
-  }
   function networkTabs() {
     const nav=el("nav",{class:"network-tabs","aria-label":"شبكات الرعاية الطبية"});
     for(const [value,label,icon] of [["","كل الشبكات","⊞"],["employee","الموظفون","♧"],["family","الأسر والمعاشات","♡"]]) {
@@ -1038,7 +976,6 @@
   }
   function renderRecommendations(main,home){const section=recommendationSection(home);if(section)main.append(section);}
   function renderHome(main) {
-    if (companionPreview) {renderCompanionHome(main);renderRecommendations(main,true);recentUpdates(main);return;}
     const networkRecords=state.catalog.records.filter(r=>!state.network || (r.network_members || []).includes(state.network));
     const networkProviders=providers().filter(p=>p.branches.some(r=>!state.network || (r.network_members || []).includes(state.network)));
     const search=el("form",{class:"care-home-search",role:"search"},
@@ -1082,23 +1019,48 @@
       el("a",{href:"tel:16133"},el("span",{},"الموظفون"),el("strong",{dir:"ltr"},"16133")),
       el("a",{href:"tel:19104"},el("span",{},"الأُسَر والمعاشات"),el("strong",{dir:"ltr"},"19104"))));
   }
+  let labView=null;
+  function clearLab(){labView?.dispose();labView=null;}
+  function renderDevelopmentLab(main){
+    if(!isAdmin()){main.append(heading("المعاينة متاحة للإدارة فقط"),button("العودة للرئيسية",()=>go("home"),"button primary"));return;}
+    const epoch=state.identityEpoch,root=el("section",{class:"development-lab","aria-label":"معمل التطوير الخاص"});main.append(root);
+    labView=window.MedicalDevelopmentLab.mount({root,api:API,el,button,replaceNodes,notice:toast,review:reviewLabFeature,exit:()=>go("admin"),allowed:()=>isAdmin()&&epoch===state.identityEpoch});
+  }
+  function reviewLabFeature(feature,reload){
+    if(!isAdmin())return;const epoch=state.identityEpoch;
+    const form=el("form",{class:"form-stack entity-editor lab-review-editor"},
+      el("p",{class:"notice"},"مراجعة خاصة للتصميم «"+feature.title+"». الاعتماد هنا لا ينشر التغيير للأعضاء. تجنب كتابة أي بيانات عضو أو كلمة مرور في الملاحظات."),
+      el("small",{class:"muted"},"نسخة التصميم: "+feature.previewRevision+" · نسخة القرار: "+feature.version),
+      selectField("قرار المراجعة","review",[["pending","بانتظار المراجعة"],["needs_changes","يحتاج تعديلًا"],["approved","اعتماد التصميم فقط"]],feature.review),
+      field("ملاحظات التصميم","note","textarea",feature.note,{maxlength:1000}),
+      selectField("حالة المعاينة للمدير","previewEnabled",[["true","مفعلة"],["false","موقوفة"]],String(feature.previewEnabled)),
+      el("label",{class:"remember-option"},el("input",{type:"checkbox",name:"confirm_review",required:true}),"راجعت التصميم والقرار؛ لا يتضمن ذلك نشره للأعضاء"));
+    form.save=async data=>{
+      if(!isAdmin()||epoch!==state.identityEpoch)throw new Error("انتهت صلاحية هذه المراجعة. افتح المعمل من جديد.");
+      await API.saveLabFeature(feature.id,{expected_version:feature.version,previewRevision:feature.previewRevision,review:data.review,note:data.note,previewEnabled:data.previewEnabled==="true"});
+      if(!isAdmin()||epoch!==state.identityEpoch)return;
+      closeDialog(true);await reload();toast("حُفظت المراجعة؛ لم تتغير واجهة الأعضاء.");
+    };
+    dialog("مراجعة تصميم — "+feature.title,formAction(form,"حفظ المراجعة الخاصة"));form.initialValues=editorValues(form);
+  }
   function renderMain() {
+    clearLab();
     updateHeader();
     const main = $("#main");
     main.dataset.catalogReady = String(!!session() && state.remote);
     main.replaceChildren();
     const signedIn = !!session();
     document.documentElement.classList.toggle("workspace-view",signedIn);
-    document.documentElement.classList.toggle("admin-view",signedIn && state.tab === "admin");
+    document.documentElement.classList.toggle("admin-view",signedIn && ["admin","lab"].includes(state.tab));
     const desktopAdmin=$(".desktop-admin-link");if(desktopAdmin)desktopAdmin.hidden=!isAdmin();
-    previewNotice.hidden = !isAdmin();
-    $(".search-panel").hidden = !signedIn || state.tab === "home" || (companionPreview && state.tab === "account");
+    $(".search-panel").hidden = !signedIn || ["home","lab"].includes(state.tab);
     $("#main-nav").hidden = !signedIn;
     if (!signedIn) {
       document.documentElement.classList.add("login-view");
       return renderLogin(main);
     }
     document.documentElement.classList.remove("login-view");
+    if (state.tab === "lab") return renderDevelopmentLab(main);
     if (!state.remote) {
       main.append(
         heading("تحميل الدليل الطبي"),
@@ -1337,6 +1299,7 @@
       "dental",
       "hospitals",
       "admin",
+      "lab",
       "guidelines",
       "account",
       "favorites",
@@ -1360,6 +1323,7 @@
     renderMain();
   }
   function openDeepLink(target) {
+    clearLab();
     if (!session() || !state.remote) {
       renderMain();
       return;
@@ -1708,9 +1672,6 @@
       } catch(error) {box.append(el("p",{class:"notice warning"},state.adminWorkspace ? error.message : "عرض بيانات المدير الكاملة يحتاج تحديث خدمة Firebase."));}
       return;
     }
-    if (companionPreview) main.append(el("div", {class:"companion-account-actions"},
-      button("العودة للرئيسية", () => go("home"), "button primary"),
-      button("جهاتي المفضلة", () => go("favorites"), "button outline")));
     const profileBox = el("section", { class: "member-profile", "aria-label": "بيانات العضو" },
       el("h2", {}, "بطاقتي النقابية"), el("p", { class: "muted" }, "جارٍ تحميل بياناتك…"));
     main.append(profileBox);
@@ -1857,7 +1818,7 @@
     const parentHidden=r=>{const parent=parentOf(r);return parent && (parent.directory_visibility === "hidden" || parent.contract_listing === false);};
     const hidden=r=>r.directory_visibility === "hidden" || r.contract_listing === false || parentHidden(r) || (!!r.title && !publishedContent(r));
     const filter=(kind,status="")=>{for(const key of ["adminSpecialty","adminCategory","adminMarkaz","adminNetwork","adminContract"])state[key]="";state.adminKind=kind;state.adminState=status;state.limit=24;state.query="";$("#search-input").value="";renderMain();};
-    main.append(el("section",{class:"admin-intro"},el("div",{},el("span",{class:"eyebrow"},"مساحة العمل الإدارية"),heading("مركز إدارة تطبيق رعايتي","الجهات والتعاقدات والمحتوى في مساحة عمل واحدة.")),el("div",{class:"actions-row"},button("إضافة سجل",()=>editDialog(state.adminKind === "all" ? "records" : state.adminKind),"button primary"),button("حساب المدير",()=>go("account"),"button outline"))));
+    main.append(el("section",{class:"admin-intro"},el("div",{},el("span",{class:"eyebrow"},"مساحة العمل الإدارية"),heading("مركز إدارة تطبيق رعايتي","الجهات والتعاقدات والمحتوى في مساحة عمل واحدة.")),el("div",{class:"actions-row"},button("إضافة سجل",()=>editDialog(state.adminKind === "all" ? "records" : state.adminKind),"button primary"),button("حساب المدير",()=>go("account"),"button outline"),button("معمل التطوير",()=>go("lab"),"button outline lab-entry"))));
     if(!API.adminIdleSupported)main.append(el("p",{class:"notice warning"},"تجديد جلسة المدير أثناء النشاط ينتظر نشر تحديث Firebase. الخدمة الحالية تنهي الجلسة بعد 10 دقائق من الدخول."));
     if(!state.adminWorkspace)main.append(el("p",{class:"notice warning"},"صلاحية اعتماد الجهات والقوائم المشتركة وبطاقة المدير تحتاج نشر تحديث Firebase مرة واحدة بالإعداد المحفوظ."));
     if(!state.adminBatch || !state.structuredBranches || !state.adminBatchData)main.append(el('p',{class:'notice warning'},'الفروع المتعددة والمعالجة الجماعية جاهزتان في الواجهة وتحتاجان نشر تحديث Firebase لتفعيل الحفظ.'));
@@ -2648,6 +2609,7 @@
     if (session()) refresh().catch((e) => toast(e.message));
   }
   window.addEventListener("medical-session-invalidated", () => {
+    clearLab();
     viewHistory.clear();activeViewKey=null;
     state.greetingName="";state.headerMember=null;state.identityEpoch++;
     idleBanner.hidden=true;idleModalBanner.hidden=true;

@@ -12,10 +12,16 @@ export function fixtureStore(seed) {
     audit = [], activity = new Map();
   const base = structuredClone(seed);
   for (const k of kinds) base[k] ||= [];
-  const options=new Map();
+  const options=new Map(),labRows=new Map();
+  let labQueue=Promise.resolve();
   const profileRequests=new Map(),profileLedgers=new Map(),profileOverrides=new Map(),profileNotes=new Map();
   let profileQueue=Promise.resolve();
   const store = {
+    labRows,
+    async labRead(id){return structuredClone(labRows.get(id) || {});},
+    async labReadAll(){return Object.fromEntries([...labRows].map(([id,row])=>[id,structuredClone(row)]));},
+    async labTransact(id,apply){const operation=labQueue.then(()=>{const result=apply(structuredClone(labRows.get(id) || {}));if(result.changed){labRows.set(id,structuredClone(result.next));audit.push({action:'lab.review',featureId:id,version:result.next.version});}return {changed:result.changed,feature:result.feature};});labQueue=operation.catch(()=>{});return operation;},
+
     profileRequests,profileLedgers,profileOverrides,profileNotes,
     async getProfileOverrides(owner){return structuredClone(profileOverrides.get(owner) || {});},
     async profileRead(id){return structuredClone(profileRequests.get(id) || null);},

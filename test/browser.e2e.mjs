@@ -231,7 +231,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.12.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.13.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -445,7 +445,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.12.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.13.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1021,61 +1021,116 @@ try {
     assert.ok(scrollWidth <= width);
     if(process.env.MEDICAL_SCREENSHOT_DIR)await g.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,`rayati-home-${width}.png`),fullPage:true});
   }
-  const pilotContext = await context(), pilot = await pilotContext.newPage();
-  await pilot.goto(origin + "/?experience=companion");
-  await pilot.locator(".login-card form").waitFor();
-  assert.equal(await pilot.locator(".companion-welcome").count(), 0);
-  await memberLogin(pilot);
-  await pilot.goto(origin + "/?experience=companion");
-  await pilot.getByRole("heading", {name:"مرحبًا، عضو الاختبار",exact:true}).waitFor();
-  await pilot.getByRole("button", {name:/بطاقتي وتقييماتي/}).click();
-  await pilot.getByText("UNION-123", {exact:true}).waitFor();
-  await pilot.getByRole("button", {name:"العودة للرئيسية",exact:true}).click();
-  await pilot.getByLabel("ابحث عن طبيب أو جهة أو تخصص", {exact:true}).fill(branches[0].name);
-  await pilot.getByRole("button", {name:"ابحث الآن",exact:true}).click();
-  await pilot.locator(".card").first().waitFor();
-  await pilot.locator(".before-visit summary").first().click();
-  assert.equal(await pilot.getByText("راجع تفاصيل هذا المقر قبل الزيارة.", {exact:true}).count(),0);
-  await pilot.locator('[data-branch="' + branches[1].id + '"]').first().click();
-  await pilot.locator(".before-visit summary").first().click();
-  assert.ok((await pilot.locator(".before-visit").first().textContent()).includes(branches[1].address));
-  assert.equal(await pilot.locator('a[href^="tel:"]').first().getAttribute("href"), "tel:" + branches[1].phones[0].tel);
-  await pilot.goto(origin + "/?experience=companion#entity=" + encodeURIComponent(target));
-  await pilot.locator(".card").first().waitFor();
-  const pilotWidths=[];
-  for (const width of [320,390,768,1440]) {
-    await pilot.setViewportSize({width,height:844});
-    const measured=await pilot.evaluate(() => document.documentElement.scrollWidth);
-    assert.ok(measured <= width, "Preview entity overflow at " + width);
-    pilotWidths.push({width,scrollWidth:measured});
+  // The legacy query no longer exposes experiments to a member or anonymous visitor.
+  const pilotContext=await context(true,'block',await memberContext.storageState()),pilot=await pilotContext.newPage();
+  await pilot.goto(origin+'/?experience=companion');
+  await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();
+  assert.equal(new URL(pilot.url()).hash,'#lab');assert.equal(new URL(pilot.url()).search,'');
+  assert.equal(await pilot.locator('.lab-preview,.lab-feature-card,.companion-welcome').count(),0);
+  await pilot.evaluate(()=>{const k='medical_remembered_session_v1',r=JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify({...r,role:'admin',user:{role:'admin'}}));});
+  await pilot.reload();await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();
+  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
+  assert.deepEqual(deniedLab,[403,403]);
+  await pilot.getByRole('button',{name:'العودة للرئيسية',exact:true}).click();await pilot.locator('.hero').waitFor();
+  assert.equal(await pilot.getByRole('button',{name:'معمل التطوير',exact:true}).count(),0);
+  await pilotContext.close();
+  const anonymousLabContext=await context(),anonymousLab=await anonymousLabContext.newPage();
+  await anonymousLab.goto(origin+'/#lab');await anonymousLab.locator('.login-card').waitFor();
+  assert.equal(await anonymousLab.locator('.development-lab,.lab-feature-card').count(),0);await anonymousLabContext.close();
+  const catalogBeforeLab=structuredClone(await store.catalog());
+  await a.goto(origin+'/#admin');await a.getByRole('button',{name:'معمل التطوير',exact:true}).click();
+  await a.locator('[data-lab-feature="compact_home"]').waitFor();
+  assert.equal(await a.locator('.lab-feature-card').count(),3);
+  const labFeature=id=>a.locator('[data-lab-feature="'+id+'"]');
+  const saveLabDecision=async(id,{review='needs_changes',note='ملاحظة اختبار مصطنعة',previewEnabled=true}={})=>{
+    await labFeature(id).getByRole('button',{name:'الملاحظات والقرار',exact:true}).click();
+    await a.getByLabel('قرار المراجعة',{exact:true}).selectOption(review);
+    await a.getByLabel('ملاحظات التصميم',{exact:true}).fill(note);
+    await a.getByLabel('حالة المعاينة للمدير',{exact:true}).selectOption(String(previewEnabled));
+    await a.locator('[name="confirm_review"]').check();
+    await a.getByRole('button',{name:'حفظ المراجعة الخاصة',exact:true}).click();
+    await a.locator('dialog').waitFor({state:'hidden'});await labFeature(id).waitFor();
+  };
+  await saveLabDecision('compact_home',{review:'approved',note:'البحث واضح — ملاحظة اختبار فقط'});
+  assert.ok((await labFeature('compact_home').innerText()).includes('معتمد كتصميم'));
+  await a.reload();await labFeature('compact_home').locator('blockquote').getByText('البحث واضح — ملاحظة اختبار فقط',{exact:true}).waitFor();
+  await labFeature('compact_home').getByRole('button',{name:'فتح المعاينة',exact:true}).click();
+  await a.locator('[data-lab-preview="compact_home"]').waitFor();
+  await a.getByLabel('البحث في نموذج المعمل',{exact:true}).fill('غير موجود');
+  await a.locator('.lab-demo-search').getByRole('button',{name:'ابحث',exact:true}).click();
+  await a.getByText('لا يوجد تطابق في البيانات التوضيحية. جرّب «الباطنة» أو «المنصورة».',{exact:true}).waitFor();
+  await a.getByLabel('البحث في نموذج المعمل',{exact:true}).fill('الباطنة');
+  await a.locator('.lab-demo-search').getByRole('button',{name:'ابحث',exact:true}).click();await a.locator('.lab-provider-card').waitFor();
+  for(const width of [320,390,768,1440]){
+    await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Lab home fits '+width);
+    if(process.env.MEDICAL_SCREENSHOT_DIR)await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'lab-home-'+width+'.png'),fullPage:true,style:'#toast{visibility:hidden}'});
   }
-  if (process.env.MEDICAL_SCREENSHOT_DIR) {
-    await pilot.setViewportSize({width:390,height:844});
-    await pilot.locator(".before-visit summary").first().click();
-    await pilot.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"companion-entity-mobile.png"),fullPage:true});
-    await pilot.goto(origin + "/?experience=companion#account");
-    await pilot.getByText("UNION-123", {exact:true}).waitFor();
-    await pilot.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"companion-account-mobile.png"),fullPage:true});
-    await pilot.goto(origin + "/?experience=companion#home");
-    await pilot.locator(".companion-welcome").waitFor();
-    await pilot.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,"companion-home-mobile.png"),fullPage:true});
-  }
-  await pilot.goto(origin + "/?experience=companion#home");
-  await pilot.locator(".companion-welcome").waitFor();
-  await pilot.getByLabel("ابحث عن طبيب أو جهة أو تخصص",{exact:true}).fill("داوي");
-  await pilot.getByRole("button",{name:"ابحث الآن",exact:true}).click();
-  await pilot.locator('[data-target="specialized_centers:family_20261018_047"]').waitFor();
-  await pilot.goto(origin+"/?experience=companion#home");
-  await pilot.locator(".companion-welcome").waitFor();
-  for (const width of [320,390,768,1440]) {
-    await pilot.setViewportSize({width,height:844});
-    assert.ok(await pilot.evaluate(() => document.documentElement.scrollWidth) <= width, "Preview home overflow at " + width);
-  }
-  assert.ok(await pilot.locator(".preview-notice").isHidden());
-  await pilot.goto(origin + "/#home");
-  await pilot.locator(".hero").waitFor();
-  assert.equal(await pilot.locator(".companion-welcome").count(),0);
-  assert.ok(!pilot.url().includes("experience=companion"));
+  await a.setViewportSize({width:390,height:844});
+  await a.getByRole('button',{name:'قائمة المعاينات',exact:true}).click();await labFeature('provider_card').waitFor();
+  await saveLabDecision('provider_card',{previewEnabled:false});
+  assert.ok(await labFeature('provider_card').getByRole('button',{name:'فتح المعاينة',exact:true}).isDisabled());
+  assert.equal(await a.evaluate(async()=>{try{await window.MedicalAPI.labPreview('provider_card');return 'unexpected';}catch(e){return e.code;}}),'LAB_PAUSED');
+  await saveLabDecision('provider_card',{previewEnabled:true});
+  await labFeature('provider_card').getByRole('button',{name:'فتح المعاينة',exact:true}).click();await a.locator('[data-lab-preview="provider_card"]').waitFor();
+  await a.getByRole('button',{name:'عرض التفاصيل',exact:true}).click();await a.locator('[data-lab-preview="provider_details"]').waitFor();
+  await a.getByRole('tab',{name:'التفاصيل',exact:true}).focus();await a.keyboard.press('ArrowLeft');assert.equal(await a.getByRole('tab',{name:'الفروع',exact:true}).getAttribute('aria-selected'),'true');await a.getByRole('button',{name:'المقر الثاني',exact:true}).click();
+  await a.getByText('عنوان آخر توضيحي غير مخصص للزيارة',{exact:true}).waitFor();
+  await a.getByRole('tab',{name:'تجارب الأعضاء',exact:true}).click();
+  await a.getByRole('button',{name:'نموذج تقييم',exact:true}).click();
+  await a.locator('#toast').getByText('إجراء توضيحي داخل المعمل؛ لا يُرسل طلبًا ولا يجري اتصالًا أو تعديلًا حقيقيًا.',{exact:true}).waitFor();
+  assert.equal(await a.locator('.lab-preview a[href^="tel:"],.lab-preview form').count(),0);
+  for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Lab detail fits '+width);}
+  await a.setViewportSize({width:390,height:844});
+  await a.getByRole('tab',{name:'الفروع',exact:true}).click();
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'lab-details-mobile.png'),fullPage:true});
+  // Another tab can pause a specimen: returning to this tab clears it after server verification.
+  await a.evaluate(async()=>{const current=(await window.MedicalAPI.developmentLab()).features.find(f=>f.id==='provider_details');await window.MedicalAPI.saveLabFeature(current.id,{expected_version:current.version,previewRevision:current.previewRevision,review:'needs_changes',note:'إيقاف من تبويب آخر — اختبار',previewEnabled:false});document.dispatchEvent(new Event('visibilitychange'));});
+  await a.getByText('هذه المعاينة موقوفة؛ يمكن استئنافها من المعمل.',{exact:true}).waitFor();
+  assert.equal(await a.locator('.lab-preview').count(),0);
+  await a.getByRole('button',{name:'إعادة التحقق',exact:true}).click();await labFeature('provider_details').waitFor();
+  await saveLabDecision('provider_details',{previewEnabled:true});
+  await labFeature('provider_details').getByRole('button',{name:'فتح المعاينة',exact:true}).click();await a.locator('.lab-preview').waitFor();
+  await a.route('**/v1/admin/lab/preview/provider_details',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({code:'UNAVAILABLE',message:'انقطاع تجريبي لخدمة المعاينة'})}));
+  await a.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+  await a.getByText('انقطاع تجريبي لخدمة المعاينة',{exact:true}).waitFor();assert.equal(await a.locator('.lab-preview').count(),0);
+  await a.unroute('**/v1/admin/lab/preview/provider_details');
+  // An old backend leaves the admin's normal workspace available and shows no specimen.
+  await a.route('**/v1/admin/lab',r=>r.fulfill({status:404,contentType:'application/json',body:JSON.stringify({code:'NOT_FOUND',message:'غير موجود'})}));
+  await a.getByRole('button',{name:'إعادة التحقق',exact:true}).click();
+  await a.getByText('تفعيل معمل التطوير يحتاج نشر تحديث خدمة Firebase. تجربة الأعضاء الحالية مستمرة.',{exact:true}).waitFor();
+  assert.equal(await a.locator('.lab-preview,.lab-feature-card').count(),0);await a.unroute('**/v1/admin/lab');
+  await a.getByRole('button',{name:'إعادة التحقق',exact:true}).click();await labFeature('compact_home').waitFor();
+  for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Lab board fits '+width);}
+  await a.setViewportSize({width:390,height:844});
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'lab-board-mobile.png'),fullPage:true,style:'#toast{visibility:hidden}'});
+  // A cached old client cannot approve the server's newer specimen revision.
+  const incompatibleLab=await a.evaluate(()=>window.MedicalAPI.developmentLab());incompatibleLab.features[0].previewRevision='future-lab-revision';
+  await a.route('**/v1/admin/lab',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(incompatibleLab)}));
+  await a.reload();await a.getByText('تغيرت نسخة المعاينة؛ حدّث التطبيق قبل مراجعة التصميم.',{exact:true}).waitFor();
+  assert.equal(await a.locator('.lab-feature-card,.lab-preview').count(),0);await a.unroute('**/v1/admin/lab');
+  await a.getByRole('button',{name:'إعادة التحقق',exact:true}).click();await labFeature('compact_home').waitFor();
+  // A late specimen response cannot repopulate a route the administrator has left.
+  let releaseSpecimen,markSpecimenStarted,markSpecimenFinished;
+  const specimenGate=new Promise(resolve=>releaseSpecimen=resolve),specimenStarted=new Promise(resolve=>markSpecimenStarted=resolve),specimenFinished=new Promise(resolve=>markSpecimenFinished=resolve);
+  const delayedScene=async route=>{const reply=await fetch(origin+'/v1/admin/lab/preview/provider_card',{headers:{Origin:origin,Authorization:route.request().headers().authorization}}),body=await reply.text();markSpecimenStarted();await specimenGate;await route.fulfill({status:reply.status,contentType:'application/json',body});markSpecimenFinished();};
+  await a.route('**/v1/admin/lab/preview/provider_card',delayedScene);
+  await labFeature('provider_card').getByRole('button',{name:'فتح المعاينة',exact:true}).click();await specimenStarted;
+  await a.getByRole('button',{name:'العودة إلى الإدارة',exact:true}).click();await a.locator('.admin-intro').waitFor();
+  releaseSpecimen();await specimenFinished;await a.unroute('**/v1/admin/lab/preview/provider_card',delayedScene);
+  assert.equal(await a.locator('.lab-preview,.development-lab').count(),0);
+  // Revoking the source account removes private preview and notes on the next check.
+  const adminTabSession=await a.evaluate(()=>sessionStorage.getItem('medical_session_v1'));
+  const revokedContext=await context();await revokedContext.addInitScript(({value,origin})=>{if(location.origin===origin)sessionStorage.setItem('medical_session_v1',value);},{value:adminTabSession,origin});
+  const revokedLab=await revokedContext.newPage();await revokedLab.goto(origin+'/#lab');await revokedLab.locator('[data-lab-feature="compact_home"]').waitFor();
+  await revokedLab.locator('[data-lab-feature="compact_home"]').getByRole('button',{name:'فتح المعاينة',exact:true}).click();await revokedLab.locator('.lab-preview').waitFor();
+  account.accountStatus='disabled';
+  try{await revokedLab.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await revokedLab.locator('.login-card').waitFor();assert.equal(await revokedLab.locator('.lab-preview,.lab-feature-card,.development-lab').count(),0);}
+  finally{account.accountStatus='active';await revokedContext.close();}
+  await a.goto(origin+'/#lab');await labFeature('compact_home').waitFor();
+  assert.deepEqual(await store.catalog(),catalogBeforeLab);
+  assert.equal(store.profileNotes.size,0); // Lab review never notifies a member or publishes news.
+  await a.getByRole('button',{name:'العودة إلى الإدارة',exact:true}).click();await a.locator('.admin-intro').waitFor();
+  assert.equal(await a.locator('.lab-preview,.development-lab').count(),0);
   const fonts = await g.evaluate(async () => {
     await document.fonts.ready;
     return {
@@ -1452,7 +1507,7 @@ try {
         moderationSuccessClosesDialogAndReviewedItemsLeaveQueue: true,
         personalProfileAndAuthorOnlyReviewEditing: true,
         incompatibleBackendModerationBlocked: true,
-        optInCompanionPreviewAuthenticatedAndResponsive: true,
+        administratorLabPrivateVersionedResponsiveAndLegacyUrlRetired: true,
         moderationSavedDespiteDirectoryRefreshFailure: true,
         contentStudioCrudScheduleArchiveAndRepublish: true,
         anonymousReviewConsentCriteriaModerationAndWithdrawal: true,

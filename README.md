@@ -87,3 +87,6 @@ npx firebase-tools@15.34.0 emulators:exec --only firestore --project demo-medica
 
 
 Member profile release 4.11.0: [Arabic behavior, deployment and optional source-writer setup](docs/MEMBER_PROFILE_4_11_AR.md). Frontend publishing does not activate Firebase or the optional separate source writer.
+
+
+Administrator lab 4.13.0: [private specimens, review decisions, activation and rollback](docs/DEVELOPMENT_LAB_4_13_AR.md). Member release is disabled server-side; design approval does not publish a feature.

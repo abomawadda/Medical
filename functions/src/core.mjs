@@ -8,6 +8,7 @@ import contacts from "./contacts.cjs";
 import facilities from "./facility-directory.cjs";
 import criteria from "./review-criteria.cjs";
 import content from "./content-policy.cjs";
+import {developmentLabService} from "./development-lab.mjs";
 import {profileService} from "./profile-service.mjs";
 import {effectiveProfile} from "./profile-requests.mjs";
 import memberProfilePolicy from "./member-profile.cjs";
@@ -425,6 +426,7 @@ export function createService({
   const profileOperations=profileService({source,store,sourceWriter,authorize,digest,rate,now});
   return {
     ...profileOperations,
+    ...developmentLabService({store,authorize,now}),
     async memberLogin(body, ip) {
       await rate(ip, "member-ip", 30);
       const c = code(body.employee_code),

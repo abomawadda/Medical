@@ -339,6 +339,18 @@ assert.equal((await service.profileNotifications(member,notices.version)).notMod
 await service.readProfileNotification(member,notices.notifications[0].id);
 assert.ok((await service.profileNotifications(member)).notifications[0].readAt);
 assert.equal(JSON.stringify((await foreign.collection('employees').get()).docs.map(d=>d.data())),before);
+// Lab reviews persist only in Medical and cannot change the member catalog or source.
+const memberBeforeLab=await service.catalog(member),lab=(await service.adminLab(admin)).features[0];
+await assert.rejects(()=>service.adminLab(member),e=>e.status===403);
+const labBody={expected_version:0,previewRevision:lab.previewRevision,review:'approved',note:'مراجعة تصميم مصطنعة',previewEnabled:true};
+const labSaves=await Promise.all([1,2].map(()=>service.saveLabFeature(admin,lab.id,labBody)));
+assert.equal(labSaves.filter(r=>r.changed).length,1);
+assert.equal((await service.adminLab(admin)).features[0].version,1);
+await assert.rejects(()=>service.saveLabFeature(admin,lab.id,{...labBody,review:'needs_changes'}),e=>e.code==='LAB_VERSION_CONFLICT');
+await service.saveLabFeature(admin,lab.id,{...labBody,expected_version:1,previewEnabled:false});
+await assert.rejects(()=>service.labPreview(admin,lab.id),e=>e.code==='LAB_PAUSED');
+assert.deepEqual(await service.catalog(member),memberBeforeLab);
+assert.equal(JSON.stringify((await foreign.collection('employees').get()).docs.map(d=>d.data())),before);
 await service.logout(member);
 await assert.rejects(
   () => service.ownReviews(member),

@@ -942,3 +942,45 @@ test('source-profile decisions use an immutable intent and never fall back to ap
  failWriter=false;await f.service.decideProfileRequest(a,saved.id,decision);assert.equal(f.employees[0].email,'source@example.invalid');assert.equal(f.store.profileNotes.size,1);assert.ok((await f.service.profileNotifications(m)).notifications[0].message.includes('سجل النقابة الأصلي'));
  await f.service.decideProfileRequest(a,saved.id,decision);assert.equal(calls,2);
 });
+
+test('development lab authorizes every read, preview and decision against the live administrator',async()=>{
+ const f=setup(),m=await member(f),a=await admin(f);
+ for(const token of ['',m])for(const op of [()=>f.service.adminLab(token),()=>f.service.labPreview(token,'compact_home'),()=>f.service.saveLabFeature(token,'compact_home',{})])await assert.rejects(op,e=>e.status===(token?403:401));
+ const data=await f.service.adminLab(a);assert.equal(data.features.length,3);assert.equal(data.memberReleaseSupported,false);
+ assert.ok(data.features.every(r=>r.audience==='admin'&&!r.memberEnabled&&r.syntheticOnly));
+ const preview=await f.service.labPreview(a,'compact_home');assert.match(preview.scene.label,/توضيحية/);assert.equal(preview.scene.provider.rating,null);
+ f.accounts[0].accountStatus='disabled';await assert.rejects(()=>f.service.labPreview(a,'compact_home'),e=>e.status===403);
+ f.accounts[0].accountStatus='active';f.advance(600001);await assert.rejects(()=>f.service.adminLab(a),e=>e.status===401);
+});
+test('lab decisions are private, version guarded, idempotent and cannot enable a member feature',async()=>{
+ const f=setup(),m=await member(f),a=await admin(f),before=await f.service.catalog(m),sourceBefore=structuredClone(f.employees);
+ const feature=(await f.service.adminLab(a)).features[0],body={expected_version:0,previewRevision:feature.previewRevision,review:'approved',note:'مساحة البحث أوضح — ملاحظة اختبار',previewEnabled:true};
+ const results=await Promise.all([1,2].map(()=>f.service.saveLabFeature(a,feature.id,body)));
+ assert.equal(results.filter(r=>r.changed).length,1);assert.equal(results[0].feature.version,1);assert.equal(results[0].feature.memberEnabled,false);
+ assert.equal((await f.service.saveLabFeature(a,feature.id,body)).changed,false);
+ await assert.rejects(()=>f.service.saveLabFeature(a,feature.id,{...body,review:'needs_changes'}),e=>e.code==='LAB_VERSION_CONFLICT');
+ for(const extra of [{memberEnabled:true},{audience:'member'},{role:'admin'}])await assert.rejects(()=>f.service.saveLabFeature(a,feature.id,{...body,...extra}),e=>e.status===400);
+ await assert.rejects(()=>f.service.saveLabFeature(a,'unknown',body),e=>e.status===404);
+ await assert.rejects(()=>f.service.labPreview(a,'unknown'),e=>e.status===404);
+ for(const note of ['<img src=x>','x'.repeat(1001),'bad\u0000'])await assert.rejects(()=>f.service.saveLabFeature(a,feature.id,{...body,note}),e=>e.status===400);
+ await f.service.saveLabFeature(a,feature.id,{...body,expected_version:1,previewEnabled:false});
+ await assert.rejects(()=>f.service.labPreview(a,feature.id),e=>e.code==='LAB_PAUSED');
+ assert.deepEqual(await f.service.catalog(m),before);assert.deepEqual(f.employees,sourceBefore);assert.equal(f.store.overlays.size,0);assert.equal(f.store.reviews.size,0);assert.equal(f.store.profileNotes.size,0);
+ assert.equal(f.store.audit.filter(r=>r.action==='lab.review').length,2);
+});
+test('lab retains bounded review history and invalidates approval for a new specimen revision',async()=>{
+ const {labProjection}=await import('../src/development-lab.mjs');const f=setup(),a=await admin(f),feature=(await f.service.adminLab(a)).features[0];
+ for(let i=0;i<25;i++)await f.service.saveLabFeature(a,feature.id,{expected_version:i,previewRevision:feature.previewRevision,review:'approved',note:'مراجعة '+i,previewEnabled:true});
+ const saved=await f.store.labRead(feature.id);assert.equal(saved.history.length,20);assert.equal(saved.history[0].version,6);
+ const changed=labProjection({...feature,previewRevision:'future-revision'},saved);assert.equal(changed.staleApproval,true);assert.equal(changed.review,'pending');assert.equal(changed.note,'');assert.equal(changed.memberEnabled,false);
+ await assert.rejects(()=>f.service.saveLabFeature(a,feature.id,{expected_version:25,previewRevision:'old-revision',review:'approved',note:'',previewEnabled:true}),e=>e.code==='LAB_REVISION_CHANGED');
+});
+test('HTTP lab routes require live admin authorization and send no-store for every response',async()=>{
+ const f=setup(),a=await admin(f),m=await member(f),handler=createHandler({getService:()=>f.service,origins:['https://abomawadda.github.io']});
+ for(const [path,method] of [['/v1/admin/lab','GET'],['/v1/admin/lab/preview/provider_card','GET'],['/v1/admin/lab/features/provider_card','PATCH']])for(const token of ['',m,a]){
+  const r=response();await handler(request(path,method,{memberEnabled:true},{authorization:'Bearer '+token}),r);
+  assert.equal(r.statusCode,token===a?(method==='PATCH'?400:200):token?403:401);
+  assert.equal(r.headers['Cache-Control'],'no-store');
+  if(token!==a)assert.ok(!JSON.stringify(r.body).includes('previewRevision'));
+ }
+});

@@ -1,3 +1,4 @@
+import {labStore} from "./lab-store.mjs";
 import {profileStore} from "./profile-store.mjs";
 import memberProfilePolicy from "./member-profile.cjs";
 import facilities from "./facility-directory.cjs";
@@ -186,6 +187,7 @@ export function firebaseAdapters({
     source,
     store: {
       ...profileStore(db,audit),
+      ...labStore(db,audit),
       async getOptions() {
         const values={};
         for(const doc of (await db.collection("medical_options").limit(1000).get()).docs){const row=doc.data();(values[row.key] ||= []).push(row.value);}
