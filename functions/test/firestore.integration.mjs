@@ -117,6 +117,16 @@ const admin = (await service.adminLogin({email:"fixture-admin@example.invalid",p
 await service.addAdminOption(admin,"specialty",{value:"تخصص محفوظ بالمحاكي"});
 assert.deepEqual((await service.adminOptions(admin)).options.specialty,["تخصص محفوظ بالمحاكي"]);
 await assert.rejects(()=>service.adminOptions(member),e=>e.status===403);
+const idleSessionId=createHmac("sha256","emulator-only-test-secret-1234567890abc").update(admin).digest("hex");
+const initialAdminSession=await adapters.store.getSession(idleSessionId);
+const idleRenewed=await service.adminActivity(admin);assert.ok(idleRenewed.expiresAt>=initialAdminSession.expiresAt);
+await adapters.store.deleteSession('idle-deleted-fixture');
+assert.equal(await adapters.store.renewAdminSession('idle-deleted-fixture',Date.now(),Date.now()+600000),null);
+assert.equal(await adapters.store.getSession('idle-deleted-fixture'),null);
+const expiredAt=Date.now()-1;
+await adapters.store.saveSession('idle-expired-fixture',{role:'admin',sourceId:'admin-one',expiresAt:expiredAt});
+assert.equal(await adapters.store.renewAdminSession('idle-expired-fixture',Date.now(),Date.now()+600000),null);
+assert.equal((await adapters.store.getSession('idle-expired-fixture')).expiresAt,expiredAt);
 const adminProfile=(await service.adminProfile(admin)).profile;
 assert.equal(adminProfile.email,"fixture-admin@example.invalid");assert.ok(!JSON.stringify(adminProfile).includes("passwordHash"));
 await service.putEntity(admin,"hospitals","self_contract",{entity:{name:"مستشفى اختبار مستقلة",contract_type:"independent",contract_entity:"مستشفى اختبار مستقلة",contract_entity_id:"self_contract"},expected_version:0,approve_contract:true});
@@ -211,7 +221,7 @@ const multi=await service.createEntityBranches(admin,{kind:'hospitals',entity:{i
 const created=(await service.catalog(admin)).catalog.hospitals.filter(h=>multi.created.includes(h.id));
 assert.equal(created.length,2);assert.equal(created[0].organization_id,created[1].organization_id);
 assert.equal(created[0].category,'مستشفى استثماري');
-assert.deepEqual(created[1].contact_groups.mobile,[]);
+assert.deepEqual(created.find(r=>r.id!=='multi_test_hospital').contact_groups.mobile,[]);
 const batch={field:'service_status',value:'suspended',items:created.map(r=>({kind:'hospitals',id:r.id,version:r._version}))};
 await assert.rejects(()=>service.batchEntityState(admin,{...batch,items:[batch.items[0],{...batch.items[1],version:99}]}),e=>e.code==='VERSION_CONFLICT');
 assert.ok((await service.catalog(admin)).catalog.hospitals.filter(h=>multi.created.includes(h.id)).every(h=>h.service_status!=='suspended'));
@@ -224,8 +234,8 @@ await assert.rejects(()=>service.batchEntityData(admin,{...shared,items:[shared.
 await service.batchEntityData(admin,shared);
 const updatedHospitals=(await service.catalog(admin)).catalog.hospitals.filter(h=>multi.created.includes(h.id));
 assert.ok(updatedHospitals.every(h=>h.category==='مستشفى استثماري مراجع'&&h.network_override===true&&h.markaz==='طلخا'));
-assert.deepEqual(updatedHospitals[0].contact_groups.mobile,['01012345678']);
-assert.deepEqual(updatedHospitals[1].contact_groups.landline,['0502000001']);
+assert.deepEqual(updatedHospitals.find(r=>r.id==='multi_test_hospital').contact_groups.mobile,['01012345678']);
+assert.deepEqual(updatedHospitals.find(r=>r.id!=='multi_test_hospital').contact_groups.landline,['0502000001']);
 const attempts = await Promise.allSettled([
   service.putEntity(admin, "records", "1", {
     entity: { ...seed.records[0], name: "تعديل أ" },

@@ -369,8 +369,9 @@ export function createService({
       ...extra,
       loginAt: extra.loginAt ?? new Date(now()).toISOString(),
       expiresAt,
+      ...(role === "admin" ? {lastActivityAt:now()} : {}),
     });
-    return { token, expiresAt, user: { name: extra.name, role } };
+    return { token, expiresAt, user: { name: extra.name, role },...(role === "admin" ? {idleTimeoutMs:600000,lastActivityAt:now()} : {}) };
   }
   async function authorize(token, role) {
     if (!/^[A-Za-z0-9_-]{43}$/.test(token || ""))
@@ -484,7 +485,15 @@ export function createService({
     },
     async session(token, role) {
       const s = await authorize(token, role);
-      return { name: s.name, role: s.role, expiresAt: s.expiresAt };
+      return { name: s.name, role: s.role, expiresAt: s.expiresAt,...(s.role === "admin" ? {idleTimeoutMs:600000,lastActivityAt:s.lastActivityAt ?? s.expiresAt-600000} : {}) };
+    },
+    async adminActivity(token){
+      await authorize(token,"admin");
+      await rate("", "admin-activity",30,digest(token));
+      const at=now();
+      const renewed=await store.renewAdminSession(digest(token),at,at+600000);
+      if(!renewed)fail(401,"SESSION_EXPIRED","انتهت جلسة الإدارة. يرجى تسجيل الدخول مجددًا.");
+      return {...renewed,idleTimeoutMs:600000};
     },
     async catalog(token) {
       const user = await authorize(token);

@@ -1619,6 +1619,18 @@
       toast("تم تسجيل الخروج.");
     }
   }
+  const idleBanner=el("aside",{class:"notice admin-idle-banner",role:"status",hidden:true});
+  $("#connection-status").after(idleBanner);
+  const idleModalBanner=el("aside",{class:"notice admin-idle-banner",role:"status",hidden:true});
+  $("#app-dialog .dialog-header").after(idleModalBanner);
+  window.addEventListener("medical-admin-idle",event=>{
+    const data=event.detail || {};
+    if(data.expired){idleBanner.hidden=true;idleModalBanner.hidden=true;toast("انتهت جلسة الإدارة بعد 10 دقائق من الخمول. سجّل الدخول للمتابعة.");return;}
+    idleBanner.hidden=true;idleModalBanner.hidden=true;
+    const banner=$("#app-dialog").open?idleModalBanner:idleBanner;
+    banner.hidden=!isAdmin() || (!data.seconds && !data.networkError);
+    if(!banner.hidden)replaceNodes(banner,el("span",{},data.networkError?"تعذر تمديد جلسة الإدارة. تحقق من الاتصال بالإنترنت.":"ستنتهي جلسة الإدارة خلال دقيقة إذا استمر الخمول."),button("متابعة العمل",()=>API.continueAdminSession(),"button outline"));
+  });
   async function renderAdmin(main) {
     if(!isAdmin()){main.append(heading("إدارة الدليل الطبي"),button("دخول المدير",adminDialog,"button primary"));return;}
     const all=kinds.flatMap(source=>state.catalog[source].map(r=>({kind:facilitySection(source,r),r:{...r,_source_kind:source}})));
@@ -1627,6 +1639,7 @@
     const hidden=r=>r.directory_visibility === "hidden" || r.contract_listing === false || parentHidden(r) || (!!r.title && !publishedContent(r));
     const filter=(kind,status="")=>{for(const key of ["adminSpecialty","adminCategory","adminMarkaz","adminNetwork","adminContract"])state[key]="";state.adminKind=kind;state.adminState=status;state.limit=24;state.query="";$("#search-input").value="";renderMain();};
     main.append(el("section",{class:"admin-intro"},el("div",{},el("span",{class:"eyebrow"},"مساحة العمل الإدارية"),heading("مركز إدارة تطبيق رعايتي","الجهات والتعاقدات والمحتوى في مساحة عمل واحدة.")),el("div",{class:"actions-row"},button("إضافة سجل",()=>editDialog(state.adminKind === "all" ? "records" : state.adminKind),"button primary"),button("حساب المدير",()=>go("account"),"button outline"))));
+    if(!API.adminIdleSupported)main.append(el("p",{class:"notice warning"},"تجديد جلسة المدير أثناء النشاط ينتظر نشر تحديث Firebase. الخدمة الحالية تنهي الجلسة بعد 10 دقائق من الدخول."));
     if(!state.adminWorkspace)main.append(el("p",{class:"notice warning"},"صلاحية اعتماد الجهات والقوائم المشتركة وبطاقة المدير تحتاج نشر تحديث Firebase مرة واحدة بالإعداد المحفوظ."));
     if(!state.adminBatch || !state.structuredBranches || !state.adminBatchData)main.append(el('p',{class:'notice warning'},'الفروع المتعددة والمعالجة الجماعية جاهزتان في الواجهة وتحتاجان نشر تحديث Firebase لتفعيل الحفظ.'));
     main.append(el("section",{class:"admin-metrics","aria-label":"ملخص الإدارة"},[
@@ -2407,6 +2420,7 @@
   window.addEventListener("medical-session-invalidated", () => {
     viewHistory.clear();activeViewKey=null;
     state.greetingName="";state.identityEpoch++;
+    idleBanner.hidden=true;idleModalBanner.hidden=true;
     state.catalog = Object.fromEntries(kinds.map((k) => [k, []]));
     state.stats = {};
     state.remote = false;

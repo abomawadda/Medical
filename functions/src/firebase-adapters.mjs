@@ -213,6 +213,16 @@ export function firebaseAdapters({
           tx.create(sessions.doc(id), sessionData);
         });
       },
+      async renewAdminSession(id,at,expiry){
+        return db.runTransaction(async tx=>{
+          const ref=sessions.doc(id),snapshot=await tx.get(ref),data=snapshot.data();
+          if(!snapshot.exists || data.role!=="admin" || data.expiresAt.toMillis()<=at)return null;
+          const expiresAt=Math.max(data.expiresAt.toMillis(),expiry);
+          const lastActivityAt=Math.max(data.lastActivityAt || at,at);
+          tx.update(ref,{expiresAt:Timestamp.fromMillis(expiresAt),lastActivityAt});
+          return {expiresAt,lastActivityAt};
+        });
+      },
       async getMemberActivity(subject) {
         return (await activity.doc(subject).get()).data() || {};
       },

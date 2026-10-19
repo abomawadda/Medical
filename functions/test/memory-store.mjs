@@ -31,6 +31,12 @@ export function fixtureStore(seed) {
         lastLoginAt: data.loginAt, previousLoginAt: activity.get(data.subject)?.lastLoginAt || null,
       });
     },
+    async renewAdminSession(id,at,expiry){
+      const data=sessions.get(id);
+      if(!data || data.role!=="admin" || data.expiresAt<=at)return null;
+      data.expiresAt=Math.max(data.expiresAt,expiry);data.lastActivityAt=Math.max(data.lastActivityAt || at,at);
+      return {expiresAt:data.expiresAt,lastActivityAt:data.lastActivityAt};
+    },
     async getMemberActivity(subject) {
       return activity.get(subject) || {};
     },

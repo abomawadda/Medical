@@ -7,7 +7,28 @@ window.MedicalAPI = (() => {
     tabKey = "medical_session_v1";
   let current = null,
     remembered = false,
-    notice = "";
+    notice = "",
+    adminIdleSupported=false;
+  const idleSignal=detail=>window.dispatchEvent(new CustomEvent("medical-admin-idle",{detail}));
+  const idle=window.MedicalAdminIdle.create({
+    renew:async()=>{
+      if(current?.user?.role!=="admin")return;
+      const token=current?.token;
+      const result=await request("/admin/activity",{method:"POST",body:{},protectedRequest:true});
+      if(!Number.isFinite(result.expiresAt) || result.expiresAt<=Date.now())throw new Error("تعذر تمديد جلسة الإدارة.");
+      if(current?.token===token){current.expiresAt=result.expiresAt;persist();}
+    },
+    expire:()=>{forget();idleSignal({expired:true});},
+    warn:seconds=>idleSignal({seconds}),
+    failure:()=>idleSignal({networkError:true}),
+  });
+  function configureIdle(data){
+    idle.stop();adminIdleSupported=current?.user?.role==="admin" && data.idleTimeoutMs===600000;
+    if(adminIdleSupported)idle.start(Number.isFinite(data.lastActivityAt)?data.lastActivityAt:data.expiresAt-600000);
+  }
+  for(const event of ["pointerdown","keydown","input","wheel","touchstart"])window.addEventListener(event,e=>{if(e.isTrusted && !document.hidden && adminIdleSupported)void idle.activity();},{passive:true});
+  setInterval(()=>{if(adminIdleSupported)void idle.tick(!document.hidden);},15000);
+  document.addEventListener("visibilitychange",()=>{if(adminIdleSupported)void idle.tick(false);});
   const configured = (() => {
     try {
       return new URL(base).protocol === "https:";
@@ -28,6 +49,7 @@ window.MedicalAPI = (() => {
     }
   }
   function forget(notify = true) {
+    idle.stop();adminIdleSupported=false;
     current = null;
     remembered = false;
     erase();
@@ -80,6 +102,7 @@ window.MedicalAPI = (() => {
     }
   }
   function session() {
+    if(adminIdleSupported && idle.check())return null;
     if (current && current.expiresAt <= Date.now()) {
       forget(false);
       queueMicrotask(changed);
@@ -96,6 +119,7 @@ window.MedicalAPI = (() => {
       );
     if (protectedRequest && !(restoring ? current?.token : session()))
       throw new Error("يرجى تسجيل الدخول مجددًا.");
+    const requestToken=protectedRequest?current.token:null;
     let response;
     try {
       response = await fetch(base + "/v1" + path, {
@@ -103,7 +127,7 @@ window.MedicalAPI = (() => {
         headers: {
           "Content-Type": "application/json",
           ...(protectedRequest
-            ? { Authorization: "Bearer " + current.token }
+            ? { Authorization: "Bearer " + requestToken }
             : {}),
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -116,7 +140,7 @@ window.MedicalAPI = (() => {
     }
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      if (protectedRequest && [401, 403].includes(response.status)) forget();
+      if (protectedRequest && [401, 403].includes(response.status) && current?.token===requestToken) forget();
       const error = new Error(payload.message || "تعذر إكمال العملية.");
       error.code = payload.code;
       throw error;
@@ -144,7 +168,7 @@ window.MedicalAPI = (() => {
       expiresAt: user.expiresAt,
       user: { name: user.name, role: user.role },
     };
-    persist();
+    configureIdle(user);persist();
     return session();
   }
   async function login(kind, body) {
@@ -158,7 +182,7 @@ window.MedicalAPI = (() => {
       !Number.isFinite(result.expiresAt)
     )
       throw new Error("استجابة الدخول غير صالحة.");
-    current = result;
+    current = result;configureIdle(result);
     remembered = kind === "member" && body.remember === true;
     persist();
     return session();
@@ -168,6 +192,8 @@ window.MedicalAPI = (() => {
       forget();
   });
   return Object.freeze({
+    get adminIdleSupported(){return adminIdleSupported;},
+    continueAdminSession:()=>idle.activity(true),
     batchData:body=>request('/admin/batch-data',{method:'PATCH',body,protectedRequest:true}),
     batchState:body=>request('/admin/batch',{method:'PATCH',body,protectedRequest:true}),
     createBranches:body=>request('/admin/branches',{method:'POST',body,protectedRequest:true}),

@@ -198,7 +198,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.6.1");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.7.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -379,7 +379,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.6.1');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.7.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1070,6 +1070,41 @@ try {
   assert.deepEqual(store.reviews.get(sectionReview.id),sectionReview);
   assert.equal((await store.catalog()).hospitals.find(r=>String(r.id)===String(newHospitals[1].id)).category,'مستشفى استثماري');
   await sectionMemberContext.close();
+  // Active editing survives the original absolute deadline; only real inactivity logs out.
+  const idleContext=await context();
+  const savedAdmin=await a.evaluate(()=>JSON.parse(sessionStorage.getItem('medical_session_v1')));
+  await idleContext.addInitScript(({saved,host})=>{if(location.origin===host)sessionStorage.setItem('medical_session_v1',JSON.stringify(saved));},{saved:savedAdmin,host:origin});
+  const idlePage=await idleContext.newPage();const idleStart=Date.now();let activityRequests=0;
+  await idlePage.clock.install({time:idleStart});
+  await idlePage.route('https://medical.example.invalid/v1/session',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({name:'مدير الاختبار',role:'admin',expiresAt:idleStart+600000,lastActivityAt:idleStart,idleTimeoutMs:600000})}));
+  await idlePage.route('https://medical.example.invalid/v1/admin/activity',async route=>{
+    activityRequests++;const at=await idlePage.evaluate(()=>Date.now());
+    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({expiresAt:at+600000,lastActivityAt:at,idleTimeoutMs:600000})});
+  });
+  await idlePage.goto(origin+'/#admin');await idlePage.getByRole('heading',{name:'مركز إدارة تطبيق رعايتي',exact:true}).waitFor();
+  await idlePage.bringToFront();
+  assert.equal(await idlePage.evaluate(()=>document.hidden),false);
+  await idlePage.getByRole('button',{name:'إضافة سجل',exact:true}).click();
+  for(let minute=1;minute<=12;minute++){
+    await idlePage.clock.fastForward(60000);
+    await idlePage.getByLabel('الاسم',{exact:true}).fill('مسودة نشاط اختبار '+minute);
+    await idlePage.waitForFunction(()=>JSON.parse(sessionStorage.getItem('medical_session_v1')).expiresAt>Date.now()+550000);
+  }
+  assert.ok(await idlePage.getByLabel('الاسم',{exact:true}).isVisible());
+  assert.ok(activityRequests>=12 && activityRequests<=14);
+  const beforeIdleRequests=activityRequests;
+  await idlePage.clock.fastForward(540000);
+  await idlePage.locator('.admin-idle-banner:visible').waitFor({state:'visible'});
+  assert.equal(activityRequests,beforeIdleRequests);
+  await idlePage.getByRole('button',{name:'متابعة العمل',exact:true}).click();
+  await idlePage.waitForFunction(()=>JSON.parse(sessionStorage.getItem('medical_session_v1')).expiresAt>Date.now()+550000);
+  const afterContinueRequests=activityRequests;
+  await idlePage.evaluate(()=>window.dispatchEvent(new Event('input')));
+  await idlePage.clock.fastForward(600001);
+  await idlePage.locator('.login-card').waitFor();
+  assert.equal(activityRequests,afterContinueRequests);
+  assert.equal(await idlePage.evaluate(()=>sessionStorage.getItem('medical_session_v1')),null);
+  await idleContext.close();
   // Sign out clears the remembered token and invalidates copies on the server.
   await r.locator("#member-button").click();
   await r.getByRole("button", { name: "تسجيل الخروج", exact: true }).click();

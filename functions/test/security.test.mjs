@@ -795,3 +795,26 @@ test('a shared specialty change cannot leave unselected locations of the same ph
  await f.service.batchEntityData(a,{items:[{kind:'records',id:'1',version:0},{kind:'records',id:'second_location',version:1}],patch:{specialty:'قلب'}});
  assert.ok((await f.store.catalog()).records.every(r=>r.specialty==='قلب'));
 });
+
+test('administrator activity extends only a live authorized session beyond the original ten minutes',async()=>{
+  const f=setup();const login=await f.service.adminLogin({id_token:'valid-fixture-token'},'idle-test');
+  f.advance(9*60000);const renewed=await f.service.adminActivity(login.token);
+  assert.equal(renewed.expiresAt-login.expiresAt,9*60000);
+  f.advance(9*60000);assert.equal((await f.service.session(login.token)).role,'admin');
+  f.advance(60000);await assert.rejects(()=>f.service.adminActivity(login.token),e=>e.status===401);
+});
+test('background reads cannot extend the admin deadline, and member sessions cannot renew as admin',async()=>{
+  const f=setup();const login=await f.service.adminLogin({id_token:'valid-fixture-token'},'idle-read');
+  f.advance(9*60000);assert.equal((await f.service.session(login.token)).expiresAt,login.expiresAt);
+  await f.service.catalog(login.token);f.advance(60000);await assert.rejects(()=>f.service.session(login.token),e=>e.status===401);
+  const member=await f.service.memberLogin(credentials,'idle-member');
+  await assert.rejects(()=>f.service.adminActivity(member.token),e=>e.status===403);
+});
+test('revoked or concurrently logged-out administrator sessions cannot be renewed or recreated',async()=>{
+  const f=setup();const login=await f.service.adminLogin({id_token:'valid-fixture-token'},'idle-revoke');
+  f.accounts[0].accountStatus='inactive';await assert.rejects(()=>f.service.adminActivity(login.token),e=>e.status===403);
+  f.accounts[0].accountStatus='active';const original=f.store.renewAdminSession;
+  f.store.renewAdminSession=async(...args)=>{await f.service.logout(login.token);return original(...args);};
+  await assert.rejects(()=>f.service.adminActivity(login.token),e=>e.status===401);
+  assert.equal(f.store.sessions.size,0);
+});
