@@ -259,7 +259,8 @@
   function updateHeader() {
     connection();
     const u = session();
-    $(".admin-link").hidden = u?.role === "member";
+    $("#header-logout").hidden = !u;
+    $(".admin-link").textContent = u?.role === "admin" ? "لوحة الإدارة" : "دخول الإدارة";
     updateNotifications();
     $("#filter-panel > small").hidden = !isAdmin();
     const greeting=u ? window.MedicalNames.parts(u.name).flatMap((part,index)=>[index ? " " : "",el("span",{class:"greeting-name-part"},part)]) : [];
@@ -860,8 +861,9 @@
     return window.MedicalContent.visible(r);
   }
   function contentCard(r) {
-    return el("details",{class:"card instruction-card","data-document":r.id},
-      el("summary",{},el("span",{class:"card-eyebrow"},window.MedicalContent.types[r.document_type] || "تعليمات الخدمة"),el("strong",{},r.title)),
+    const news=r.document_type === "news";
+    return el(news?"article":"details",{class:"card instruction-card"+(news?" news-document":""),"data-document":r.id},
+      el(news?"header":"summary",{},el("span",{class:"card-eyebrow"},window.MedicalContent.types[r.document_type] || "تعليمات الخدمة"),el("strong",{},r.title)),
       el("p",{},r.summary),el("ol",{},(r.steps || []).map(t=>el("li",{},t))),
       el("p",{class:"muted"},[r.issuing_authority,r.source_reference,r.verified_at ? "مراجعة: "+r.verified_at : ""].filter(Boolean).join(" · ")),
       r.effective_from || r.expires_at ? el("p",{class:"muted"},[r.effective_from ? "ساري من "+r.effective_from : "",r.expires_at ? "حتى "+r.expires_at : ""].filter(Boolean).join(" · ")) : null,
@@ -888,13 +890,17 @@
     const seen=readAnnouncements(),unread=announcements().filter(r=>!seen.has(announcementKey(r))).length+(state.privateNotifications || []).filter(n=>!n.readAt).length+Number(!!waitingUpdate);
     b.querySelector("span").textContent=String(unread);b.querySelector("span").hidden=!unread;
     b.setAttribute("aria-label",unread ? `الإشعارات · ${unread} غير مقروءة` : "الإشعارات");
+    for(const card of document.querySelectorAll('.update-card.is-new')){
+      const row=state.catalog.medical_guidelines.find(r=>String(r.id)===card.dataset.update);
+      if(row && seen.has(announcementKey(row))){card.classList.remove('is-new');card.querySelector('.news-new-badge')?.remove();}
+    }
   }
   function showNotifications() {
     if(!session())return;
     const rows=announcements(),seen=readAnnouncements();
     const box=el("div",{class:"notification-list"},el("p",{class:"muted"},"إعلانات الشبكة وتحديث التطبيق"));
     if(waitingUpdate)box.append(el("article",{class:"notification-item unread"},el("strong",{},"تحديث جديد للتطبيق جاهز"),el("p",{},"تفعيل التحديث سيعيد فتح الصفحة. احفظ أي نموذج مفتوح أولًا."),button("تحديث التطبيق الآن",()=>waitingUpdate?.(),"button primary")));
-    for(const r of rows)box.append(el("article",{class:"notification-item"+(!seen.has(announcementKey(r))?" unread":"")},el("strong",{},r.title),el("p",{},r.summary),button("قراءة الإعلان",()=>{markAnnouncements([r]);dialog(r.title,contentCard(r));},"text-button")));
+    for(const r of rows)box.append(el("article",{class:"notification-item"+(!seen.has(announcementKey(r))?" unread":"")},r.document_type === "news" ? contentCard(r) : el("div",{},el("strong",{},r.title),el("p",{},r.summary),button("قراءة الإعلان",()=>{markAnnouncements([r]);dialog(r.title,contentCard(r));},"text-button"))));
     for(const n of state.privateNotifications || [])box.append(el('article',{class:'notification-item'+(!n.readAt?' unread':'')},el('strong',{},'إشعار خاص بك'),el('p',{},n.message),button('عرض طلبي',async()=>{try{await API.readProfileNotification(n.id);n.readAt=Date.now();updateNotifications();closeDialog();go('account');}catch(e){toast(e.message);}},'text-button')));
     if(!rows.length && !waitingUpdate && !(state.privateNotifications || []).length)box.append(empty("لا توجد إشعارات جديدة حاليًا."));
     box.append(button("تحديث الإشعارات",async()=>{try{await refresh();if(session())showNotifications();}catch(e){toast(e.message);}},"text-button"));
@@ -909,10 +915,12 @@
     const recent=rows.filter(r=>Number.isFinite(Date.parse(r.at))).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at)).slice(0,6);
     main.append(el("section",{class:"recent-updates","aria-label":"آخر تحديثات الشبكة"},
       el("div",{class:"section-heading"},el("h2",{},"آخر تحديثات الشبكة"),button("تعليمات الخدمة",()=>go("guidelines"),"text-button")),
-      recent.length ? el("div",{class:"updates-grid"},recent.map(r=>el("article",{class:"update-card","data-update":r.id},
-        el("span",{class:"update-label "+r.type},{added:"إضافة جديدة",updated:"تحديث بيانات",suspended:"موقوف مؤقتًا",resumed:"استئناف الخدمة",news:"خبر الشبكة",bulletin:"نشرة طبية"}[r.type] || "تحديث الشبكة"),
-        el("h3",{},r.title),el("p",{class:"muted"},r.subtitle),el("time",{datetime:r.at},new Intl.DateTimeFormat("ar-EG",{timeZone:"Africa/Cairo",dateStyle:"medium"}).format(new Date(r.at))),
-        button(r.document ? "قراءة الإعلان" : "عرض التفاصيل",()=>r.document ? dialog(r.title,contentCard(r.document)) : (location.hash="entity="+encodeURIComponent(r.target)),"text-button"))))
+      recent.length ? el("div",{class:"updates-grid"},recent.map(r=>el("article",{class:"update-card"+(r.type==='news'?' featured-news':'')+(!readAnnouncements().has(announcementKey(r.document))?' is-new':''),"data-update":r.id},
+        el("div",{class:"update-card-top"},el("span",{class:"update-label "+r.type},r.type==='news'?'خبر الشبكة':'نشرة طبية'),!readAnnouncements().has(announcementKey(r.document))?el('span',{class:'news-new-badge'},'جديد'):null),
+        el("h3",{},r.title),el("p",{class:"news-summary"},r.subtitle),
+        r.type==='news' && r.document.steps?.length?el('ol',{class:'news-steps'},r.document.steps.map(t=>el('li',{},t))):null,
+        el("time",{datetime:r.at},new Intl.DateTimeFormat("ar-EG",{timeZone:"Africa/Cairo",dateStyle:"medium"}).format(new Date(r.at))),
+        r.type==='news'?(r.document.source_url?link('المصدر',r.document.source_url,'text-button'):null):button('قراءة النشرة',()=>dialog(r.title,contentCard(r.document)),"text-button"))))
       : el("p",{class:"updates-empty"},"ستظهر هنا الأخبار والإعلانات التي تنشرها النقابة.")));
   }
   function careIcon(kind) {
@@ -999,7 +1007,7 @@
       el("div",{class:"care-home-content"},
         el("div",{class:"care-brandline"},el("img",{src:"img/rayati-icon-512.webp",alt:"",width:38,height:38}),el("span",{},"رعايتي · رعاية تجمعنا")),
         el("p",{class:"care-greeting"},"مرحبًا، "+session().name),
-        el("h1",{},"رعايتك أقرب،",el("br"),"لك ولأسرتك"),
+        el("h1",{},"رعاية أقرب.. لك ولأسرتك"),
         el("p",{class:"care-home-description"},"طبيب، مستشفى أو خدمة طبية.. اختر وجهتك وتواصل بسهولة."),search,
         el("div",{class:"care-districts","aria-label":"وصول سريع إلى شبكة المركز"},el("span",{},"شبكتك في:"),
           ["المنصورة","طلخا","ميت غمر","السنبلاوين"].map(markaz=>button(markaz,()=>go("district-network",{markaz}),"care-district")))),
@@ -1472,6 +1480,7 @@
     if($('.login-card')){$('.login-card [name="employee_code"]').focus();$('.login-card').scrollIntoView({block:'start',behavior:'smooth'});return;}
     route();requestAnimationFrame(()=>$('.login-card [name="employee_code"]')?.focus());
   }
+  $("#header-logout").addEventListener("click",logout);
   $(".admin-link").addEventListener("click",event=>{
     event.preventDefault();
     if (isAdmin()) return go("admin");
@@ -1645,7 +1654,6 @@
     }
     main.append(
       heading("مرحبًا، " + u.name, u.role === "admin" ? "بيانات حسابك وصلاحيات إدارة المنظومة." : "بياناتك النقابية وتقييمات زياراتك في مكان واحد."),
-      button("تسجيل الخروج", logout, "button outline"),
     );
     if (u.role === "admin") {
       const box=el("section",{class:"member-profile admin-profile","aria-label":"بيانات المدير"},el("h2",{},"حساب مدير المنظومة"),el("p",{},u.name));

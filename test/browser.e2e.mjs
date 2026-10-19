@@ -199,7 +199,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.11.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.11.1");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -215,8 +215,9 @@ try {
   await p.getByRole("button",{name:"عن التطبيق والخصوصية",exact:true}).click();
   await p.getByRole("heading",{name:"عن تطبيق رعايتي والخصوصية",exact:true}).waitFor();
   await p.getByRole("button",{name:"إغلاق النافذة",exact:true}).click();
-  // The actual header action must open administrator credentials from the member gate.
-  await p.locator(".admin-link").click();
+  // Administrator credentials are reached from the footer, leaving the header focused on the member.
+  assert.equal(await p.locator(".app-header .admin-link").count(),0);
+  await p.locator(".app-footer .admin-link").click();
   await p.getByRole("heading",{name:"دخول المدير",exact:true}).waitFor();
   await p.getByLabel("بريد حساب المدير أو اسم المستخدم",{exact:true}).waitFor();
   await p.getByRole("button",{name:"إغلاق النافذة",exact:true}).click();
@@ -257,6 +258,17 @@ try {
   assert.equal(await p.locator("#connection-status").textContent(), "");
   assert.ok(!(await p.locator("body").innerText()).includes("الخدمة المركزية"));
   assert.equal(await p.locator("#member-button").textContent(), "مرحبًا، عضو الاختبار");
+  await p.goto(origin+'/#home');await p.locator('.care-home h1').waitFor();
+  assert.equal(await p.locator('.care-home h1').textContent(),'رعاية أقرب.. لك ولأسرتك');
+  assert.ok(await p.locator('#header-logout').isVisible());
+  for(const width of [320,390,768,1440]){
+    await p.setViewportSize({width,height:844});
+    const fit=await p.evaluate(()=>{const h=document.querySelector('.care-home h1'),tabs=[...document.querySelectorAll('.network-tab>span:last-child')],places=[...document.querySelectorAll('.care-district')];return {page:document.documentElement.scrollWidth<=innerWidth+1,heading:h.scrollWidth<=h.clientWidth+1,oneLine:h.getBoundingClientRect().height<=parseFloat(getComputedStyle(h).lineHeight)+1,tabs:tabs.every(n=>n.getBoundingClientRect().height<=parseFloat(getComputedStyle(n).lineHeight)+1),places:places.every(n=>Math.abs(n.getBoundingClientRect().top-places[0].getBoundingClientRect().top)<2)};});
+    assert.ok(Object.values(fit).every(Boolean),'Home rows fit at '+width+': '+JSON.stringify(fit));
+  }
+  await p.setViewportSize({width:390,height:844});
+  if(process.env.MEDICAL_SCREENSHOT_DIR){await mkdir(process.env.MEDICAL_SCREENSHOT_DIR,{recursive:true});await p.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'home-compact-mobile.png'),fullPage:true});}
+
   const saved = await p.evaluate(() =>
     JSON.parse(localStorage.getItem("medical_remembered_session_v1")),
   );
@@ -380,7 +392,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.11.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.11.1');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -695,11 +707,16 @@ try {
   await p.locator(".update-card").getByRole("heading",{name:"إعلان اختبار الشبكة",exact:true}).waitFor();
   assert.equal(await p.locator('.update-card').filter({hasText:"طبيب اختبار مضاف"}).count(),0);
   assert.equal(await p.locator('.update-card:not(:has(.update-label.news))').count(),0);
+  assert.ok(await p.locator('.featured-news .news-summary').first().isVisible());
+  assert.equal(await p.locator('.featured-news').getByRole('button',{name:'قراءة الإعلان',exact:true}).count(),0);
+  assert.ok(await p.locator('.featured-news .news-new-badge').first().isVisible());
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await p.locator('.featured-news').first().screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'news-readable-in-place.png')});
   await p.getByRole("button",{name:/الإشعارات/}).click();
   await p.locator('.notification-item').filter({hasText:'إعلان اختبار الشبكة'}).waitFor();
   assert.equal(await p.locator('.notification-item').filter({hasText:'طبيب اختبار مضاف'}).count(),0);
   await p.getByRole('button',{name:'تحديد الإعلانات كمقروءة',exact:true}).click();
   assert.equal(await p.locator('#notifications-button .notification-count').isHidden(),true);
+  assert.equal(await p.locator('.featured-news .news-new-badge').count(),0);
   await p.getByRole('button',{name:'إغلاق النافذة',exact:true}).click();
   await a.getByRole("button",{name:"جودة بيانات الدليل",exact:true}).click();
   assert.equal(await a.locator('.quality-item').filter({hasText:"طبيب اختبار مضاف"}).count(),0);

@@ -33,15 +33,15 @@
     <meta name="twitter:image" content="https://reayati-we.vercel.app/img/rayati-share-4-4-2.jpg" />
     <meta name="twitter:image:alt" content="تطبيق رعايتي — شبكتك الطبية بين يديك، بهوية WE والنقابة" />
     <link rel="icon" type="image/webp" href="img/rayati-icon-512.webp" />
-    <link rel="manifest" href="manifest.json?v=20261019-profile" />
+    <link rel="manifest" href="manifest.json?v=20261019-homepolish" />
     <link rel="apple-touch-icon" href="img/rayati-icon-512.png" />
-    <link rel="stylesheet" href="css/styles.css?v=20261019-profile" />
+    <link rel="stylesheet" href="css/styles.css?v=20261019-homepolish" />
     <link rel="stylesheet" href="css/fonts.css" />
     <script defer src="js/config.js?v=20261017-live"></script>
     <script defer src="js/storage.js"></script>
-    <script defer src="js/admin-idle.js?v=20261019-profile"></script>
-    <script defer src="js/content-policy.js?v=20261019-profile"></script>
-    <script defer src="js/api.js?v=20261019-profile"></script>
+    <script defer src="js/admin-idle.js?v=20261019-homepolish"></script>
+    <script defer src="js/content-policy.js?v=20261019-homepolish"></script>
+    <script defer src="js/api.js?v=20261019-homepolish"></script>
     <script defer src="js/quality.js?v=20261018-nabd"></script>
     <script defer src="js/contacts.js?v=20261018-nabd"></script>
     <script defer src="js/directory-research.js?v=20261018-compact"></script>
@@ -52,10 +52,10 @@
     <script defer src="js/review-criteria.js?v=20261018-batchdata"></script>
     <script defer src="js/locations.js?v=20261018-batchdata"></script>
     <script defer src="js/facility-directory.js?v=20261018-batchdata"></script>
-    <script defer src="js/recommendations.js?v=20261019-profile"></script>
-    <script defer src="js/member-profile.js?v=20261019-profile"></script>
-    <script defer src="js/release.js?v=20261019-profile"></script>
-    <script defer src="js/app.js?v=20261019-profile"></script>
+    <script defer src="js/recommendations.js?v=20261019-homepolish"></script>
+    <script defer src="js/member-profile.js?v=20261019-homepolish"></script>
+    <script defer src="js/release.js?v=20261019-homepolish"></script>
+    <script defer src="js/app.js?v=20261019-homepolish"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">انتقل إلى المحتوى</a>
@@ -75,8 +75,10 @@
         <button id="theme-toggle" class="icon-button" aria-label="تبديل المظهر">
           ◐
         </button>
-        <button id="member-button" class="button primary">تسجيل الدخول</button>
-        <a href="#admin" class="admin-link">الإدارة</a>
+        <div class="header-account">
+          <button id="member-button" class="button primary">تسجيل الدخول</button>
+          <button id="header-logout" type="button" class="header-logout" aria-label="تسجيل الخروج" title="تسجيل الخروج" hidden><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4H5v16h5M9 12h12m-4-4 4 4-4 4"/></svg><span>خروج</span></button>
+        </div>
       </div>
     </header>
     <div class="page-shell">
@@ -119,6 +121,7 @@
         <small>تطبيق رعايتي - رعاية أقرب لك ولأسرتك · <span id="app-version"></span></small>
         <small class="copyright">جميع الحقوق محفوظة للأستاذ/ محمود العراقي <a href="tel:01550100025" dir="ltr">01550100025</a></small>
         <button type="button" id="about-app" class="text-button footer-about">عن التطبيق والخصوصية</button>
+        <a href="#admin" class="admin-link footer-admin">دخول الإدارة</a>
       </footer>
     </div>
     <nav id="main-nav" class="bottom-nav" aria-label="التنقل الرئيسي" hidden></nav>
