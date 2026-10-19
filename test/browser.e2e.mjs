@@ -199,7 +199,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.11.2");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.11.3");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -263,6 +263,13 @@ try {
   assert.ok(await p.locator('#header-logout').isVisible());
   await p.locator('#header-member-meta .header-workplace').getByText('سنترال اختبار',{exact:true}).waitFor();
   assert.equal(await p.locator('.header-affiliation').textContent(),'نقابة عامة');
+  assert.ok(await p.getByText('اضغط لعرض بياناتك',{exact:true}).isVisible());
+  assert.equal(await p.locator('#member-today').getAttribute('datetime'),await p.evaluate(()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())));
+  const profileEntry=await p.locator('.header-account').boundingBox();
+  await p.locator('.header-account').click({position:{x:20,y:profileEntry.height-10}});
+  await p.locator('.profile-hero').waitFor();
+  await p.goto(origin+'/#home');await p.locator('.care-home h1').waitFor();
+
   assert.ok((await p.locator('.care-greeting').textContent()).startsWith('مرحبًا، '));
   for(const width of [320,390,768,1440]){
     await p.setViewportSize({width,height:844});
@@ -293,6 +300,13 @@ try {
   if(process.env.MEDICAL_SCREENSHOT_DIR)await named.locator('.app-header').screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'member-header-mobile.png')});
   for(const width of [320,390]){await named.setViewportSize({width,height:844});assert.ok(await named.evaluate(()=>document.documentElement.scrollWidth)<=width,"Greeting and notification bell fit at "+width);}
   assert.ok(!(await named.evaluate(()=>JSON.stringify(localStorage))).includes("أبو النجا"));
+  // The small date follows Cairo midnight even when the device uses another timezone.
+  await named.clock.install({time:new Date('2026-10-19T20:59:50Z')});
+  await named.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+  assert.equal(await named.locator('#member-today').getAttribute('datetime'),'2026-10-19');
+  await named.clock.fastForward(20000);
+  await named.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+  assert.equal(await named.locator('#member-today').getAttribute('datetime'),'2026-10-20');
   await namesContext.close();
   const facilitiesContext=await context(true,"block",await memberContext.storageState());
   const facility=await facilitiesContext.newPage();
@@ -399,7 +413,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.11.2');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.11.3');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();

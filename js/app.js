@@ -257,10 +257,22 @@
     const user = API.session();
     return user ? {...user, name: state.greetingName || window.MedicalNames.greeting(display(user.name)) || (user.role === "admin" ? "مدير المنظومة" : "عضو النقابة")} : null;
   }
+  const memberDayLabel=new Intl.DateTimeFormat('ar-EG',{timeZone:'Africa/Cairo',calendar:'gregory',weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const memberDayISO=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',calendar:'gregory',year:'numeric',month:'2-digit',day:'2-digit'});
+  function updateMemberToday(){
+    const node=$('#member-today');if(!node || !session())return;
+    const now=new Date(),day=memberDayISO.format(now);
+    if(node.dateTime!==day){node.dateTime=day;node.textContent=memberDayLabel.format(now);node.setAttribute('aria-label','تاريخ اليوم: '+node.textContent+'، بتوقيت القاهرة');}
+  }
   function updateHeader() {
     connection();
     const u = session();
     $("#header-logout").hidden = !u;
+    $('#header-profile-footer').hidden=!u;
+    const memberButton=$('#member-button');
+    if(u){memberButton.setAttribute('aria-describedby','header-profile-hint');memberButton.title='عرض بياناتك الشخصية';updateMemberToday();}
+    else {memberButton.removeAttribute('aria-describedby');memberButton.removeAttribute('title');$('#member-today').textContent='';$('#member-today').removeAttribute('datetime');}
+
     $(".admin-link").textContent = u?.role === "admin" ? "لوحة الإدارة" : "دخول الإدارة";
     updateNotifications();
     $("#filter-panel > small").hidden = !isAdmin();
@@ -2630,6 +2642,7 @@
     if (!session()) resume();
   });
   document.addEventListener("visibilitychange", () => {
+    if(!document.hidden)updateMemberToday();
     if (!document.hidden && !session() && !$(".login-card")) route();
   });
   let memberCheckBusy=false;
@@ -2638,6 +2651,7 @@
   setInterval(() => {
     API.session();
     if(!session())return;
+    if(!document.hidden)updateMemberToday();
     const signature=state.catalog.medical_guidelines.map(r=>r.id+':'+window.MedicalContent.status(r)).join('|');
     if(signature!==contentVisibility){contentVisibility=signature;updateNotifications();const opened=$('#app-dialog [data-document]');if(!isAdmin() && opened && !state.catalog.medical_guidelines.some(r=>String(r.id)===opened.dataset.document && publishedContent(r)))closeDialog(true);if(!$('#app-dialog').open && ['home','guidelines'].includes(state.tab)){const scroll=window.scrollY;renderMain();requestAnimationFrame(()=>window.scrollTo({top:scroll,behavior:'instant'}));}}
   }, 15000);
