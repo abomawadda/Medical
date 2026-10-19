@@ -235,7 +235,7 @@ window.MedicalAPI = (() => {
         protectedRequest: true,
       }),
     setState: (kind,id,body) => request("/admin/entities/"+encodeURIComponent(kind)+"/"+encodeURIComponent(id),{method:"PATCH",body,protectedRequest:true}),
-    save: (kind, entity, version, approveContract=false) =>
+    save: (kind, entity, version, approveContract=false, republish=false) =>
       request(
         "/admin/entities/" +
           encodeURIComponent(kind) +
@@ -243,7 +243,7 @@ window.MedicalAPI = (() => {
           encodeURIComponent(entity.id),
         {
           method: "PUT",
-          body: { entity, expected_version: version, approve_contract:approveContract },
+          body: { entity, expected_version: version, approve_contract:approveContract, republish },
           protectedRequest: true,
         },
       ),

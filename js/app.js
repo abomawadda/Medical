@@ -37,7 +37,7 @@
     radiology: "مراكز الأشعة",
     pharmacies: "الصيدليات",
     specialized_centers: "المراكز المتخصصة",
-    medical_guidelines: "التعليمات",
+    medical_guidelines: "التعليمات والأخبار والنشرات",
     emergency_services: "الطوارئ",
   };
   const nav = [
@@ -301,6 +301,7 @@
     state.adminBatch = result.adminBatch === true;
     state.adminBatchData = result.adminBatchData === true;
     state.structuredBranches = result.structuredBranches === true;
+    state.contentLifecycle = result.contentLifecycle === true;
     if(isAdmin() && state.adminWorkspace)state.options=(await API.adminOptions()).options || {};
     if(!state.greetingName && (!isAdmin() || state.adminWorkspace)) {
       try {
@@ -313,6 +314,7 @@
     }
     state.stats = result.stats || {};
     state.remote = true;
+    contentVisibility=state.catalog.medical_guidelines.map(r=>r.id+':'+window.MedicalContent.status(r)).join('|');
     updateNotifications();
     connection();
     renderFilters();
@@ -828,12 +830,11 @@
     return nav;
   }
   function publishedContent(r) {
-    const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Cairo",year:"numeric",month:"2-digit",day:"2-digit"}).format();
-    return r.publication_status === "published" && r.issuing_authority && (r.source_reference || r.source_url) && r.verified_at && (!r.effective_from || r.effective_from <= today) && (!r.expires_at || r.expires_at >= today) && r.directory_visibility !== "hidden";
+    return window.MedicalContent.visible(r);
   }
   function contentCard(r) {
     return el("details",{class:"card instruction-card","data-document":r.id},
-      el("summary",{},el("span",{class:"card-eyebrow"},r.document_type === "news" ? "أخبار الشبكة" : "تعليمات الخدمة"),el("strong",{},r.title)),
+      el("summary",{},el("span",{class:"card-eyebrow"},window.MedicalContent.types[r.document_type] || "تعليمات الخدمة"),el("strong",{},r.title)),
       el("p",{},r.summary),el("ol",{},(r.steps || []).map(t=>el("li",{},t))),
       el("p",{class:"muted"},[r.issuing_authority,r.source_reference,r.verified_at ? "مراجعة: "+r.verified_at : ""].filter(Boolean).join(" · ")),
       r.effective_from || r.expires_at ? el("p",{class:"muted"},[r.effective_from ? "ساري من "+r.effective_from : "",r.expires_at ? "حتى "+r.expires_at : ""].filter(Boolean).join(" · ")) : null,
@@ -843,12 +844,10 @@
   // Only explicit publications become notifications. Routine directory edits stay silent.
   const notificationKey="medical_read_announcements_v1";
   function announcementKey(r) {
-    const value=JSON.stringify([r.id,r.title,r.summary,r.steps,r.directory_update?.at,r.verified_at]);
-    let hash=2166136261;for(const c of value)hash=Math.imul(hash^c.charCodeAt(0),16777619);
-    return String(r.id)+":"+(hash>>>0).toString(16);
+    return window.MedicalContent.key(r);
   }
   function announcements() {
-    return state.catalog.medical_guidelines.filter(r=>r.document_type === "news" && publishedContent(r)).sort((a,b)=>String(b.directory_update?.at || b.verified_at).localeCompare(String(a.directory_update?.at || a.verified_at)));
+    return state.catalog.medical_guidelines.filter(r=>window.MedicalContent.announcement(r) && publishedContent(r)).sort((a,b)=>window.MedicalContent.order(b).localeCompare(window.MedicalContent.order(a)));
   }
   function readAnnouncements() {try {const value=JSON.parse(localStorage.getItem(notificationKey));return new Set(Array.isArray(value)?value.filter(v=>typeof v === "string"):[]);}catch{return new Set();}}
   function markAnnouncements(rows) {
@@ -878,12 +877,12 @@
   window.addEventListener("storage",e=>{if(e.key===notificationKey)updateNotifications();});
   function recentUpdates(main) {
     const rows=[];
-    for(const r of state.catalog.medical_guidelines.filter(r=>r.document_type === "news" && publishedContent(r))) rows.push({id:r.id,title:r.title,at:r.directory_update?.at || r.verified_at,type:"news",document:r,subtitle:r.summary});
+    for(const r of state.catalog.medical_guidelines.filter(r=>window.MedicalContent.announcement(r) && publishedContent(r))) rows.push({id:r.id,title:r.title,at:window.MedicalContent.order(r),type:r.document_type,document:r,subtitle:r.summary});
     const recent=rows.filter(r=>Number.isFinite(Date.parse(r.at))).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at)).slice(0,6);
     main.append(el("section",{class:"recent-updates","aria-label":"آخر تحديثات الشبكة"},
       el("div",{class:"section-heading"},el("h2",{},"آخر تحديثات الشبكة"),button("تعليمات الخدمة",()=>go("guidelines"),"text-button")),
       recent.length ? el("div",{class:"updates-grid"},recent.map(r=>el("article",{class:"update-card","data-update":r.id},
-        el("span",{class:"update-label "+r.type},{added:"إضافة جديدة",updated:"تحديث بيانات",suspended:"موقوف مؤقتًا",resumed:"استئناف الخدمة",news:"خبر الشبكة"}[r.type] || "تحديث الشبكة"),
+        el("span",{class:"update-label "+r.type},{added:"إضافة جديدة",updated:"تحديث بيانات",suspended:"موقوف مؤقتًا",resumed:"استئناف الخدمة",news:"خبر الشبكة",bulletin:"نشرة طبية"}[r.type] || "تحديث الشبكة"),
         el("h3",{},r.title),el("p",{class:"muted"},r.subtitle),el("time",{datetime:r.at},new Intl.DateTimeFormat("ar-EG",{timeZone:"Africa/Cairo",dateStyle:"medium"}).format(new Date(r.at))),
         button(r.document ? "قراءة الإعلان" : "عرض التفاصيل",()=>r.document ? dialog(r.title,contentCard(r.document)) : (location.hash="entity="+encodeURIComponent(r.target)),"text-button"))))
       : el("p",{class:"updates-empty"},"ستظهر هنا الأخبار والإعلانات التي تنشرها النقابة.")));
@@ -1020,7 +1019,7 @@
       return;
     }
     if (state.tab === "guidelines") {
-      main.append(heading("تعليمات الحصول على الخدمة","تعليمات الشركة وإجراءات الرعاية الطبية المنشورة"));
+      main.append(heading("تعليمات الحصول على الخدمة","تعليمات الشركة والنشرات الطبية المنشورة"),button("تحديث التعليمات والنشرات",async()=>{try{await refresh();}catch(e){toast(e.message);}},"text-button"));
       const docs=state.catalog.medical_guidelines.filter(r=>r.document_type !== "news" && publishedContent(r) && matchesText([r.title,r.summary,...(r.steps || [])]));
       if(docs.length) main.append(el("div",{class:"instructions-list"},docs.map(contentCard)));
       else main.append(empty("لا توجد تعليمات منشورة مطابقة حاليًا."));
@@ -1631,6 +1630,44 @@
     banner.hidden=!isAdmin() || (!data.seconds && !data.networkError);
     if(!banner.hidden)replaceNodes(banner,el("span",{},data.networkError?"تعذر تمديد جلسة الإدارة. تحقق من الاتصال بالإنترنت.":"ستنتهي جلسة الإدارة خلال دقيقة إذا استمر الخمول."),button("متابعة العمل",()=>API.continueAdminSession(),"button outline"));
   });
+  function contentScheduleEditor(form,r,republish){
+    const C=window.MedicalContent;
+    if(!state.contentLifecycle){form.append(el('p',{class:'notice warning'},'التعديل والحذف متاحان. جدولة العرض والأرشفة وإعادة النشر تنتظر تفعيل تحديث Firebase.'));return;}
+    const from=field('بداية العرض — بتوقيت القاهرة','display_from','datetime-local',C.cairoInput(republish?Date.now():r.display_from)),
+      until=field('نهاية العرض — بتوقيت القاهرة','display_until','datetime-local',C.cairoInput(republish?Date.now()+7*86400000:r.display_until)),
+      duration=selectField('مدة ظهور المحتوى','display_duration',[['custom','موعد مخصص'],['','بدون نهاية محددة'],['1','يوم واحد'],['3','3 أيام'],['7','أسبوع'],['30','30 يومًا']],republish?'7':r.display_until?'custom':'');
+    const start=from.querySelector('input'),end=until.querySelector('input');
+    const apply=()=>{const value=duration.querySelector('select').value;if(value==='custom')return;if(!value){end.value='';return;}try{end.value=C.cairoInput(Date.parse(C.cairoISO(start.value) || new Date().toISOString())+Number(value)*86400000);}catch(e){toast(e.message);}};
+    duration.querySelector('select').addEventListener('change',apply);start.addEventListener('change',apply);end.addEventListener('input',()=>duration.querySelector('select').value='custom');
+    const resend=el('input',{type:'checkbox',name:'republish',checked:republish});
+    form.append(el('fieldset',{class:'content-schedule'},el('legend',{},'النشر ومدة الظهور'),el('p',{class:'muted'},'اترك البداية فارغة للعرض فور النشر. نهاية العرض توقف الظهور تلقائيًا؛ لا تحذف المحتوى. تواريخ السريان أعلاه تخص صلاحية التعليمات نفسها.'),from,duration,until));
+    if(r.id)form.append(el('label',{class:'remember-option'},resend,'إعادة نشر صريحة: إظهار الخبر أو النشرة كجديد في الإشعارات'),el('p',{class:'muted'},'الحفظ العادي لا يعيد تنبيه الأعضاء. إعادة النشر تتطلب حالة منشور ومدة عرض سارية.'));
+    if(republish)form.querySelector('[name="publication_status"]').value='published';
+    const preview=el('section',{class:'content-preview',hidden:true});
+    form.append(button('معاينة المحتوى قبل الحفظ',()=>{const data=Object.fromEntries(new FormData(form));preview.hidden=false;replaceNodes(preview,el('span',{class:'eyebrow'},'معاينة فقط — لم تُحفظ'),el('h3',{},data.name),el('p',{},data.summary),el('ol',{},data.steps.split('\n').filter(Boolean).map(step=>el('li',{},step))),el('small',{},C.types[data.document_type]+' · '+(data.publication_status==='published'?'سيخضع لمواعيد العرض والسريان':'للإدارة فقط')));},'button outline'),preview);
+  }
+  function contentStateDialog(r,status){
+    const label=status==='archived'?'أرشفة المحتوى':'إيقاف النشر وحفظ مسودة';
+    const form=el('form',{class:'form-stack'},el('p',{},label+': '+r.title),el('p',{class:'muted'},'سيختفي عن الأعضاء عند تحديث بيانات التطبيق، ويبقى قابلًا للتعديل وإعادة النشر من الإدارة.'));
+    form.save=async()=>{if(!state.contentLifecycle && status==='archived')throw new Error('الأرشفة تحتاج تفعيل تحديث Firebase.');await API.save('medical_guidelines',{...r,publication_status:status},r._version || 0);closeDialog(true);await refresh();toast('حُدّثت حالة المحتوى.');};
+    dialog(label,formAction(form,'تأكيد الإجراء'));
+  }
+  function renderContentAdmin(main){
+    const C=window.MedicalContent,all=state.catalog.medical_guidelines;
+    main.append(button('العودة إلى إدارة الدليل',()=>{state.adminKind='all';state.query='';$('#search-input').value='';renderMain();},'text-button'));
+    main.append(el('section',{class:'content-studio-intro'},el('span',{class:'eyebrow'},'مركز النشر'),el('h2',{},'التعليمات والأخبار والنشرات'),el('p',{},'تحكم في المحتوى من المسودة حتى نهاية العرض. تعديل النص لا يعيد نشره كخبر جديد.'),el('div',{class:'actions-row'},Object.entries(C.types).map(([type,label])=>button('+ إضافة '+label,()=>editDialog('medical_guidelines',null,type),'button '+(type==='news'?'primary':'outline'))))));
+    if(!state.contentLifecycle)main.append(el('p',{class:'notice warning'},'يلزم نشر تحديث Firebase لتفعيل النشرات وجدولة مدة العرض والأرشفة وإعادة النشر. التعليمات والأخبار الحالية قابلة للتعديل والحذف.'));
+    const type=selectField('نوع المحتوى المعروض','content-type',[['','كل الأنواع'],...Object.entries(C.types)],state.contentType || ''),status=selectField('مرحلة النشر','content-status',[['','كل المراحل'],...Object.entries(C.labels)],state.contentStatus || '');
+    type.querySelector('select').addEventListener('change',e=>{state.contentType=e.target.value;renderMain();});status.querySelector('select').addEventListener('change',e=>{state.contentStatus=e.target.value;renderMain();});
+    main.append(el('div',{class:'content-filters'},type,status,button('مسح تصفية المحتوى',()=>{state.contentType='';state.contentStatus='';state.query='';$('#search-input').value='';renderMain();},'button outline')));
+    const counts=Object.keys(C.labels).map(key=>[key,all.filter(r=>C.status(r)===key).length]).filter(([,count])=>count);
+    main.append(el('div',{class:'content-counts'},counts.map(([key,count])=>button(C.labels[key]+' · '+count,()=>{state.contentStatus=key;renderMain();},'filter-chip'))));
+    const rows=all.filter(r=>(!state.contentType || r.document_type===state.contentType) && (!state.contentStatus || C.status(r)===state.contentStatus) && matchesText([r.title,r.summary,r.issuing_authority,r.source_reference,...(r.steps || [])])).sort((a,b)=>C.order(b).localeCompare(C.order(a)));
+    main.append(el('p',{class:'muted',role:'status'},rows.length+' مادة — تشمل المواد المنجزة والمخفية والمنتهية؛ لا تُستبعد بعد تعديلها.'));
+    const time=value=>value?new Intl.DateTimeFormat('ar-EG',{timeZone:'Africa/Cairo',dateStyle:'medium',timeStyle:'short'}).format(new Date(value)):'';
+    main.append(el('div',{class:'content-admin-grid'},rows.map(r=>el('article',{class:'card content-admin-card','data-content-id':r.id},el('div',{class:'content-card-heading'},el('span',{class:'card-eyebrow'},C.types[r.document_type] || C.types.instruction),el('span',{class:'content-status status-'+C.status(r)},C.labels[C.status(r)])),el('h3',{},r.title),el('p',{class:'content-excerpt'},r.summary),el('p',{class:'muted'},r.issuing_authority || 'أضف الجهة المصدرة قبل النشر'),el('dl',{class:'content-timing'},el('dt',{},'العرض'),el('dd',{},(r.display_from?time(r.display_from):'من وقت النشر')+' — '+(r.display_until?time(r.display_until):'دون نهاية محددة')),r.published_at?el('dt',{},'آخر نشر'):null,r.published_at?el('dd',{},time(r.published_at)):null),el('div',{class:'content-card-actions'},button('معاينة',()=>dialog('معاينة: '+r.title,contentCard(r)),'text-button'),button('تعديل',()=>editDialog('medical_guidelines',r),'button outline'),button('إعادة نشر',()=>editDialog('medical_guidelines',r,undefined,{republish:true}),'button primary'),button(r.publication_status==='published'?'إيقاف النشر':'تحرير للنشر',()=>r.publication_status==='published'?contentStateDialog(r,'draft'):editDialog('medical_guidelines',r),'text-button'),state.contentLifecycle && r.publication_status!=='archived'?button('أرشفة',()=>contentStateDialog(r,'archived'),'text-button'):null,button('حذف',()=>deleteDialog('medical_guidelines',r),'text-button danger-text'))))));
+    if(!rows.length)main.append(empty('لا توجد مواد ضمن التصفية الحالية. أضف محتوى جديدًا أو امسح التصفية.'));
+  }
   async function renderAdmin(main) {
     if(!isAdmin()){main.append(heading("إدارة الدليل الطبي"),button("دخول المدير",adminDialog,"button primary"));return;}
     const all=kinds.flatMap(source=>state.catalog[source].map(r=>({kind:facilitySection(source,r),r:{...r,_source_kind:source}})));
@@ -1642,6 +1679,7 @@
     if(!API.adminIdleSupported)main.append(el("p",{class:"notice warning"},"تجديد جلسة المدير أثناء النشاط ينتظر نشر تحديث Firebase. الخدمة الحالية تنهي الجلسة بعد 10 دقائق من الدخول."));
     if(!state.adminWorkspace)main.append(el("p",{class:"notice warning"},"صلاحية اعتماد الجهات والقوائم المشتركة وبطاقة المدير تحتاج نشر تحديث Firebase مرة واحدة بالإعداد المحفوظ."));
     if(!state.adminBatch || !state.structuredBranches || !state.adminBatchData)main.append(el('p',{class:'notice warning'},'الفروع المتعددة والمعالجة الجماعية جاهزتان في الواجهة وتحتاجان نشر تحديث Firebase لتفعيل الحفظ.'));
+    if(state.adminKind==='medical_guidelines'){renderContentAdmin(main);return;}
     main.append(el("section",{class:"admin-metrics","aria-label":"ملخص الإدارة"},[
       ["إجمالي السجلات",all.length,()=>{state.adminWorklist="all";filter("all");}],
       ["المخفية والمحجوبة",all.filter(({r})=>hidden(r)).length,()=>filter("all","hidden")],
@@ -1649,7 +1687,7 @@
       ["لم تُراجع بعد",all.filter(({r})=>!r.admin_reviewed_at).length,()=>{state.adminWorklist="pending";filter("all");}],
     ].map(([label,count,action])=>el("article",{},button(String(count),action,"admin-metric-count"),el("span",{},label)))));
     main.append(el("div",{class:"admin-section-tabs","aria-label":"أقسام الإدارة"},kinds.map(kind=>button(labels[kind]+" · "+facilityEntries(kind).length,()=>filter(kind),"button "+(state.adminKind===kind?"primary":"outline")))));
-    main.append(el("div",{class:"admin-tools"},button("مراجعة التقييمات",adminReviewDialog,"button outline"),button("إضافة تعليمات",()=>editDialog("medical_guidelines"),"button outline"),button("إضافة خبر",()=>editDialog("medical_guidelines",null,"news"),"button outline"),button("جودة بيانات الدليل",qualityDialog,"text-button"),button("مراجعة التصنيفات",classificationDialog,"text-button"),button("الفروع والتكرار",facilityDuplicatesDialog,"text-button"),button("مراجعة المواقع والمواعيد",researchDialog,"text-button"),button("تصدير بيانات الدليل",exportCatalog,"text-button")));
+    main.append(el("div",{class:"admin-tools"},button("مراجعة التقييمات",adminReviewDialog,"button outline"),button("إضافة تعليمات",()=>editDialog("medical_guidelines"),"button outline"),button("إضافة خبر",()=>editDialog("medical_guidelines",null,"news"),"button outline"),button("إدارة المحتوى",()=>filter("medical_guidelines"),"button outline"),button("جودة بيانات الدليل",qualityDialog,"text-button"),button("مراجعة التصنيفات",classificationDialog,"text-button"),button("الفروع والتكرار",facilityDuplicatesDialog,"text-button"),button("مراجعة المواقع والمواعيد",researchDialog,"text-button"),button("تصدير بيانات الدليل",exportCatalog,"text-button")));
     const kindSelect=selectField("نوع السجلات","admin-kind",[["all","كل الأقسام"],...kinds.map(k=>[k,labels[k]])],state.adminKind);
     const statusSelect=selectField("حالة العرض والخدمة","admin-state",[["","كل الحالات"],["visible","ظاهرة"],["hidden","مخفية ومحجوبة"],["suspended","موقوفة مؤقتًا"]],state.adminState);
     const worklist=selectField("قائمة العمل","admin-worklist",[["pending","بانتظار المراجعة"],["all","جميع السجلات بما فيها المحدّثة"]],state.adminWorklist);
@@ -1692,7 +1730,7 @@
       el("td",{},r.contract_entity || (kind === "medical_guidelines" ? r.issuing_authority : "غير مسجلة")),
       el("td",{class:"admin-row-actions"},button("تعديل",()=>editDialog(kind,r),"text-button"),
         kind === "medical_guidelines" ? button("تحرير النشر",()=>editDialog(kind,r),"text-button") : parentHidden(r) ? button("إدارة المستشفى",()=>{state.adminKind="hospitals";state.adminState="";state.query=parentOf(r).name;$("#search-input").value=state.query;renderMain();},"text-button") : button(hidden(r)?"إظهار":"إخفاء",()=>changeEntityState(kind,r,"directory_visibility",hidden(r)?"visible":"hidden"),"text-button"),
-        button(r.service_status === "suspended"?"استئناف الخدمة":"إيقاف مؤقت",()=>changeEntityState(kind,r,"service_status",r.service_status === "suspended"?"active":"suspended"),"text-button"),
+        kind === "medical_guidelines" ? null : button(r.service_status === "suspended"?"استئناف الخدمة":"إيقاف مؤقت",()=>changeEntityState(kind,r,"service_status",r.service_status === "suspended"?"active":"suspended"),"text-button"),
         button("حذف",()=>deleteDialog(kind,r),"text-button danger-text")))));
     for(const row of body.rows)for(const [i,cell] of [...row.cells].entries())cell.dataset.label=["تحديد","الجهة / المعرّف","القسم / الموقع","حالة النشر","جهة التعاقد / المصدر","الإجراءات"][i];
     main.append(el("div",{class:"table-wrap admin-records"},el("table",{},el("thead",{},el("tr",{},el('th',{},selectAll),["الجهة / المعرّف","القسم / الموقع","حالة النشر","جهة التعاقد / المصدر","الإجراءات"].map(t=>el("th",{},t)))),body)));
@@ -1879,6 +1917,7 @@
     }
   }
   function editDialog(kind, original,documentType,initial={}) {
+    if(kind==="medical_guidelines" && !state.contentLifecycle && (documentType==="bulletin" || initial.republish)){toast("هذه الخاصية تحتاج تفعيل تحديث Firebase أولًا.");return;}
     const sourceKind=original?._source_kind || kind;
     if(original)kind=facilitySection(sourceKind,original);
     const canReclassify=!!original && ["hospitals","specialized_centers"].includes(sourceKind);
@@ -1903,7 +1942,7 @@
       const draft=Object.fromEntries(new FormData(form));
       editDialog(event.target.value,null,undefined,{name:draft.name || "",markaz:draft.markaz || "",address:draft.address || ""});
     });
-    form.prepend(el("p",{class:"editor-intro"},original?"تعديل السجل الأصلي مع الحفاظ على ارتباطاته وتقييماته.":"اختر القسم الرئيسي أولًا: المستشفى قسم مستقل عن الأطباء والمراكز."),rootKind);
+    form.prepend(el("p",{class:"editor-intro"},kind==="medical_guidelines"?"حرّر المحتوى ومصدره، ثم اختر حالة النشر ومدة العرض. مواعيد العرض بتوقيت القاهرة.":original?"تعديل السجل الأصلي مع الحفاظ على ارتباطاته وتقييماته.":"اختر القسم الرئيسي أولًا: المستشفى قسم مستقل عن الأطباء والمراكز."),rootKind);
     if(kind==="records" && !original){
       const hint=el("section",{class:"notice",hidden:true},el("p",{},"يبدو الاسم اسم مستشفى. هل تريد إدراجها في قسم المستشفيات؟"),button("تسجيلها كمستشفى",()=>{const data=Object.fromEntries(new FormData(form));editDialog("hospitals",null,undefined,{name:data.name,markaz:data.markaz || "",address:data.address || ""});},"button outline"));
       const name=form.querySelector('[name="name"]');name.addEventListener("input",()=>hint.hidden=!/^مستشفي/.test(normalize(name.value)));name.closest("label").after(hint);
@@ -1957,8 +1996,8 @@
     }
     if(kind === "medical_guidelines") {
       form.append(
-        selectField("نوع المحتوى","document_type",[["instruction","تعليمات الحصول على الخدمة"],["news","خبر أو إعلان للشبكة"]],r.document_type || "instruction"),
-        selectField("حالة النشر","publication_status",[["draft","مسودة — للإدارة فقط"],["published","منشور للأعضاء"]],r.publication_status || "draft"),
+        selectField("نوع المحتوى","document_type",[["instruction","تعليمات الحصول على الخدمة"],["news","خبر أو إعلان للشبكة"],...(state.contentLifecycle ? [["bulletin","نشرة طبية"]] : [])],r.document_type || "instruction"),
+        selectField("حالة النشر","publication_status",[["draft","مسودة — للإدارة فقط"],["published","منشور للأعضاء"],...(state.contentLifecycle ? [["archived","مؤرشف — للإدارة فقط"]] : [])],r.publication_status || "draft"),
         selectField("تصنيف المحتوى","category",[["general","تعليمات عامة"],["approvals","الموافقات"],["referrals","التحويلات"],["medications","الأدوية"],["emergency","الطوارئ"],["benefits","المزايا والخدمات"],["network","أخبار وتعاقدات الشبكة"],...r.category && !["general","approvals","referrals","medications","emergency","benefits","network"].includes(r.category) ? [[r.category,r.category]] : []],r.category || "general"),
         field("الجهة المصدرة","issuing_authority","text",r.issuing_authority || "",{maxlength:250}),
         field("مرجع التعليمات أو الإعلان","source_reference","text",r.source_reference || "",{maxlength:500}),
@@ -1967,6 +2006,7 @@
         field("ساري حتى (اختياري)","expires_at","date",r.expires_at || ""),
         el("p",{class:"notice"},"المسودة لا تظهر للأعضاء. النشر يتطلب جهة مصدرة ومرجعًا أو رابط مصدر وتاريخ مراجعة؛ لا تكتب نسب تحمل أو إجراءات غير معتمدة."));
     }
+    if(kind==='medical_guidelines')contentScheduleEditor(form,r,initial.republish===true);
     if(!["medical_guidelines","emergency_services"].includes(kind)) {
       const n=r.network_members || [];
       form.append(selectField("المستفيدون","beneficiary_group",[["","اختر المستفيدين"],["employee","الموظفون"],["family","الأسر والمعاشات"],["all","الموظفون والأسر والمعاشات"]],n.includes("employee") && n.some(x=>x !== "employee") ? "all" : n.includes("family") || n.includes("retiree") ? "family" : n.includes("employee") ? "employee" : ""),
@@ -2155,6 +2195,12 @@
         entity.phone_digits = savedContacts.landline[0] || savedContacts.mobile[0] || "";
       }
       if (kind === "medical_guidelines") {
+        if(state.contentLifecycle){
+          entity.display_from=window.MedicalContent.cairoISO(data.display_from);
+          entity.display_until=window.MedicalContent.cairoISO(data.display_until);
+          entity.directory_visibility='visible';
+        }
+        if(data.republish==='on' && !state.contentLifecycle)throw new Error('إعادة النشر تحتاج تفعيل تحديث Firebase.');
         entity.title = data.name;
         delete entity.name;
         entity.steps = data.steps
@@ -2192,12 +2238,12 @@
         });
         const primary={...entity};for(const key of Object.keys(primary))if(/^branch_(label|markaz|address|hours|map|mobile|landline|shortcode)_/.test(key))delete primary[key];
         await API.createBranches({kind,entity:primary,branches,approve_contract:data.approve_contract==='on'});
-      }else await API.save(sourceKind, entity, r._version || 0,data.approve_contract === "on");
+      }else await API.save(sourceKind, entity, r._version || 0,data.approve_contract === "on",kind==="medical_guidelines" && data.republish==="on");
       const previousScroll=window.scrollY;
       closeDialog(true);
       await refresh();
       requestAnimationFrame(()=>window.scrollTo({top:previousScroll,left:0,behavior:"instant"}));
-      toast(draft ? "حُفظت مسودة مخفية. يمكنك اعتماد إظهارها من قائمة المخفية." : "تم حفظ السجل. السجلات المنجزة متاحة بالبحث أو من جميع السجلات.");
+      toast(kind === "medical_guidelines" ? (data.republish === "on" ? "أُعيد نشر المحتوى كإعلان جديد." : "حُفظ المحتوى وفق حالة النشر ومدة العرض المختارتين.") : draft ? "حُفظت مسودة مخفية. يمكنك اعتماد إظهارها من قائمة المخفية." : "تم حفظ السجل. السجلات المنجزة متاحة بالبحث أو من جميع السجلات.");
     };
     dialog(
       (original ? "تعديل: " : "إضافة: ") + labels[kind],
@@ -2434,7 +2480,13 @@
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden && !session() && !$(".login-card")) route();
   });
-  setInterval(() => { API.session(); }, 60000);
+  let contentVisibility='';
+  setInterval(() => {
+    API.session();
+    if(!session())return;
+    const signature=state.catalog.medical_guidelines.map(r=>r.id+':'+window.MedicalContent.status(r)).join('|');
+    if(signature!==contentVisibility){contentVisibility=signature;updateNotifications();const opened=$('#app-dialog [data-document]');if(!isAdmin() && opened && !state.catalog.medical_guidelines.some(r=>String(r.id)===opened.dataset.document && publishedContent(r)))closeDialog(true);if(!$('#app-dialog').open && ['home','guidelines'].includes(state.tab)){const scroll=window.scrollY;renderMain();requestAnimationFrame(()=>window.scrollTo({top:scroll,behavior:'instant'}));}}
+  }, 15000);
   resume();
   if ("serviceWorker" in navigator) {
     const controlled = !!navigator.serviceWorker.controller;

@@ -198,7 +198,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.7.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.8.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -379,7 +379,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.7.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.8.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1070,6 +1070,47 @@ try {
   assert.deepEqual(store.reviews.get(sectionReview.id),sectionReview);
   assert.equal((await store.catalog()).hospitals.find(r=>String(r.id)===String(newHospitals[1].id)).category,'مستشفى استثماري');
   await sectionMemberContext.close();
+  // Content studio: every lifecycle operation is reachable on a narrow screen.
+  await a.goto(origin+'/#admin');
+  await a.getByRole('button',{name:'إدارة المحتوى',exact:true}).click();
+  await a.getByRole('heading',{name:'التعليمات والأخبار والنشرات',exact:true}).waitFor();
+  await a.getByRole('button',{name:'+ إضافة خبر الشبكة',exact:true}).click();
+  await a.getByLabel('عنوان النشرة',{exact:true}).fill('خبر إطلاق اصطناعي');
+  await a.getByLabel('الموجز',{exact:true}).fill('محتوى اختبار لا يمثل إعلانًا حقيقيًا');
+  await a.getByLabel('الجهة المصدرة',{exact:true}).fill('جهة اختبار');
+  await a.getByLabel('مرجع التعليمات أو الإعلان',{exact:true}).fill('مرجع اصطناعي');
+  await a.getByLabel('تاريخ مراجعة المحتوى',{exact:true}).fill(new Date().toISOString().slice(0,10));
+  await a.getByLabel('حالة النشر',{exact:true}).selectOption('published');
+  await a.getByLabel('مدة ظهور المحتوى',{exact:true}).selectOption('7');
+  await a.getByRole('button',{name:'معاينة المحتوى قبل الحفظ',exact:true}).click();
+  await a.locator('.content-preview').getByRole('heading',{name:'خبر إطلاق اصطناعي',exact:true}).waitFor();
+  await a.getByRole('button',{name:'حفظ التغييرات',exact:true}).click();
+  await a.locator('dialog').waitFor({state:'hidden'});
+  let news=(await store.catalog()).medical_guidelines.find(r=>r.title==='خبر إطلاق اصطناعي');assert.ok(news.display_until);assert.equal(news.publication_revision,1);
+  const newsCard=()=>a.locator('[data-content-id="'+news.id+'"]');
+  await newsCard().getByRole('button',{name:'تعديل',exact:true}).click();
+  await a.getByLabel('الموجز',{exact:true}).fill('موجز معدل بلا إشعار جديد');
+  await a.getByRole('button',{name:'حفظ التغييرات',exact:true}).click();await a.locator('dialog').waitFor({state:'hidden'});
+  assert.equal((await store.catalog()).medical_guidelines.find(r=>r.id===news.id).publication_revision,1);
+  await newsCard().getByRole('button',{name:'إيقاف النشر',exact:true}).click();await a.getByRole('button',{name:'تأكيد الإجراء',exact:true}).click();await a.locator('dialog').waitFor({state:'hidden'});
+  await newsCard().locator('.content-status').getByText('مسودة',{exact:true}).waitFor();
+  await newsCard().getByRole('button',{name:'إعادة نشر',exact:true}).click();
+  assert.ok(await a.getByLabel('إعادة نشر صريحة: إظهار الخبر أو النشرة كجديد في الإشعارات',{exact:true}).isChecked());
+  await a.getByRole('button',{name:'حفظ التغييرات',exact:true}).click();await a.locator('dialog').waitFor({state:'hidden'});
+  assert.equal((await store.catalog()).medical_guidelines.find(r=>r.id===news.id).publication_revision,2);
+  await newsCard().getByRole('button',{name:'أرشفة',exact:true}).click();await a.getByRole('button',{name:'تأكيد الإجراء',exact:true}).click();await a.locator('dialog').waitFor({state:'hidden'});
+  await newsCard().locator('.content-status').getByText('مؤرشف',{exact:true}).waitFor();
+  await a.getByLabel('مرحلة النشر',{exact:true}).selectOption('archived');await newsCard().waitFor();
+  assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  await a.evaluate(()=>window.scrollTo(0,0));if(process.env.MEDICAL_SCREENSHOT_DIR)await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'content-studio-mobile.png'),fullPage:true});
+  await a.setViewportSize({width:1440,height:1000});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'content-studio-desktop.png'),fullPage:true});
+  await a.setViewportSize({width:390,height:844});
+  await newsCard().getByRole('button',{name:'حذف',exact:true}).click();await a.getByRole('button',{name:'تأكيد الحذف',exact:true}).click();await a.locator('dialog').waitFor({state:'hidden'});
+  assert.equal((await store.catalog()).medical_guidelines.some(r=>r.id===news.id),false);
+  await a.getByRole('button',{name:'مسح تصفية المحتوى',exact:true}).click();
+  await a.getByRole('button',{name:'+ إضافة نشرة طبية',exact:true}).click();assert.equal(await a.getByLabel('نوع المحتوى',{exact:true}).inputValue(),'bulletin');
+  await a.locator('#app-dialog .dialog-header button').click();
   // Active editing survives the original absolute deadline; only real inactivity logs out.
   const idleContext=await context();
   const savedAdmin=await a.evaluate(()=>JSON.parse(sessionStorage.getItem('medical_session_v1')));
@@ -1233,6 +1274,7 @@ try {
         incompatibleBackendModerationBlocked: true,
         optInCompanionPreviewAuthenticatedAndResponsive: true,
         moderationSavedDespiteDirectoryRefreshFailure: true,
+        contentStudioCrudScheduleArchiveAndRepublish: true,
         dimensions,
         runtimeErrors: errors,
       },

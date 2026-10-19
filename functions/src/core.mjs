@@ -7,6 +7,7 @@ import {
 import contacts from "./contacts.cjs";
 import facilities from "./facility-directory.cjs";
 import criteria from "./review-criteria.cjs";
+import content from "./content-policy.cjs";
 
 export class ApiError extends Error {
   constructor(status, code, message) {
@@ -61,8 +62,7 @@ function safeEqual(a, b) {
 
 // Project at the server boundary: hidden entries never reach member browsers.
 export function publishedDocument(r, at=Date.now()) {
-  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(at);
-  return r.publication_status === 'published' && !!r.issuing_authority && !!(r.source_reference || r.source_url) && !!r.verified_at && (!r.effective_from || r.effective_from <= today) && (!r.expires_at || r.expires_at >= today);
+  return content.visible(r,at);
 }
 export function memberCatalog(catalog, at=Date.now()) {
   const hospitals = catalog.hospitals || [];
@@ -191,7 +191,7 @@ const fields = {
     "steps",
     "source_url",
     "verified_at",
-    "document_type", "publication_status", "issuing_authority", "source_reference", "effective_from", "expires_at",
+    "document_type", "publication_status", "issuing_authority", "source_reference", "effective_from", "expires_at", "display_from", "display_until",
   ],
   emergency_services: [
     "id",
@@ -299,11 +299,19 @@ export function validateEntity(kind, input, previous) {
       fail(400, "VERIFICATION_REQUIRED", "الاعتماد يحتاج مصدرًا وتاريخ تحقق.");
   }
   if(kind === "medical_guidelines") {
+    for(const key of ['issuing_authority','source_reference','verified_at','effective_from','expires_at','display_from','display_until'])if(out[key] !== undefined && typeof out[key]!=='string')fail(400,'INVALID_ENTITY','راجع حقول مصدر المحتوى وتواريخه.');
     out.document_type ||= 'instruction';
     out.publication_status ||= 'draft';
-    if(!['instruction','news'].includes(out.document_type) || !['draft','published'].includes(out.publication_status)) fail(400,'INVALID_ENTITY','نوع المحتوى أو حالة النشر غير صالحة.');
+    if(!['instruction','news','bulletin'].includes(out.document_type) || !['draft','published','archived'].includes(out.publication_status)) fail(400,'INVALID_ENTITY','نوع المحتوى أو حالة النشر غير صالحة.');
     for(const key of ['verified_at','effective_from','expires_at']) if(out[key] && (!/^\d{4}-\d{2}-\d{2}$/.test(out[key]) || !Number.isFinite(Date.parse(out[key])) || new Date(out[key]).toISOString().slice(0,10)!==out[key])) fail(400,'INVALID_ENTITY','راجع تواريخ المحتوى.');
     if(out.effective_from && out.expires_at && out.expires_at < out.effective_from) fail(400,'INVALID_ENTITY','نهاية السريان تسبق بدايته.');
+    if(out.steps !== undefined && (!Array.isArray(out.steps) || out.steps.some(step=>typeof step!=='string')))fail(400,'INVALID_ENTITY','اكتب كل خطوة في سطر مستقل.');
+    for(const key of ['display_from','display_until']) {
+      if(out[key] && (typeof out[key]!=='string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(out[key]) || !Number.isFinite(Date.parse(out[key])) || new Date(out[key]).toISOString()!==out[key]))fail(400,'INVALID_ENTITY','راجع توقيت عرض المحتوى.');
+    }
+    if(out.display_from && out.display_until && out.display_until<=out.display_from)fail(400,'INVALID_ENTITY','نهاية العرض يجب أن تأتي بعد بدايته.');
+    if(out.display_from && out.expires_at && content.day(Date.parse(out.display_from))>out.expires_at)fail(400,'INVALID_ENTITY','موعد العرض يأتي بعد نهاية سريان التعليمات.');
+    if(out.display_until && out.effective_from && content.day(Date.parse(out.display_until)-1)<out.effective_from)fail(400,'INVALID_ENTITY','نهاية العرض تسبق بداية السريان.');
     if(out.publication_status === 'published' && (!out.issuing_authority || !(out.source_reference || out.source_url) || !out.verified_at)) fail(400,'PUBLICATION_SOURCE_REQUIRED','النشر يحتاج الجهة المصدرة ومرجعًا وتاريخ مراجعة.');
   }
   if(kind === "hospitals" && !previous && !out.category)out.category="مستشفى استثماري";
@@ -501,7 +509,7 @@ export function createService({
       const catalog = user.role === "admin" ? all : memberCatalog(all,now());
       const allowed = targets(catalog);
       const stats = Object.fromEntries(Object.entries(await store.getStats()).filter(([id]) => allowed.has(id)));
-      return {catalog, stats, adminBatch:true, adminBatchData:true, structuredBranches:true, facilityBranches: true, facilityStats: await store.getGroupedStats(facilities.reviewGroups(catalog)), reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
+      return {catalog, stats, contentLifecycle:true, adminBatch:true, adminBatchData:true, structuredBranches:true, facilityBranches: true, facilityStats: await store.getGroupedStats(facilities.reviewGroups(catalog)), reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
     },
     async adminProfile(token) {
       const session=await authorize(token,"admin");
@@ -733,6 +741,17 @@ export function createService({
         { ...body.entity, id: previous?.id || id },
         previous,
       );
+      if(kind==='medical_guidelines') {
+        if(body.republish !== undefined && typeof body.republish!=='boolean')fail(400,'INVALID_ENTITY','طلب إعادة النشر غير صالح.');
+        if(body.republish && !content.visible(entity,now()))fail(400,'CONTENT_NOT_ACTIVE','لإعادة النشر اختر النشر الآن ومدة عرض سارية، وراجع تواريخ السريان.');
+        const firstPublish=entity.publication_status==='published' && !previous?.published_at;
+        entity.publication_revision=Number(previous?.publication_revision) || 0;
+        if(previous?.published_at)entity.published_at=previous.published_at;
+        if(firstPublish || body.republish) {
+          entity.publication_revision++;
+          entity.published_at=new Date(now()).toISOString();
+        }
+      }
       if(previous?.publication_approval)entity.publication_approval=previous.publication_approval;
       if(body.approve_contract === true) {
         if(kind === "medical_guidelines" || (kind !== "emergency_services" && !hasContract(entity)))fail(400,"CONTRACT_REQUIRED","أكمل جهة التعاقد قبل اعتماد الإظهار.");

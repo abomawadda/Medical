@@ -111,3 +111,6 @@ cd ~/cloudshell_open/Medical && git pull --ff-only && bash scripts/deploy-medica
 ## إضافة موقع Vercel المعتمد
 
 أضاف المالك `https://medical-nekaba.vercel.app`، مع إبقاء GitHub Pages. قائمة النطاقات الدقيقة في `functions/src/origins.mjs`، ويحتفظ مساعد النشر بإضافات البيئة السابقة. تحديث هذه القائمة يحتاج نشر خدمة Medical، ثم `node scripts/check-live.mjs --vercel`. التفاصيل وأدلة تشخيص رفض OPTIONS في `docs/VERCEL_CONNECTION_AR.md`؛ لا تستخدم wildcard لنطاقات Vercel ولا تغيّر بيانات الدخول لحل رفض Origin.
+
+
+إدارة المحتوى في 4.8.0 تحتاج نشر قدرة content-lifecycle-v1؛ الخطوات والسياسة والاختبارات في [مركز النشر](CONTENT_STUDIO_4_8_AR.md). تبقى تعليمات ما بعد الإطلاق بلا أرقام استخدام خاصة ما لم تتوافر بيانات مجمعة موثقة.

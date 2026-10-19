@@ -818,3 +818,31 @@ test('revoked or concurrently logged-out administrator sessions cannot be renewe
   await assert.rejects(()=>f.service.adminActivity(login.token),e=>e.status===401);
   assert.equal(f.store.sessions.size,0);
 });
+
+test('content lifecycle: scheduled windows, archived state, explicit republication and version-safe deletion',async()=>{
+  const f=setup(),a=await admin(f),m=await member(f),at=1700000000000;
+  const base={title:'خبر تجريبي',summary:'محتوى اصطناعي',document_type:'bulletin',publication_status:'published',issuing_authority:'جهة اختبار',source_reference:'مرجع',verified_at:'2023-11-14',display_from:new Date(at+60000).toISOString(),display_until:new Date(at+180000).toISOString()};
+  await assert.rejects(()=>f.service.putEntity(m,'medical_guidelines','bulletin',{entity:base,expected_version:0}),e=>e.status===403);
+  await f.service.putEntity(a,'medical_guidelines','bulletin',{entity:{...base,publication_revision:999,published_at:'2099-01-01'},expected_version:0});
+  assert.equal((await f.service.catalog(m)).catalog.medical_guidelines.length,0);
+  let row=(await f.service.catalog(a)).catalog.medical_guidelines[0];assert.equal(row.publication_revision,1);assert.equal(row.published_at,new Date(at).toISOString());
+  f.advance(60000);assert.equal((await f.service.catalog(m)).catalog.medical_guidelines.length,1);
+  await f.service.putEntity(a,'medical_guidelines','bulletin',{entity:{...row,summary:'تصحيح بلا إعلان'},expected_version:1});
+  row=(await f.store.catalog()).medical_guidelines[0];assert.equal(row.publication_revision,1);assert.equal(row.published_at,new Date(at).toISOString());
+  await f.service.putEntity(a,'medical_guidelines','bulletin',{entity:row,expected_version:2,republish:true});
+  row=(await f.store.catalog()).medical_guidelines[0];assert.equal(row.publication_revision,2);assert.equal(row.published_at,new Date(at+60000).toISOString());
+  await assert.rejects(()=>f.service.putEntity(a,'medical_guidelines','bulletin',{entity:row,expected_version:2,republish:true}),e=>e.status===409);
+  assert.equal((await f.store.catalog()).medical_guidelines[0].publication_revision,2);
+  f.advance(120000);assert.equal((await f.service.catalog(m)).catalog.medical_guidelines.length,0);
+  await assert.rejects(()=>f.service.putEntity(a,'medical_guidelines','bulletin',{entity:row,expected_version:3,republish:true}),e=>e.code==='CONTENT_NOT_ACTIVE');
+  await f.service.putEntity(a,'medical_guidelines','bulletin',{entity:{...row,publication_status:'archived'},expected_version:3});
+  assert.equal((await f.service.catalog(m)).catalog.medical_guidelines.length,0);
+  assert.equal((await f.service.catalog(a)).catalog.medical_guidelines[0].publication_status,'archived');
+  await assert.rejects(()=>f.service.deleteEntity(a,'medical_guidelines','bulletin',{expected_version:3}),e=>e.status===409);
+  await f.service.deleteEntity(a,'medical_guidelines','bulletin',{expected_version:4});
+  assert.equal((await f.service.catalog(a)).catalog.medical_guidelines.length,0);
+});
+test('content scheduling rejects invalid timestamps and conflicting validity windows',()=>{
+  const row={id:'valid',title:'نشرة اختبار',summary:'موجز',document_type:'bulletin',publication_status:'draft'};
+  for(const values of [{display_from:'2026-02-30T10:00:00.000Z'},{display_from:123},{display_from:'2026-10-19T10:00:00.000Z',display_until:'2026-10-19T10:00:00.000Z'},{display_from:'2026-10-19T10:00:00.000Z',expires_at:'2026-10-18'},{display_until:'2026-10-19T10:00:00.000Z',effective_from:'2026-10-20'},{steps:'not an array'}])assert.throws(()=>validateEntity('medical_guidelines',{...row,...values}),e=>e.code==='INVALID_ENTITY');
+});

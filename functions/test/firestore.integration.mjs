@@ -292,6 +292,21 @@ const published=(await service.catalog(member)).catalog.medical_guidelines.find(
 assert.equal(published.directory_update.type,"updated");assert.ok(published.directory_update.at);
 await service.putEntity(admin,"medical_guidelines","guide_fixture",{entity:{...publication,expires_at:"2020-01-01"},expected_version:2});
 assert.ok(!(await service.catalog(member)).catalog.medical_guidelines.some(r=>r.id === "guide_fixture"));
+// Content lifecycle uses the real transactional version guard and soft-delete overlay.
+const bulletin={...publication,title:'نشرة اختبار بالمحاكي',document_type:'bulletin',display_until:new Date(Date.now()+3600000).toISOString()};
+await service.putEntity(admin,'medical_guidelines','bulletin_fixture',{entity:bulletin,expected_version:0});
+let bulletinRow=(await service.catalog(member)).catalog.medical_guidelines.find(r=>r.id==='bulletin_fixture');
+assert.equal(bulletinRow.publication_revision,1);
+await service.putEntity(admin,'medical_guidelines','bulletin_fixture',{entity:{...bulletin,summary:'تصحيح مصطنع'},expected_version:1});
+bulletinRow=(await service.catalog(member)).catalog.medical_guidelines.find(r=>r.id==='bulletin_fixture');assert.equal(bulletinRow.publication_revision,1);
+const reposts=await Promise.allSettled([1,2].map(()=>service.putEntity(admin,'medical_guidelines','bulletin_fixture',{entity:bulletin,expected_version:2,republish:true})));
+assert.equal(reposts.filter(r=>r.status==='fulfilled').length,1);assert.equal(reposts.filter(r=>r.status==='rejected' && r.reason.status===409).length,1);
+assert.equal((await service.catalog(member)).catalog.medical_guidelines.find(r=>r.id==='bulletin_fixture').publication_revision,2);
+await service.putEntity(admin,'medical_guidelines','bulletin_fixture',{entity:{...bulletin,publication_status:'archived'},expected_version:3});
+assert.ok(!(await service.catalog(member)).catalog.medical_guidelines.some(r=>r.id==='bulletin_fixture'));
+assert.ok((await service.catalog(admin)).catalog.medical_guidelines.some(r=>r.id==='bulletin_fixture'));
+await service.deleteEntity(admin,'medical_guidelines','bulletin_fixture',{expected_version:4});
+assert.ok(!(await service.catalog(admin)).catalog.medical_guidelines.some(r=>r.id==='bulletin_fixture'));
 await service.logout(member);
 await assert.rejects(
   () => service.ownReviews(member),
