@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { onRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
+import {createImpersonatedProfileWriter} from "./src/profile-source-writer.mjs";
 import { createService } from "./src/core.mjs";
 import { firebaseAdapters } from "./src/firebase-adapters.mjs";
 import { createHandler } from "./src/http.mjs";
@@ -40,6 +41,7 @@ function getService() {
   });
   service = createService({
     ...adapters,
+    sourceWriter:createImpersonatedProfileWriter({account:process.env.MYNEKABA_PROFILE_WRITER_ACCOUNT || "",readOnlyAccount:sourceCredentials.client_email,sourceProject:sourceCredentials.project_id,medicalProject:process.env.GCLOUD_PROJECT}),
     secret: sessionSecret.value(),
     allowedStates,
     memberAccessPolicy,

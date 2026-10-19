@@ -16,6 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - run: npm ci --prefix functions
       - run: npm test
       - run: npm ci --ignore-scripts
       - run: node scripts/prepare-seed.mjs

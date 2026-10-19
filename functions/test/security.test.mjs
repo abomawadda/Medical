@@ -554,7 +554,7 @@ test("member profile exposes only the current member display fields and real Med
   assert.equal(first.workplace, "سنترال اختبار");
   assert.ok(first.lastLoginAt);
   assert.equal(first.previousLoginAt, null);
-  for (const key of ["nationalId", "phone", "sourceId", "passwordHash", "fingerprint"])
+  for (const key of ["nationalId", "sourceId", "passwordHash", "fingerprint"])
     assert.ok(!(key in first));
   await f.service.session(token);
   assert.deepEqual((await f.service.memberProfile(token)).profile, first);
@@ -892,4 +892,53 @@ test('recommendations use only published totals and visible active targets, incl
  let result=(await f.service.catalog(m)).recommendations;assert.equal(result.version,1);assert.equal(result.items[0].target,'doctor:p1');assert.equal(result.items[0].count,5);assert.ok(!JSON.stringify(result).includes('اسم خاص'));
  await f.service.setEntityState(a,'records','1',{field:'service_status',value:'suspended',scope:'entity',versions:{'1':0}});
  assert.equal((await f.service.catalog(m)).recommendations.items.length,0);assert.equal((await f.service.catalog(a)).recommendations.items.length,0);
+});
+
+test('deceased states and recorded past death dates override all_registered, and revoke existing sessions',async()=>{
+ for(const state of ['وفاة','متوفي','متوفى','متوفاة','deceased']){const f=setup({memberAccessPolicy:'all_registered'});f.employees[0].memberState=state;await assert.rejects(()=>member(f),e=>e.status===401);}
+ const f=setup({memberAccessPolicy:'all_registered'}),m=await member(f);f.employees[0].deathDate='01/01/2020';
+ await assert.rejects(()=>f.service.catalog(m),e=>e.status===401);assert.equal(f.store.sessions.size,0);
+ for(const state of ['معاش','استقالة']){const x=setup({memberAccessPolicy:'all_registered'});x.employees[0].memberState=state;const token=await member(x);assert.equal((await x.service.memberProfile(token)).profile.workState,state);}
+});
+test('profile requests are owner scoped, snapshot checked, replay safe, partially approved locally and privately notified',async()=>{
+ const f=setup(),m=await member(f),a=await admin(f);const sourceBefore=JSON.stringify(f.employees);
+ f.employees.push({...f.employees[0],id:'viewer-profile',jobId:'00999'});const other=(await f.service.memberLogin({...credentials,employee_code:'00999'},'other-profile')).token;
+ let form=await f.service.profileEdit(m);assert.ok(!('nationalId' in form.values));
+ const body={request_id:'a'.repeat(32),snapshot:form.snapshot,values:{...form.values,email:'member@example.invalid',workplace:'مكان عمل مقترح'}};
+ const saved=await f.service.submitProfileRequest(m,body);assert.equal((await f.service.submitProfileRequest(m,body)).changed,false);
+ await assert.rejects(()=>f.service.submitProfileRequest(other,body),e=>e.code==='SOURCE_CHANGED');
+ assert.equal((await f.service.ownProfileRequests(other)).requests.length,0);
+ await assert.rejects(()=>f.service.cancelProfileRequest(other,saved.id,{version:1}),e=>e.status===404);
+ await assert.rejects(()=>f.service.adminProfileRequests(m),e=>e.status===403);
+ let request=(await f.service.adminProfileRequests(a)).requests[0];assert.equal(request.status,'pending');
+ await f.service.decideProfileRequest(a,saved.id,{version:1,fields:['email'],destination:'app',note:'اعتماد البريد فقط'});
+ assert.equal((await f.service.decideProfileRequest(a,saved.id,{version:1,fields:['email'],destination:'app',note:'اعتماد البريد فقط'})).changed,false);
+ assert.equal((await f.service.memberProfile(m)).profile.email,'member@example.invalid');assert.equal((await f.service.memberProfile(m)).profile.workplace,'سنترال اختبار');
+ const own=(await f.service.ownProfileRequests(m)).requests[0];assert.equal(own.status,'partially_approved');assert.ok(!('sourceId' in own));
+ assert.equal((await f.service.profileNotifications(other)).notifications.length,0);
+ const note=(await f.service.profileNotifications(m)).notifications[0];assert.ok(note.message.includes('رعايتي فقط'));assert.equal(f.store.profileNotes.size,1);
+ await assert.rejects(()=>f.service.readProfileNotification(other,note.id),e=>e.status===404);await f.service.readProfileNotification(m,note.id);
+ assert.ok((await f.service.profileNotifications(m)).notifications[0].readAt);
+ assert.equal(JSON.stringify(f.employees.slice(0,1)),sourceBefore);
+ // A later source correction wins over an obsolete local override.
+ f.employees[0].email='new-source@example.invalid';const profile=(await f.service.memberProfile(m)).profile;assert.equal(profile.email,'new-source@example.invalid');assert.deepEqual(profile.conflictingOverrides,['email']);
+});
+test('profile requests reject stale snapshots, unknown protected fields, concurrent decisions and unconfigured source writes',async()=>{
+ const f=setup(),m=await member(f),a=await admin(f);let form=await f.service.profileEdit(m);
+ f.employees[0].jobTitle='وظيفة أحدث';await assert.rejects(()=>f.service.submitProfileRequest(m,{request_id:'b'.repeat(32),snapshot:form.snapshot,values:{email:'valid@example.invalid'}}),e=>e.code==='SOURCE_CHANGED');
+ form=await f.service.profileEdit(m);
+ for(const values of [{nationalId:'29901010101234'},{email:'invalid'},{phone:'123'},{name:''},{birthDate:'31/02/2026'}])await assert.rejects(()=>f.service.submitProfileRequest(m,{request_id:'c'.repeat(32),snapshot:form.snapshot,values}),e=>e.status===400);
+ const result=await f.service.submitProfileRequest(m,{request_id:'d'.repeat(32),snapshot:form.snapshot,values:{email:'valid@example.invalid'}});
+ await assert.rejects(()=>f.service.decideProfileRequest(a,result.id,{version:1,fields:['email'],destination:'source'}),e=>e.code==='SOURCE_WRITER_UNAVAILABLE');
+ const decisions=await Promise.allSettled([f.service.decideProfileRequest(a,result.id,{version:1,fields:['email'],destination:'app'}),f.service.decideProfileRequest(a,result.id,{version:1,fields:[],destination:'app'})]);assert.equal(decisions.filter(r=>r.status==='fulfilled').length,1);assert.equal(f.store.profileNotes.size,1);
+});
+test('source-profile decisions use an immutable intent and never fall back to app-only when a source write fails',async()=>{
+ let failWriter=true,calls=0;let f;
+ const writer={async updateProfile(id,changes){calls++;if(failWriter)throw new Error('writer unavailable');const row=f.employees.find(r=>r.id===id);for(const [key,c] of Object.entries(changes)){if(String(row[key] || '')!==c.sourceBefore && row[key]!==c.value)throw new Error('conflict');row[key]=c.value;}}};
+ f=setup({sourceWriter:writer});const m=await member(f),a=await admin(f),form=await f.service.profileEdit(m),saved=await f.service.submitProfileRequest(m,{request_id:'e'.repeat(32),snapshot:form.snapshot,values:{email:'source@example.invalid'}});
+ const decision={version:1,fields:['email'],destination:'source',note:'اعتماد الأصل'};
+ await assert.rejects(()=>f.service.decideProfileRequest(a,saved.id,decision),e=>e.code==='SOURCE_UPDATE_FAILED');assert.equal((await f.store.profileRead(saved.id)).status,'applying');assert.equal(f.store.profileNotes.size,0);
+ await assert.rejects(()=>f.service.decideProfileRequest(a,saved.id,{...decision,destination:'app'}),e=>e.status===409);
+ failWriter=false;await f.service.decideProfileRequest(a,saved.id,decision);assert.equal(f.employees[0].email,'source@example.invalid');assert.equal(f.store.profileNotes.size,1);assert.ok((await f.service.profileNotifications(m)).notifications[0].message.includes('سجل النقابة الأصلي'));
+ await f.service.decideProfileRequest(a,saved.id,decision);assert.equal(calls,2);
 });

@@ -8,6 +8,9 @@ import contacts from "./contacts.cjs";
 import facilities from "./facility-directory.cjs";
 import criteria from "./review-criteria.cjs";
 import content from "./content-policy.cjs";
+import {profileService} from "./profile-service.mjs";
+import {effectiveProfile} from "./profile-requests.mjs";
+import memberProfilePolicy from "./member-profile.cjs";
 import recommendations from "./recommendations.cjs";
 import {approvedExperiences,reviewSummary,publicReviewPage} from "./public-reviews.mjs";
 
@@ -342,6 +345,7 @@ export function validateEntity(kind, input, previous) {
 export function createService({
   source,
   store,
+  sourceWriter=null,
   secret,
   adminAccountIds = [],
   allowedStates = [],
@@ -355,7 +359,7 @@ export function createService({
   const digest = (value) =>
     createHmac("sha256", secret).update(String(value)).digest("hex");
   const eligible = (e) =>
-    e &&
+    e && !memberProfilePolicy.deceased(e,now()) &&
     (memberAccessPolicy === "all_registered" ||
       allowedStates.includes(String(e.memberState || "").trim()));
   const fingerprint = (e) =>
@@ -398,9 +402,10 @@ export function createService({
       const employee = await source.getEmployee(session.sourceId);
       if (
         !eligible(employee) ||
-        !safeEqual(fingerprint(employee), session.fingerprint)
+        !safeEqual(fingerprint(employee), session.fingerprint) ||
+        memberProfilePolicy.deceased(effectiveProfile(employee,await store.getProfileOverrides(session.subject)).values,now())
       )
-        fail(401, "SESSION_EXPIRED", "يرجى تسجيل الدخول مجددًا.");
+        {await store.deleteSession(digest(token));fail(401, "SESSION_EXPIRED", "يرجى تسجيل الدخول مجددًا.");}
     } else {
       const account = session.authMethod === "source-legacy"
         ? await source.getLegacyAdminState(session.sourceId)
@@ -417,7 +422,9 @@ export function createService({
     }
     return session;
   }
+  const profileOperations=profileService({source,store,sourceWriter,authorize,digest,rate,now});
   return {
+    ...profileOperations,
     async memberLogin(body, ip) {
       await rate(ip, "member-ip", 30);
       const c = code(body.employee_code),
@@ -440,6 +447,7 @@ export function createService({
         !safeEqual(national.slice(-4), n)
       )
         mismatch();
+      if(memberProfilePolicy.deceased(effectiveProfile(e,await store.getProfileOverrides(digest(`member|${e.id}`))).values,now()))mismatch();
       return issue(
         "member",
         e.id,
@@ -514,7 +522,7 @@ export function createService({
       const facilityStats=await store.getGroupedStats(facilities.reviewGroups(catalog));
       const visible=user.role==='admin'?memberCatalog(all,now()):catalog;
       const recommendationStats=user.role==='admin'?await store.getGroupedStats(facilities.reviewGroups(visible)):facilityStats;
-      return {catalog, stats, recommendations:{version:1,policy:recommendations.policy,items:recommendations.build(visible,stats,recommendationStats)}, publicReviewDetails:true, contentLifecycle:true, adminBatch:true, adminBatchData:true, structuredBranches:true, facilityBranches: true, facilityStats, reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
+      return {catalog, stats, profileManagement:true, recommendations:{version:1,policy:recommendations.policy,items:recommendations.build(visible,stats,recommendationStats)}, publicReviewDetails:true, contentLifecycle:true, adminBatch:true, adminBatchData:true, structuredBranches:true, facilityBranches: true, facilityStats, reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
     },
     async adminProfile(token) {
       const session=await authorize(token,"admin");
@@ -531,19 +539,6 @@ export function createService({
       const value=typeof body.value === "string" ? body.value.normalize('NFKC').trim().replace(/\s+/g,' ') : "";
       if(!value || value.length>160 || /[<>\u0000-\u001f]/u.test(value))fail(400,"INVALID_OPTION","أدخل اسمًا صالحًا لا يتجاوز 160 حرفًا.");
       return {value:await store.addOption(key,value,session.sourceId,now())};
-    },
-    async memberProfile(token) {
-      const s = await authorize(token, "member");
-      const e = await source.getMemberProfile(s.sourceId);
-      if (!e) fail(401, "SESSION_EXPIRED", "يرجى تسجيل الدخول مجددًا.");
-      const activity = await store.getMemberActivity(s.subject);
-      const value = (v, limit) => String(v ?? "").trim().slice(0, limit);
-      return { profile: {
-        name: value(e.name, 200), employeeCode: value(e.jobId, 80),
-        membershipCode: value(e.membershipId, 80), jobTitle: value(e.jobTitle, 160),
-        workplace: value(e.workplace, 240), lastLoginAt: activity.lastLoginAt || null,
-        previousLoginAt: activity.previousLoginAt || null,
-      } };
     },
     async submitReview(token, body, ip) {
       // Only this authenticated member can write the content of their review.

@@ -4,7 +4,7 @@ Before any task, read `/workspace/medical/APP_AGREEMENT_AR.md` (or `APP_AGREEMEN
 
 - Follow the latest user instruction first. Update the agreement when an authorized decision materially changes scope; do not invent an approval requirement or ask again for already authorized work.
 - Read the relevant linked operational documentation before deployment or authentication changes.
-- Keep MyNekaba read-only. This repository's authorization does not automatically permit source IAM, Auth, code, or rule changes.
+- Keep the MyNekaba membership reader and its credential read-only. The owner explicitly authorized an optional, separate profile writer on 19 October 2026: only selected approved basic fields of an existing employee may be updated, with source-value conflict checks. This exception never permits source IAM, Auth, code, rules, member creation/deletion, or reuse of the reader identity for writing. Default approval remains Medical-only until the separate writer is connected.
 - Never commit or publish employee records, private credentials, login inputs, profile responses, or real review comments. Keep secrets in Secret Manager and opaque session metadata in browser storage only.
 - Preserve author-only review editing, revision checks, idempotent moderation, private-by-default comments (only author-opted-in and moderated notes may appear anonymously in the app), and mandatory authenticated directory access.
 - Use Cairo/Tajawal, Arabic RTL, accessible mobile layouts, truthful coverage labels, and real data. Do not invent company procedures, medical eligibility, appointments, counters, or unsupported actions.

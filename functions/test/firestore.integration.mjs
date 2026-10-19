@@ -4,6 +4,7 @@ import { generateKeyPairSync, createHash, createHmac } from "node:crypto";
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { firebaseAdapters } from "../src/firebase-adapters.mjs";
+import {profileWriterFromDb} from "../src/profile-source-writer.mjs";
 import { createService } from "../src/core.mjs";
 if (
   !/^(127\.0\.0\.1|localhost):\d+$/.test(
@@ -150,7 +151,7 @@ assert.equal(ownProfile.employeeCode, "00123");
 assert.equal(ownProfile.jobTitle, "مهندس اختبار");
 assert.ok(ownProfile.lastLoginAt);
 assert.ok(!("nationalId" in ownProfile));
-assert.ok(!("phone" in ownProfile));
+assert.equal(ownProfile.phone,"01012345678");
 const profileSource = await adapters.source.getMemberProfile("member-one");
 assert.ok(!("nationalId" in profileSource));
 assert.ok(!("privateField" in profileSource));
@@ -319,6 +320,25 @@ assert.ok(!(await service.catalog(member)).catalog.medical_guidelines.some(r=>r.
 assert.ok((await service.catalog(admin)).catalog.medical_guidelines.some(r=>r.id==='bulletin_fixture'));
 await service.deleteEntity(admin,'medical_guidelines','bulletin_fixture',{expected_version:4});
 assert.ok(!(await service.catalog(admin)).catalog.medical_guidelines.some(r=>r.id==='bulletin_fixture'));
+// Profile corrections exercise real Medical transactions without changing the source.
+const editProfile=await service.profileEdit(member);
+assert.ok(!('nationalId' in editProfile.values));
+const profileBody={request_id:'f'.repeat(32),snapshot:editProfile.snapshot,values:{...editProfile.values,email:'profile@example.invalid',workplace:'مكان مقترح'}};
+const profileRequest=await service.submitProfileRequest(member,profileBody);
+assert.equal((await service.submitProfileRequest(member,profileBody)).changed,false);
+const decision={version:1,fields:['email'],destination:'app',note:'موافقة جزئية مصطنعة'};
+const profileDecisions=await Promise.allSettled([1,2].map(()=>service.decideProfileRequest(admin,profileRequest.id,decision)));
+assert.ok(profileDecisions.every(r=>r.status==='fulfilled'));
+assert.equal(profileDecisions.filter(r=>r.value.changed).length,1);
+const displayedProfile=(await service.memberProfile(member)).profile;
+assert.equal(displayedProfile.email,'profile@example.invalid');
+assert.equal(displayedProfile.workplace,'سنترال اختبار');
+const notices=await service.profileNotifications(member);
+assert.equal(notices.notifications.length,1);
+assert.equal((await service.profileNotifications(member,notices.version)).notModified,true);
+await service.readProfileNotification(member,notices.notifications[0].id);
+assert.ok((await service.profileNotifications(member)).notifications[0].readAt);
+assert.equal(JSON.stringify((await foreign.collection('employees').get()).docs.map(d=>d.data())),before);
 await service.logout(member);
 await assert.rejects(
   () => service.ownReviews(member),
@@ -329,6 +349,17 @@ const ownDb = getFirestore((await import("firebase-admin/app")).getApps().find((
 const storedSessions = JSON.stringify((await ownDb.collection("medical_sessions").get()).docs.map((d) => d.data()));
 assert.ok(!storedSessions.includes("passwordHash"));
 assert.ok(!storedSessions.includes("emulator-only-salt"));
+// Explicit writer path is tested only on a separate synthetic emulator record.
+const writerRef=foreign.collection('employees').doc('writer-fixture');
+await writerRef.set({name:'عضو مصطنع',email:'old@example.invalid',phone:'01012345678',nationalId:'private-fixture'});
+const writer=profileWriterFromDb(foreign),patch={email:{sourceBefore:'old@example.invalid',value:'new@example.invalid'}};
+assert.equal((await writer.updateProfile('writer-fixture',patch)).changed,true);
+assert.equal((await writer.updateProfile('writer-fixture',patch)).changed,false);
+await assert.rejects(()=>writer.updateProfile('writer-fixture',{email:{sourceBefore:'new@example.invalid',value:'third@example.invalid'},phone:{sourceBefore:'changed',value:'01112345678'}}),e=>e.code==='SOURCE_CHANGED');
+assert.equal((await writerRef.get()).data().email,'new@example.invalid');
+assert.equal((await writerRef.get()).data().nationalId,'private-fixture');
+await assert.rejects(()=>writer.updateProfile('missing-fixture',patch),e=>e.code==='SOURCE_CHANGED');
+await assert.rejects(()=>writer.updateProfile('writer-fixture',{nationalId:{sourceBefore:'private-fixture',value:'bad'}}),e=>e.code==='INVALID_PROFILE');
 await foreign.collection("user_accounts").doc("admin-one").update({passwordHash:"a".repeat(64)});
 await assert.rejects(() => service.session(admin), (e) => e.status === 403);
 console.log(

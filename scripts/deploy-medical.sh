@@ -60,6 +60,16 @@ const saved = line ? line.slice(line.indexOf('=') + 1).trim().replace(/^(['"])(.
 console.log(resolveAllowedOrigins([saved, process.env.MEDICAL_ALLOWED_ORIGINS].filter(Boolean).join(',')).join(','));
 JS
 )
+# Preserve the optional dedicated writer identity; never reuse reader credentials.
+profile_writer_account=$(node --input-type=module - "$deploy_env" <<'JS'
+import {existsSync,readFileSync} from 'node:fs';
+const path=process.argv[2];
+const line=existsSync(path)?readFileSync(path,'utf8').split(/\r?\n/).find(s=>s.startsWith('MYNEKABA_PROFILE_WRITER_ACCOUNT=')):'';
+const account=(process.env.MYNEKABA_PROFILE_WRITER_ACCOUNT || (line?line.slice(line.indexOf('=')+1):'')).trim();
+if(account && !/^[a-z][a-z0-9-]+@nekaba2026\.iam\.gserviceaccount\.com$/.test(account))throw new Error('Invalid dedicated profile writer identity.');
+console.log(account);
+JS
+)
 umask 077
 cat > "functions/.env.$MEDICAL_DEPLOY_PROJECT" <<EOF
 MEMBER_ACCESS_POLICY=all_registered
@@ -67,6 +77,7 @@ MEMBER_ALLOWED_STATES=[]
 MYNEKABA_ADMIN_ACCOUNT_IDS=$1
 MYNEKABA_AUTH_API_KEY=$2
 MEDICAL_ALLOWED_ORIGINS=$allowed_origins
+MYNEKABA_PROFILE_WRITER_ACCOUNT=$profile_writer_account
 EOF
 node scripts/prepare-seed.mjs
 if [[ "${3:-}" == --prepare-only ]]; then
@@ -85,10 +96,10 @@ const response = await fetch('https://europe-west1-we-medical-dakahlia.cloudfunc
   cache: 'no-store', signal: AbortSignal.timeout(30000),
 });
 const health = await response.json();
-if (!response.ok || !health.configured || !['member-profile', 'review-revisions', 'staff-directory', 'provider-images', 'provider-illustrations', 'directory-state-v1', 'family-directory-v1', 'directory-content-v1', 'contract-directory-v1', 'public-emergency-v1', 'admin-workspace-v1', 'review-criteria-v1', 'facility-branches-v1', 'admin-batch-v1', 'admin-batch-data-v1', 'structured-branches-v1', 'admin-idle-v1', 'content-lifecycle-v1', 'public-review-details-v1', 'review-recommendations-v1'].every((c) => health.capabilities?.includes(c))) {
+if (!response.ok || !health.configured || !['member-profile', 'review-revisions', 'staff-directory', 'provider-images', 'provider-illustrations', 'directory-state-v1', 'family-directory-v1', 'directory-content-v1', 'contract-directory-v1', 'public-emergency-v1', 'admin-workspace-v1', 'review-criteria-v1', 'facility-branches-v1', 'admin-batch-v1', 'admin-batch-data-v1', 'structured-branches-v1', 'admin-idle-v1', 'content-lifecycle-v1', 'public-review-details-v1', 'review-recommendations-v1', 'profile-management-v1'].every((c) => health.capabilities?.includes(c))) {
   throw new Error('Deployment finished, but the updated API capabilities could not be confirmed. Do not declare the release complete.');
 }
-console.log('Published API confirmed: directory, revision-safe reviews, admin workspace and idle-based administrator sessions and content publishing and anonymous review details and review-based recommendations enabled.');
+console.log('Published API confirmed: directory, revision-safe reviews, admin workspace and idle-based administrator sessions and content publishing and anonymous review details and review-based recommendations and private member-profile management enabled.');
 for (const origin of process.env.MEDICAL_RELEASE_ORIGINS.split(',')) {
   const response = await fetch('https://europe-west1-we-medical-dakahlia.cloudfunctions.net/medicalApi/v1/member/session', {
     method: 'OPTIONS', headers: { Origin: origin, 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'Content-Type,Authorization' },

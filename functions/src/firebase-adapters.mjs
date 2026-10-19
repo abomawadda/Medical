@@ -1,3 +1,5 @@
+import {profileStore} from "./profile-store.mjs";
+import memberProfilePolicy from "./member-profile.cjs";
 import facilities from "./facility-directory.cjs";
 import {groupedReviewStats} from "./facility-review-stats.mjs";
 import { mergeCatalog } from "./catalog-projection.mjs";
@@ -56,7 +58,7 @@ export function firebaseAdapters({
     "jobId",
     "phone",
     "nationalId",
-    "memberState",
+    "memberState", "deathDate", "dateOfDeath", "deceasedAt",
   ];
   const accountFields = ["name", "email", "firebaseUid", "accountStatus", "role"];
   const decode = (snap) =>
@@ -129,7 +131,7 @@ export function firebaseAdapters({
     },
     async getMemberProfile(id) {
       return decode((await sourceDb.getAll(sourceDb.collection("employees").doc(id), {
-        fieldMask: ["name", "jobId", "membershipId", "jobTitle", "workplace"],
+        fieldMask: [...memberProfilePolicy.fields.map(f=>f.key),"dateOfBirth","retireDate","retiredAt","dateOfDeath","deceasedAt"],
       }))[0]);
     },
     async findAccounts(uid) {
@@ -183,6 +185,7 @@ export function firebaseAdapters({
   return {
     source,
     store: {
+      ...profileStore(db,audit),
       async getOptions() {
         const values={};
         for(const doc of (await db.collection("medical_options").limit(1000).get()).docs){const row=doc.data();(values[row.key] ||= []).push(row.value);}

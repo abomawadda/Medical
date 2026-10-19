@@ -24,7 +24,7 @@ export function createHandler({ getService, origins, logger = console }) {
     if (req.method === "GET" && path === "/v1/health") {
       try {
         getService();
-        return res.json({ configured: true, capabilities: ["member-profile", "review-revisions", "staff-directory", "provider-images", "provider-illustrations", "directory-state-v1", "family-directory-v1", "directory-content-v1", "contract-directory-v1", "public-emergency-v1", "admin-workspace-v1", "review-criteria-v1", "facility-branches-v1", "admin-batch-v1", "admin-batch-data-v1", "structured-branches-v1", "admin-idle-v1", "content-lifecycle-v1", "public-review-details-v1", "review-recommendations-v1"] });
+        return res.json({ configured: true, capabilities: ["member-profile", "review-revisions", "staff-directory", "provider-images", "provider-illustrations", "directory-state-v1", "family-directory-v1", "directory-content-v1", "contract-directory-v1", "public-emergency-v1", "admin-workspace-v1", "review-criteria-v1", "facility-branches-v1", "admin-batch-v1", "admin-batch-data-v1", "structured-branches-v1", "admin-idle-v1", "content-lifecycle-v1", "public-review-details-v1", "review-recommendations-v1", "profile-management-v1"] });
       } catch {
         return res.status(503).json({
           configured: false,
@@ -65,6 +65,14 @@ export function createHandler({ getService, origins, logger = console }) {
         data=await service.adminOptions(token);
       else if (req.method === "PUT" && /^\/v1\/admin\/options\/[a-z_]+$/.test(path))
         data=await service.addAdminOption(token,path.split('/').pop(),body);
+      else if(req.method==='GET' && path==='/v1/profile/edit')data=await service.profileEdit(token);
+      else if(req.method==='GET' && path==='/v1/profile/requests')data=await service.ownProfileRequests(token);
+      else if(req.method==='POST' && path==='/v1/profile/requests')data=await service.submitProfileRequest(token,body);
+      else if(req.method==='GET' && path==='/v1/profile/notifications')data=await service.profileNotifications(token,req.query?.version===undefined?undefined:Number(req.query.version));
+      else if(req.method==='PATCH' && /^\/v1\/profile\/notifications\/[a-f0-9]{64}_decision$/.test(path))data=await service.readProfileNotification(token,path.split('/').pop());
+      else if(req.method==='PATCH' && /^\/v1\/profile\/requests\/[a-f0-9]{64}$/.test(path))data=await service.cancelProfileRequest(token,path.split('/').pop(),body);
+      else if(req.method==='GET' && path==='/v1/admin/profile-requests')data=await service.adminProfileRequests(token);
+      else if(req.method==='PATCH' && /^\/v1\/admin\/profile-requests\/[a-f0-9]{64}$/.test(path))data=await service.decideProfileRequest(token,path.split('/').pop(),body);
       else if (req.method === "GET" && path === "/v1/profile")
         data = await service.memberProfile(token);
       else if (req.method === "GET" && path === "/v1/session")

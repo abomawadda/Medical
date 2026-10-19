@@ -13,7 +13,22 @@ export function fixtureStore(seed) {
   const base = structuredClone(seed);
   for (const k of kinds) base[k] ||= [];
   const options=new Map();
+  const profileRequests=new Map(),profileLedgers=new Map(),profileOverrides=new Map(),profileNotes=new Map();
+  let profileQueue=Promise.resolve();
   const store = {
+    profileRequests,profileLedgers,profileOverrides,profileNotes,
+    async getProfileOverrides(owner){return structuredClone(profileOverrides.get(owner) || {});},
+    async profileRead(id){return structuredClone(profileRequests.get(id) || null);},
+    async profileTransact(owner,id,change,actor,at){const operation=profileQueue.then(()=>{
+      const next=change({request:structuredClone(profileRequests.get(id) || null),ledger:structuredClone(profileLedgers.get(owner) || {}),overrides:structuredClone(profileOverrides.get(owner) || {})});
+      if(next.request)profileRequests.set(id,structuredClone(next.request));if(next.ledger)profileLedgers.set(owner,structuredClone(next.ledger));if(next.overrides)profileOverrides.set(owner,structuredClone(next.overrides));if(next.notification)profileNotes.set(next.notification.id,structuredClone(next.notification));
+      if(next.request)audit.push({action:'profile.request',actor,at});return next.result;
+    });profileQueue=operation.catch(()=>{});return operation;},
+    async profileOwn(owner){return (profileLedgers.get(owner)?.requestIds || []).map(id=>structuredClone(profileRequests.get(id))).filter(Boolean);},
+    async profileAdmin(){return [...profileRequests.values()].map(r=>structuredClone(r)).sort((a,b)=>b.updated_at-a.updated_at).slice(0,100);},
+    async profileNotifications(owner,since){const version=profileLedgers.get(owner)?.notificationVersion || 0;return since===version?{notModified:true,version}:{version,notifications:[...profileNotes.values()].filter(r=>r.owner===owner).map(r=>structuredClone(r))};},
+    async profileMarkRead(owner,id,at){const r=profileNotes.get(id);if(!r || r.owner!==owner)throw new ApiError(404,'NOT_FOUND','غير موجود');if(!r.readAt){r.readAt=at;const ledger=profileLedgers.get(owner)||{};profileLedgers.set(owner,{...ledger,notificationVersion:(ledger.notificationVersion||0)+1});}return {success:true};},
+
     async getOptions(){return Object.fromEntries([...new Set([...options.values()].map(r=>r.key))].map(k=>[k,[...options.values()].filter(r=>r.key===k).map(r=>r.value)]));},
     async addOption(key,value,actor,at){const id=key+":"+value.normalize("NFKC").toLocaleLowerCase("ar").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه");if(!options.has(id)){options.set(id,{key,value});audit.push({action:"option.add",actor,at});}return options.get(id).value;},
     sessions,

@@ -145,6 +145,7 @@ window.MedicalAPI = (() => {
       error.code = payload.code;
       throw error;
     }
+    if(protectedRequest && current?.token!==requestToken){const error=new Error("تغيرت جلسة الدخول؛ أعد المحاولة من حسابك الحالي.");error.code="SESSION_CHANGED";throw error;}
     return payload;
   }
   async function restore() {
@@ -206,6 +207,7 @@ window.MedicalAPI = (() => {
       return notice;
     },
     async logout() {
+      const logoutToken=current?.token;
       try {
         if (current?.token)
           await request("/logout", {
@@ -215,7 +217,7 @@ window.MedicalAPI = (() => {
             restoring: true,
           });
       } finally {
-        forget();
+        if(current?.token===logoutToken)forget();
       }
     },
     catalog: () => request("/catalog", { protectedRequest: true }),
@@ -224,6 +226,15 @@ window.MedicalAPI = (() => {
     adminOptions:()=>request("/admin/options",{protectedRequest:true}),
     addOption:(key,value)=>request("/admin/options/"+encodeURIComponent(key),{method:"PUT",body:{value},protectedRequest:true}),
     profile: () => request("/profile", { protectedRequest: true }),
+    checkSession:()=>request('/session',{protectedRequest:true}),
+    profileEdit:()=>request('/profile/edit',{protectedRequest:true}),
+    profileRequests:()=>request('/profile/requests',{protectedRequest:true}),
+    submitProfileRequest:body=>request('/profile/requests',{method:'POST',body,protectedRequest:true}),
+    cancelProfileRequest:(id,version)=>request('/profile/requests/'+encodeURIComponent(id),{method:'PATCH',body:{version},protectedRequest:true}),
+    adminProfileRequests:()=>request('/admin/profile-requests',{protectedRequest:true}),
+    decideProfileRequest:(id,body)=>request('/admin/profile-requests/'+encodeURIComponent(id),{method:'PATCH',body,protectedRequest:true}),
+    profileNotifications:version=>request('/profile/notifications'+(version===undefined?'':'?version='+version),{protectedRequest:true}),
+    readProfileNotification:id=>request('/profile/notifications/'+encodeURIComponent(id),{method:'PATCH',body:{},protectedRequest:true}),
     review: (body) =>
       request("/reviews", { method: "POST", body, protectedRequest: true }),
     publicReviews:(target,page=0)=>request("/reviews/public/"+encodeURIComponent(target)+"?page="+page,{protectedRequest:true}),

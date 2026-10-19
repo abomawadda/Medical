@@ -263,7 +263,7 @@
     updateNotifications();
     $("#filter-panel > small").hidden = !isAdmin();
     const greeting=u ? window.MedicalNames.parts(u.name).flatMap((part,index)=>[index ? " " : "",el("span",{class:"greeting-name-part"},part)]) : [];
-    $("#member-button").replaceChildren(...(u ? [u.role === "member" ? "مرحبًا، " : "",...greeting] : ["دخول الأعضاء"]).map(value=>typeof value === "string" ? document.createTextNode(value) : value));
+    $("#member-button").replaceChildren(...(u ? [u.role === "member" ? "مرحبًا، " : "",...greeting] : ["تسجيل الدخول"]).map(value=>typeof value === "string" ? document.createTextNode(value) : value));
   }
   function connection() {
     const n = $("#connection-status");
@@ -291,6 +291,7 @@
     )
       throw new Error("تعذر قراءة بيانات الدليل.");
     state.catalog = window.MedicalArabic.entity(cleanDisplay(result.catalog));
+    state.profileManagement=result.profileManagement===true;
     state.reviewCriteria = result.reviewCriteria === true;
     state.publicReviewDetails = result.publicReviewDetails === true;
     state.recommendations=result.recommendations?.version===1 && Array.isArray(result.recommendations.items)?result.recommendations.items:[];
@@ -317,6 +318,7 @@
     state.stats = result.stats || {};
     state.remote = true;
     contentVisibility=state.catalog.medical_guidelines.map(r=>r.id+':'+window.MedicalContent.status(r)).join('|');
+    if(state.profileManagement && !isAdmin()){try{const notifications=await API.profileNotifications();state.privateNotifications=notifications.notifications || [];state.privateNotificationVersion=notifications.version;}catch{}}
     updateNotifications();
     connection();
     renderFilters();
@@ -883,7 +885,7 @@
   function updateNotifications() {
     const b=$("#notifications-button");if(!b)return;
     b.hidden=!session();
-    const seen=readAnnouncements(),unread=announcements().filter(r=>!seen.has(announcementKey(r))).length+Number(!!waitingUpdate);
+    const seen=readAnnouncements(),unread=announcements().filter(r=>!seen.has(announcementKey(r))).length+(state.privateNotifications || []).filter(n=>!n.readAt).length+Number(!!waitingUpdate);
     b.querySelector("span").textContent=String(unread);b.querySelector("span").hidden=!unread;
     b.setAttribute("aria-label",unread ? `الإشعارات · ${unread} غير مقروءة` : "الإشعارات");
   }
@@ -893,7 +895,8 @@
     const box=el("div",{class:"notification-list"},el("p",{class:"muted"},"إعلانات الشبكة وتحديث التطبيق"));
     if(waitingUpdate)box.append(el("article",{class:"notification-item unread"},el("strong",{},"تحديث جديد للتطبيق جاهز"),el("p",{},"تفعيل التحديث سيعيد فتح الصفحة. احفظ أي نموذج مفتوح أولًا."),button("تحديث التطبيق الآن",()=>waitingUpdate?.(),"button primary")));
     for(const r of rows)box.append(el("article",{class:"notification-item"+(!seen.has(announcementKey(r))?" unread":"")},el("strong",{},r.title),el("p",{},r.summary),button("قراءة الإعلان",()=>{markAnnouncements([r]);dialog(r.title,contentCard(r));},"text-button")));
-    if(!rows.length && !waitingUpdate)box.append(empty("لا توجد إشعارات جديدة حاليًا."));
+    for(const n of state.privateNotifications || [])box.append(el('article',{class:'notification-item'+(!n.readAt?' unread':'')},el('strong',{},'إشعار خاص بك'),el('p',{},n.message),button('عرض طلبي',async()=>{try{await API.readProfileNotification(n.id);n.readAt=Date.now();updateNotifications();closeDialog();go('account');}catch(e){toast(e.message);}},'text-button')));
+    if(!rows.length && !waitingUpdate && !(state.privateNotifications || []).length)box.append(empty("لا توجد إشعارات جديدة حاليًا."));
     box.append(button("تحديث الإشعارات",async()=>{try{await refresh();if(session())showNotifications();}catch(e){toast(e.message);}},"text-button"));
     if(rows.length)box.append(button("تحديد الإعلانات كمقروءة",()=>{markAnnouncements(rows);showNotifications();},"button outline"));
     dialog("الإشعارات",box);
@@ -1426,6 +1429,8 @@
       );
     };
     formAction(form, "تحقق وادخل");
+    form.querySelector('button[type="submit"]').classList.add("login-submit");
+    form.querySelector('button[type="submit"]').setAttribute("aria-label","تحقق وادخل");
     form.append(el("a", {
       class: "login-support",
       href: "https://wa.me/201550100025?text=" + encodeURIComponent("تعذّر عليّ تسجيل الدخول إلى تطبيق رعايتي. أرجو المساعدة."),
@@ -1464,9 +1469,8 @@
       go("account");
       return;
     }
-    renderMain();
-    $("#main").focus({preventScroll:true});
-    startOfPage();
+    if($('.login-card')){$('.login-card [name="employee_code"]').focus();$('.login-card').scrollIntoView({block:'start',behavior:'smooth'});return;}
+    route();requestAnimationFrame(()=>$('.login-card [name="employee_code"]')?.focus());
   }
   $(".admin-link").addEventListener("click",event=>{
     event.preventDefault();
@@ -1575,6 +1579,61 @@
     };
     dialog(previous ? "تعديل تقييمي" : "تقييم الزيارة وملاحظاتك", formAction(form, "حفظ التقييم"));
   }
+  const profileRequestStatus=s=>({pending:'بانتظار المراجعة',applying:'جارٍ تطبيق تحديث المصدر — يتطلب المتابعة',approved:'موافقة كاملة',partially_approved:'موافقة جزئية',rejected:'لم يُعتمد',cancelled:'ألغي بواسطة العضو'}[s] || 'غير محدد');
+  const profileLabel=key=>window.MedicalMemberProfile.fields.find(f=>f.key===key)?.label || key;
+  function profileChangesTable(request,editable=false){
+    const choices=new Map(),list=el('div',{class:'profile-comparison'});
+    for(const [key,change] of Object.entries(request.changes)){
+      const checked=request.status==='applying'?request.intent?.fields?.includes(key):true;
+      const input=el('input',{type:'checkbox',checked,disabled:request.status==='applying','aria-label':'اعتماد '+profileLabel(key)});choices.set(key,input);
+      list.append(el('article',{},el('strong',{},editable?el('label',{},input,profileLabel(key)):profileLabel(key)),el('div',{},el('small',{},'الحالي'),el('p',{},change.before || 'غير مسجل')),el('div',{},el('small',{},'المقترح'),el('p',{},change.value || 'حذف القيمة')),request.approvedFields?el('small',{class:'profile-local-badge'},request.approvedFields.includes(key)?'معتمد':'لم يُعتمد'):null));
+    }
+    return {list,choices};
+  }
+  async function loadOwnProfileRequests(box){
+    try{const data=await API.profileRequests();if(!box.isConnected || session()?.role!=='member')return;
+      for(const request of data.requests){const details=el('details',{class:'profile-request-card'},el('summary',{},el('strong',{},profileRequestStatus(request.status)),el('small',{},new Intl.DateTimeFormat('ar-EG',{dateStyle:'medium',timeZone:'Africa/Cairo'}).format(new Date(request.createdAt))))),comparison=profileChangesTable(request);
+        replaceNodes(details,...details.childNodes,comparison.list,request.destination?el('p',{class:'muted'},request.destination==='app'?'الاعتماد يخص بيانات رعايتي فقط.':'الاعتماد يخص سجل النقابة الأصلي.'):null,request.note?el('p',{},'رد الإدارة: '+request.note):null);
+        if(request.status==='pending')details.append(button('إلغاء الطلب',async()=>{if(!confirm('إلغاء طلب تعديل البيانات؟'))return;try{await API.cancelProfileRequest(request.id,request.version);go('account');}catch(e){toast(e.message);}},'text-button danger-text'));
+        box.append(details);
+      }
+      if(!data.requests.length)box.append(el('p',{class:'muted'},'لا توجد طلبات تعديل مسجلة.'));
+    }catch(e){if(box.isConnected && session())box.append(el('p',{class:'notice'},e.message));}
+  }
+  async function profileEditDialog(){
+    const holder=el('div',{},el('p',{role:'status'},'جارٍ جلب بياناتك الحالية…'));dialog('طلب تعديل بيانات',holder);
+    try{const data=await API.profileEdit();if(!holder.isConnected || session()?.role!=='member')return;
+      const form=el('form',{class:'form-stack entity-editor profile-request-editor'},el('p',{class:'notice'},'هذا طلب للمراجعة، ولا يغير بياناتك بمجرد الإرسال. يعرض النموذج البيانات الأساسية المسموح بها؛ الرقم القومي الكامل والمستندات والحقول التقنية محمية.'));
+      for(const [group,label] of Object.entries(window.MedicalMemberProfile.groups)){const section=el('fieldset',{class:'profile-form-group'},el('legend',{},label));
+        for(const f of window.MedicalMemberProfile.fields.filter(f=>f.group===group))section.append(field(f.label,f.key,f.key==='address'?'textarea':'text',data.values[f.key] || '',{maxlength:f.max,dir:['phone','phone2','email','jobId'].includes(f.key)?'ltr':'rtl'}));form.append(section);
+      }
+      const preview=el('section',{class:'profile-preview',hidden:true});
+      form.append(button('معاينة التغييرات',()=>{const values=Object.fromEntries(new FormData(form)),changes=Object.fromEntries(window.MedicalMemberProfile.fields.filter(f=>(values[f.key] || '').trim()!==(data.values[f.key] || '')).map(f=>[f.key,{before:data.values[f.key],value:values[f.key]}]));preview.hidden=false;replaceNodes(preview,el('h3',{},'التغييرات المقترحة'),Object.keys(changes).length?profileChangesTable({changes}).list:el('p',{},'لم تغيّر أي بيانات.'));},'button outline'),preview,el('label',{class:'remember-option'},el('input',{type:'checkbox',name:'confirm_request',required:true}),'راجعت البيانات وأطلب مراجعة التصحيحات المحددة'));
+      const requestId=crypto.randomUUID().replaceAll('-','');
+      form.save=async values=>{const changes=Object.fromEntries(window.MedicalMemberProfile.fields.map(f=>[f.key,values[f.key] || '']));await API.submitProfileRequest({request_id:requestId,snapshot:data.snapshot,values:changes});closeDialog(true);go('account');toast('أُرسل طلبك إلى الإدارة؛ بيانات المصدر لم تتغير.');};
+      replaceNodes(holder,formAction(form,'إرسال طلب التعديل'));form.initialValues=editorValues(form);
+    }catch(e){if(holder.isConnected)replaceNodes(holder,el('p',{class:'notice',role:'alert'},e.message));}
+  }
+  async function adminProfileRequestsDialog(){
+    if(!state.profileManagement){dialog('طلبات تعديل بيانات الأعضاء',el('p',{class:'notice'},'يلزم نشر تحديث الخدمة المركزية لتفعيل طلبات تعديل بيانات الأعضاء.'));return;}
+    const box=el('section',{class:'profile-review-queue'},el('p',{},'جارٍ تحميل طلبات الأعضاء…'));dialog('طلبات تعديل بيانات الأعضاء',box);
+    try{const data=await API.adminProfileRequests();if(!box.isConnected || !isAdmin())return;
+      replaceNodes(box,el('p',{class:'muted'},'اختر طلبًا لمراجعة الحقول، ثم حدد وجهة التحديث. لا يُنشر أي قرار كخبر عام.'));
+      for(const request of data.requests)box.append(el('article',{class:'profile-request-card'},el('strong',{},request.memberName),el('p',{},'كود الموظف: '+request.employeeCode+' · '+profileRequestStatus(request.status)),button(['pending','applying'].includes(request.status)?'مراجعة الطلب':'عرض القرار',()=>profileDecisionDialog(request,data.sourceWriterConfigured),'button outline')));
+      if(!data.requests.length)box.append(empty('لا توجد طلبات تعديل بيانات.'));
+    }catch(e){if(box.isConnected)replaceNodes(box,el('p',{class:'notice'},e.message));}
+  }
+  function profileDecisionDialog(request,sourceWriter){
+    const form=el('form',{class:'form-stack'},el('h3',{},request.memberName),el('p',{},'كود الموظف: '+request.employeeCode)),comparison=profileChangesTable(request,['pending','applying'].includes(request.status));form.append(comparison.list);
+    if(!['pending','applying'].includes(request.status)){form.append(el('p',{},profileRequestStatus(request.status)),el('p',{},request.destination==='source'?'حُفظ في السجل الأصلي.':'لم يتغير سجل النقابة؛ القرار يخص رعايتي.'),el('p',{},request.note || ''));dialog('قرار طلب تعديل البيانات',form);return;}
+    const destination=selectField('وجهة التحديث','destination',[['app','التطبيق فقط — دون تغيير سجل النقابة'],['source','تحديث السجل الأصلي في MyNekaba']],request.intent?.destination || 'app');
+    if(!sourceWriter)destination.querySelector('option[value="source"]').disabled=true;
+    if(request.status==='applying')destination.querySelector('select').disabled=true;
+    replaceNodes(form,...form.childNodes,destination,!sourceWriter?el('p',{class:'notice warning'},'تحديث الأصل يحتاج ربط هوية كتابة منفصلة؛ حساب القراءة الحالي لا يُستخدم للكتابة. خيار التطبيق فقط متاح.'):el('p',{class:'notice'},'تحديث الأصل يطبق الحقول المختارة فقط، ويتوقف إذا وجد قيمة أحدث؛ تغيير كود الدخول أو الموبايل قد يتطلب من العضو الدخول بالبيانات الجديدة.'),field('رد الإدارة للعضو (اختياري)','note','textarea',request.intent?.note || '',{maxlength:500}),el('p',{class:'muted'},'الحقول المحددة تُعتمد، وغير المحددة لا تُعتمد. عدم تحديد أي حقل يعني رفض الطلب بالكامل.'),el('label',{class:'remember-option'},el('input',{type:'checkbox',name:'confirm_decision',required:true}),'راجعت المقارنة ووجهة التحديث وأوافق على القرار'));
+    if(request.status==='applying')form.querySelector('[name="note"]').readOnly=true;
+    form.save=async data=>{const fields=[...comparison.choices].filter(([,input])=>input.checked).map(([key])=>key);await API.decideProfileRequest(request.id,{version:request.version,fields,destination:request.intent?.destination || data.destination,note:data.note});closeDialog(true);toast('حُفظ القرار وأُرسل إشعار خاص بصاحب الطلب.');await adminProfileRequestsDialog();};
+    dialog(request.status==='applying'?'متابعة تحديث السجل الأصلي':'مراجعة واعتماد التصحيحات',formAction(form,request.status==='applying'?'إعادة محاولة التطبيق بأمان':'تأكيد القرار وإرسال الإشعار'));
+  }
   async function renderAccount(main) {
     const u = session();
     if (!u) {
@@ -1611,16 +1670,18 @@
         const date = (value) => value && Number.isFinite(new Date(value).getTime()) ? new Intl.DateTimeFormat("ar-EG", {
           timeZone: "Africa/Cairo", dateStyle: "medium", timeStyle: "short",
         }).format(new Date(value)) : "لم يُسجّل بعد";
-        const fields = [
-          ["الاسم", profile.name], ["كود الموظف", profile.employeeCode],
-          ["رقم العضوية النقابية", profile.membershipCode], ["الوظيفة", profile.jobTitle],
-          ["مكان العمل", profile.workplace], ["آخر دخول إلى الدليل الطبي", date(profile.lastLoginAt)],
-          ["الدخول السابق إلى الدليل الطبي", date(profile.previousLoginAt)],
-        ];
-        profileBox.replaceChildren(el("div",{class:"member-card-heading"},el("img",{src:"img/nekaba-mark-512.webp",alt:"",onError:e=>e.target.hidden=true}),el("div",{},el("small",{},"تطبيق رعايتي · WE"),el("h2", {}, "بطاقتي النقابية")),el("span",{class:"member-lock"},"بيانات شخصية")),
-          el("dl", {class:"profile-grid"}, ...fields.map(([label,value]) =>
-            el("div", {}, el("dt", {}, label), el("dd", {}, value || "غير مسجل لدى النقابة")))),
-          el("p", {class:"muted"}, "بياناتك للعرض لك وحدك من سجل النقابة. تحديثها يتم لدى النقابة."));
+        if(!profileBox.isConnected || session()?.role!=='member')return;
+        const extended=profile.profileRequests===true && profile.fields;
+        profileBox.classList.add('member-profile-v2');
+        const hero=el('div',{class:'profile-hero'},el('div',{class:'profile-monogram','aria-hidden':'true'},'◎'),el('div',{},el('span',{class:'eyebrow'},'ملفي الشخصي · رعايتي'),el('h2',{},profile.name || 'بيانات العضو'),el('p',{},'كود الموظف: '+(profile.employeeCode || 'غير مسجل'))),el('span',{class:'profile-readonly'},'للعرض فقط'));
+        const chips=el('div',{class:'profile-status-chips'},el('span',{},'العضوية: '+(profile.memberState || 'غير مسجلة')),el('span',{},profile.membershipType || 'نوع العضوية غير مسجل'),el('span',{},'موقف العمل المسجل: '+(profile.workState || 'غير مسجل')));
+        const sections=el('div',{class:'profile-sections-grid'});
+        if(extended){
+          for(const [group,label] of Object.entries(window.MedicalMemberProfile.groups))sections.append(el('section',{class:'profile-data-section'},el('h3',{},label),el('dl',{class:'profile-grid'},window.MedicalMemberProfile.fields.filter(f=>f.group===group && (['name','jobId','membershipId','membershipStatus','memberState','phone','email','workplace','jobTitle'].includes(f.key) || profile.fields[f.key])).map(f=>el('div',{},el('dt',{},f.label),el('dd',{},profile.fields[f.key] || (f.key==='email'?'لا يوجد بريد':'غير مسجل')),profile.overriddenFields?.includes(f.key)?el('small',{class:'profile-local-badge'},'معتمد في رعايتي فقط'):null)))));
+        }else sections.append(el('dl',{class:'profile-grid'},[['الاسم',profile.name],['كود الموظف',profile.employeeCode],['رقم العضوية النقابية',profile.membershipCode],['الوظيفة',profile.jobTitle],['مكان العمل',profile.workplace]].map(([label,value])=>el('div',{},el('dt',{},label),el('dd',{},value || 'غير مسجل')))));
+        replaceNodes(profileBox,hero,chips,sections,el('section',{class:'profile-activity'},el('h3',{},'نشاط الدخول'),el('dl',{class:'profile-grid'},[['آخر دخول إلى الدليل الطبي',date(profile.lastLoginAt)],['الدخول السابق إلى الدليل الطبي',date(profile.previousLoginAt)]].map(([label,value])=>el('div',{},el('dt',{},label),el('dd',{},value))))),el('div',{class:'profile-actions'},extended?button('طلب تعديل بيانات',profileEditDialog,'button primary'):null,button('تحديث بيانات الصفحة',showProfile,'button outline')),el('p',{class:'muted'},'بيانات المصدر للعرض فقط. اعتماد تعديل في رعايتي لا يغير بيانات دخولك لدى النقابة إلا عند تحديث السجل الأصلي.'),profile.conflictingOverrides?.length?el('p',{class:'notice'},'تغيرت بعض بيانات المصدر بعد تعديل سابق؛ تُعرض القيمة الأحدث من النقابة لحمايتها.'):null);
+        if(extended){const requests=el('section',{class:'profile-requests-section'},el('h3',{},'طلبات تعديل بياناتي'));profileBox.append(requests);void loadOwnProfileRequests(requests);}
+
       } catch (error) {
         profileBox.replaceChildren(el("div",{class:"member-card-heading"},el("img",{src:"img/nekaba-mark-512.webp",alt:"",onError:e=>e.target.hidden=true}),el("div",{},el("small",{},"تطبيق رعايتي · WE"),el("h2", {}, "بطاقتي النقابية")),el("span",{class:"member-lock"},"بيانات شخصية")),
           el("p", {class:"notice warning"}, error.code === "NOT_FOUND"
@@ -1756,7 +1817,7 @@
       ["لم تُراجع بعد",all.filter(({r})=>!r.admin_reviewed_at).length,()=>{state.adminWorklist="pending";filter("all");}],
     ].map(([label,count,action])=>el("article",{},button(String(count),action,"admin-metric-count"),el("span",{},label)))));
     main.append(el("div",{class:"admin-section-tabs","aria-label":"أقسام الإدارة"},kinds.map(kind=>button(labels[kind]+" · "+facilityEntries(kind).length,()=>filter(kind),"button "+(state.adminKind===kind?"primary":"outline")))));
-    main.append(el("div",{class:"admin-tools"},button("مراجعة التقييمات",adminReviewDialog,"button outline"),button("إضافة تعليمات",()=>editDialog("medical_guidelines"),"button outline"),button("إضافة خبر",()=>editDialog("medical_guidelines",null,"news"),"button outline"),button("إدارة المحتوى",()=>filter("medical_guidelines"),"button outline"),button("جودة بيانات الدليل",qualityDialog,"text-button"),button("مراجعة التصنيفات",classificationDialog,"text-button"),button("الفروع والتكرار",facilityDuplicatesDialog,"text-button"),button("مراجعة المواقع والمواعيد",researchDialog,"text-button"),button("تصدير بيانات الدليل",exportCatalog,"text-button")));
+    main.append(el("div",{class:"admin-tools"},button("مراجعة التقييمات",adminReviewDialog,"button outline"),button("طلبات تعديل الأعضاء",adminProfileRequestsDialog,"button outline"),button("إضافة تعليمات",()=>editDialog("medical_guidelines"),"button outline"),button("إضافة خبر",()=>editDialog("medical_guidelines",null,"news"),"button outline"),button("إدارة المحتوى",()=>filter("medical_guidelines"),"button outline"),button("جودة بيانات الدليل",qualityDialog,"text-button"),button("مراجعة التصنيفات",classificationDialog,"text-button"),button("الفروع والتكرار",facilityDuplicatesDialog,"text-button"),button("مراجعة المواقع والمواعيد",researchDialog,"text-button"),button("تصدير بيانات الدليل",exportCatalog,"text-button")));
     const kindSelect=selectField("نوع السجلات","admin-kind",[["all","كل الأقسام"],...kinds.map(k=>[k,labels[k]])],state.adminKind);
     const statusSelect=selectField("حالة العرض والخدمة","admin-state",[["","كل الحالات"],["visible","ظاهرة"],["hidden","مخفية ومحجوبة"],["suspended","موقوفة مؤقتًا"]],state.adminState);
     const worklist=selectField("قائمة العمل","admin-worklist",[["pending","بانتظار المراجعة"],["all","جميع السجلات بما فيها المحدّثة"]],state.adminWorklist);
@@ -2541,6 +2602,9 @@
     state.catalog = Object.fromEntries(kinds.map((k) => [k, []]));
     state.stats = {};
     state.recommendations=[];
+    state.privateNotifications=[];
+    state.privateNotificationVersion=undefined;
+    state.profileManagement=false;
     state.remote = false;
     if ($("#app-dialog").open) closeDialog(true);
     route();
@@ -2552,6 +2616,8 @@
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden && !session() && !$(".login-card")) route();
   });
+  let memberCheckBusy=false;
+  setInterval(async()=>{if(memberCheckBusy || document.hidden || session()?.role!=='member')return;memberCheckBusy=true;try{if(state.profileManagement){const result=await API.profileNotifications(state.privateNotificationVersion);if(!result.notModified){state.privateNotifications=result.notifications || [];state.privateNotificationVersion=result.version;updateNotifications();}}else await API.checkSession();}catch{}finally{memberCheckBusy=false;}},60000);
   let contentVisibility='';
   setInterval(() => {
     API.session();

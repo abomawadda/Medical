@@ -83,3 +83,6 @@ npx firebase-tools@15.34.0 emulators:exec --only firestore --project demo-medica
 بيانات الأطباء الحالية مركزة في المنصورة وطلخا؛ قوائم المدن لا تعني اكتمال التغطية الجغرافية. التأكد من صلاحية التعاقد والمواعيد ومسؤولية الخدمة الطبية يبقى لدى الجهة المختصة.
 
 حجب التصفح داخل التطبيق لا يحوّل مستودع GitHub العام إلى مستودع خاص؛ ملفات مصدر بيانات الجهات ما زالت جزءًا من المستودع. الملاحظات وبيانات العضوية لا تُحفظ فيه.
+
+
+Member profile release 4.11.0: [Arabic behavior, deployment and optional source-writer setup](docs/MEMBER_PROFILE_4_11_AR.md). Frontend publishing does not activate Firebase or the optional separate source writer.

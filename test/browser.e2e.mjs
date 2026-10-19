@@ -199,7 +199,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.10.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.11.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -380,7 +380,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.10.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.11.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -619,7 +619,7 @@ try {
   await a.getByRole("button", {name:"إغلاق النافذة"}).click();
   // The member's name opens their own profile and editing creates a new version.
   await p.getByRole("button", {name:/مرحبًا، عضو الاختبار/}).click();
-  await p.getByRole("heading", {name:"بطاقتي النقابية",exact:true}).waitFor();
+  await p.locator(".profile-hero").getByRole("heading").waitFor();
   await p.getByText("UNION-123", {exact:true}).waitFor();
   await p.getByText("مهندس اختبار", {exact:true}).waitFor();
   assert.ok(await p.getByText("آخر دخول إلى الدليل الطبي", {exact:true}).isVisible());
@@ -1152,6 +1152,33 @@ try {
   await anonymousPage.getByRole('button',{name:'حفظ التقييم',exact:true}).click();await anonymousPage.locator('dialog').waitFor({state:'hidden'});
   const withdrawn=await anonymousPage.evaluate(target=>window.MedicalAPI.publicReviews(target),canonicalTarget);assert.equal(withdrawn.comments.length,0);
   await anonymousContext.close();
+  // Profile correction is reviewed per field and stays app-only unless explicitly routed to a linked writer.
+  const profileContext=await context(true,'block',await memberContext.storageState()),profilePage=await profileContext.newPage();
+  await profilePage.goto(origin+'/#account');await profilePage.getByRole('button',{name:'طلب تعديل بيانات',exact:true}).waitFor();
+  assert.ok((await profilePage.locator('.member-profile-v2').innerText()).includes('لا يوجد بريد'));
+  await profilePage.getByRole('button',{name:'طلب تعديل بيانات',exact:true}).click();
+  await profilePage.getByLabel('البريد الإلكتروني',{exact:true}).fill('profile@example.invalid');
+  await profilePage.getByLabel('الوظيفة',{exact:true}).fill('وظيفة مقترحة للاختبار');
+  await profilePage.getByRole('button',{name:'معاينة التغييرات',exact:true}).click();await profilePage.locator('.profile-preview').waitFor();
+  await profilePage.getByLabel('راجعت البيانات وأطلب مراجعة التصحيحات المحددة',{exact:true}).check();
+  await profilePage.getByRole('button',{name:'إرسال طلب التعديل',exact:true}).click();await profilePage.locator('dialog').waitFor({state:'hidden'});
+  await profilePage.locator('.profile-request-card').filter({hasText:'بانتظار المراجعة'}).waitFor();assert.equal(employee.email,undefined);
+  await a.getByRole('button',{name:'طلبات تعديل الأعضاء',exact:true}).click();await a.getByRole('button',{name:'مراجعة الطلب',exact:true}).first().click();
+  assert.ok(await a.getByLabel('وجهة التحديث',{exact:true}).locator('option[value="source"]').isDisabled());
+  await a.getByRole('checkbox',{name:'اعتماد الوظيفة',exact:true}).uncheck();
+  await a.getByLabel('راجعت المقارنة ووجهة التحديث وأوافق على القرار',{exact:true}).check();
+  await a.getByRole('button',{name:'تأكيد القرار وإرسال الإشعار',exact:true}).click();await a.locator('.profile-review-queue').waitFor();
+  await a.locator('#app-dialog .dialog-header button').click();
+  await profilePage.reload();await profilePage.locator('.profile-data-section').getByText('profile@example.invalid',{exact:true}).waitFor();
+  assert.ok((await profilePage.locator('.member-profile-v2').innerText()).includes('معتمد في رعايتي فقط'));assert.equal(employee.jobTitle,'مهندس اختبار');
+  assert.ok(await profilePage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await profilePage.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'profile-member-mobile.png'),fullPage:true});
+  await profilePage.setViewportSize({width:1440,height:1000});assert.ok(await profilePage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await profilePage.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'profile-member-desktop.png'),fullPage:true});
+  await profilePage.locator('#notifications-button').click();await profilePage.getByText('إشعار خاص بك',{exact:true}).waitFor();
+  assert.ok((await profilePage.locator('dialog').innerText()).includes('رعايتي فقط'));await profilePage.getByRole('button',{name:'عرض طلبي',exact:true}).click();
+  assert.ok((await profilePage.evaluate(()=>window.MedicalAPI.profileNotifications())).notifications.every(n=>n.readAt));
+  await profileContext.close();
   // Content studio: every lifecycle operation is reachable on a narrow screen.
   await a.goto(origin+'/#admin');
   await a.getByRole('button',{name:'إدارة المحتوى',exact:true}).click();
@@ -1359,6 +1386,7 @@ try {
         contentStudioCrudScheduleArchiveAndRepublish: true,
         anonymousReviewConsentCriteriaModerationAndWithdrawal: true,
         recommendationsWeightedScopedResponsiveAndReturnToResults: true,
+        profileReadOnlyPartialAppApprovalAndPrivateNotifications: true,
         dimensions,
         runtimeErrors: errors,
       },
