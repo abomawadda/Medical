@@ -10,6 +10,7 @@
 
 ## خارطة التطوير والتشغيل
 
+- [الخارطة التالية: التصميم والخدمات ومعاينة المدير والتفعيل المرحلي](docs/PHASED_PREVIEW_ROADMAP_AR.md)
 - [معاينة تجربة التصميم الأولى](docs/DESIGN_PREVIEW_AR.md)
 - [النشر الآلي وفحص الصحة وحالة التفعيل](docs/AUTOMATED_DEPLOYMENT_AR.md)
 - [جودة بيانات الدليل والتنظيف والنسخ الاحتياطي وحدود التفعيل](docs/OPERATIONS_AND_DATA_QUALITY_AR.md)
