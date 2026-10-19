@@ -312,7 +312,7 @@ try {
   await browsing.goBack();await browsing.locator('.doctor-card').first().waitFor();
   assert.equal(await browsing.locator('#search-input').inputValue(),'محمد');
   await browsing.locator('#main-nav a[href="#services"]').click();
-  await browsing.waitForFunction(()=>location.hash==='#services');
+  await browsing.waitForFunction(()=>location.hash==='#services' && document.querySelector('#search-input').value==='' && !document.querySelector('.doctor-profile-page'));
   assert.equal(await browsing.locator('#search-input').inputValue(),'');
   await navigationContext.close();
 
