@@ -224,7 +224,7 @@ window.MedicalAPI = (() => {
     health: () => request("/health"),
     adminProfile:()=>request("/admin/profile",{protectedRequest:true}),
     developmentLab:()=>request('/admin/lab',{protectedRequest:true}),
-    labPreview:id=>request('/admin/lab/preview/'+encodeURIComponent(id),{protectedRequest:true}),
+    labPreview:(id,statusOnly=false)=>request('/admin/lab/preview/'+encodeURIComponent(id)+(statusOnly?'?status=1':''),{protectedRequest:true}),
     saveLabFeature:(id,body)=>request('/admin/lab/features/'+encodeURIComponent(id),{method:'PATCH',body,protectedRequest:true}),
     adminOptions:()=>request("/admin/options",{protectedRequest:true}),
     addOption:(key,value)=>request("/admin/options/"+encodeURIComponent(key),{method:"PUT",body:{value},protectedRequest:true}),

@@ -231,7 +231,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.13.1");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.14.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -445,7 +445,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.13.1');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.14.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1029,8 +1029,8 @@ try {
   assert.equal(await pilot.locator('.lab-preview,.lab-feature-card,.companion-welcome').count(),0);
   await pilot.evaluate(()=>{const k='medical_remembered_session_v1',r=JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify({...r,role:'admin',user:{role:'admin'}}));});
   await pilot.reload();await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();
-  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
-  assert.deepEqual(deniedLab,[403,403]);
+  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home','/admin/lab/preview/directory_experience'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
+  assert.deepEqual(deniedLab,[403,403,403]);
   await pilot.getByRole('button',{name:'العودة للرئيسية',exact:true}).click();await pilot.locator('.hero').waitFor();
   assert.equal(await pilot.getByRole('button',{name:'معمل التطوير',exact:true}).count(),0);
   await pilotContext.close();
@@ -1040,7 +1040,7 @@ try {
   const catalogBeforeLab=structuredClone(await store.catalog());
   await a.goto(origin+'/#admin');await a.getByRole('button',{name:'معمل التطوير',exact:true}).click();
   await a.locator('[data-lab-feature="compact_home"]').waitFor();
-  assert.equal(await a.locator('.lab-feature-card').count(),3);
+  assert.equal(await a.locator('.lab-feature-card').count(),4);
   const labFeature=id=>a.locator('[data-lab-feature="'+id+'"]');
   const saveLabDecision=async(id,{review='needs_changes',note='ملاحظة اختبار مصطنعة',previewEnabled=true}={})=>{
     await labFeature(id).getByRole('button',{name:'الملاحظات والقرار',exact:true}).click();
@@ -1108,6 +1108,52 @@ try {
   for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Lab board fits '+width);}
   await a.setViewportSize({width:390,height:844});
   if(process.env.MEDICAL_SCREENSHOT_DIR)await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'lab-board-mobile.png'),fullPage:true,style:'#toast{visibility:hidden}'});
+  // Functional P1 remains private, reads only published entries and preserves navigation context.
+  await labFeature('directory_experience').getByRole('button',{name:'فتح المعاينة',exact:true}).click();
+  await a.locator('.directory-preview[data-directory-ready="true"]').waitFor();
+  await a.getByLabel('البحث في الدليل التجريبي',{exact:true}).fill('داوي');
+  await a.locator('.directory-preview form').getByRole('button',{name:'ابحث',exact:true}).click();
+  await a.locator('[data-directory-provider="specialized_centers:family_20261018_047"]').waitFor();
+  await a.locator('.directory-sections').getByRole('button',{name:'الأطباء',exact:true}).click();
+  assert.equal(await a.getByLabel('البحث في الدليل التجريبي',{exact:true}).inputValue(),'');
+  await a.locator('.directory-sections').getByRole('button',{name:'المستشفيات',exact:true}).click();
+  await a.getByLabel('البحث في الدليل التجريبي',{exact:true}).fill('مستشفى فروع اختبار');
+  await a.locator('.directory-preview form').getByRole('button',{name:'ابحث',exact:true}).click();
+  await a.getByLabel('المركز أو المدينة',{exact:true}).selectOption('بلقاس');
+  assert.equal(await a.locator('.directory-provider-card').count(),1);
+  await a.evaluate(()=>window.scrollTo(0,400));const directoryScroll=await a.evaluate(()=>window.scrollY);
+  await a.locator('.directory-provider-card').getByRole('button',{name:'عرض التفاصيل',exact:true}).evaluate(button=>button.click());
+  await a.locator('.directory-detail-actions').waitFor();
+  await a.locator('[data-directory-branch="'+newHospitals[1].id+'"]').click();
+  assert.ok(await a.locator('.directory-detail-actions a[href="tel:0502000001"]').isVisible());
+  assert.equal(await a.locator('[data-directory-branch]').count(),2);
+  await a.locator('[data-directory-branch="'+newHospitals[0].id+'"]').click();
+  await a.locator('.directory-detail-actions a[href="tel:01012345678"]').waitFor();
+  const mapLink=await a.locator('.directory-detail-actions a[href^="https:"]').getAttribute('href');
+  assert.ok(new URL(mapLink).searchParams.get('query').includes('عنوان رئيسي مصطنع'));
+  await a.getByRole('tab',{name:'تجارب الأعضاء',exact:true}).click();
+  await a.getByText('ملاحظات الأعضاء دون أسماء',{exact:true}).waitFor();
+  assert.equal(await a.locator('.directory-preview button[type="submit"]').count(),0); // There is no review submission form.
+  await a.getByRole('button',{name:'العودة للنتائج',exact:true}).click();
+  await a.locator('.directory-provider-card').waitFor();
+  assert.equal(await a.getByLabel('البحث في الدليل التجريبي',{exact:true}).inputValue(),'مستشفى فروع اختبار');
+  assert.equal(await a.getByLabel('المركز أو المدينة',{exact:true}).inputValue(),'بلقاس');
+  await a.waitForFunction(expected=>Math.abs(window.scrollY-expected)<4,directoryScroll);
+  await a.goForward();await a.locator('.directory-detail-actions').waitFor();
+  await a.locator('.directory-detail-actions a[href="tel:01012345678"]').waitFor();
+  await a.goBack();await a.locator('.directory-provider-card').waitFor();
+  await a.locator('.directory-sections').getByRole('button',{name:'التحاليل',exact:true}).click();
+  assert.equal(await a.getByLabel('البحث في الدليل التجريبي',{exact:true}).inputValue(),'');assert.equal(await a.getByLabel('المركز أو المدينة',{exact:true}).inputValue(),'');
+  for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Integrated directory fits '+width);}
+  await a.setViewportSize({width:390,height:844});
+  if(process.env.MEDICAL_SCREENSHOT_DIR){await a.locator('.directory-preview').screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'integrated-directory-mobile.png')});}
+  await a.getByRole('button',{name:'كل التخصصات',exact:true}).click();await a.getByRole('heading',{name:'كل التخصصات',exact:true}).waitFor();
+  await a.locator('.directory-specialty-grid').getByRole('button',{name:'الأسنان',exact:true}).click();
+  await a.locator('.directory-provider-card').first().waitFor();assert.equal(await a.getByLabel('التخصص في المعاينة',{exact:true}).inputValue(),'الأسنان');
+  await a.evaluate(async()=>{const f=(await window.MedicalAPI.developmentLab()).features.find(f=>f.id==='directory_experience');await window.MedicalAPI.saveLabFeature(f.id,{expected_version:f.version,previewRevision:f.previewRevision,review:'pending',note:'إيقاف المعاينة المترابطة — اختبار',previewEnabled:false});document.dispatchEvent(new Event('visibilitychange'));});
+  await a.getByText('هذه المعاينة موقوفة؛ يمكن استئنافها من المعمل.',{exact:true}).waitFor();assert.equal(await a.locator('.directory-preview,.directory-provider-card').count(),0);
+  await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('directory_experience').waitFor();
+  await saveLabDecision('directory_experience',{previewEnabled:true});
   // A cached old client cannot approve the server's newer specimen revision.
   const incompatibleLab=await a.evaluate(()=>window.MedicalAPI.developmentLab());incompatibleLab.features[0].previewRevision='future-lab-revision';
   await a.route('**/v1/admin/lab',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(incompatibleLab)}));
@@ -1127,7 +1173,7 @@ try {
   const adminTabSession=await a.evaluate(()=>sessionStorage.getItem('medical_session_v1'));
   const revokedContext=await context();await revokedContext.addInitScript(({value,origin})=>{if(location.origin===origin)sessionStorage.setItem('medical_session_v1',value);},{value:adminTabSession,origin});
   const revokedLab=await revokedContext.newPage();await revokedLab.goto(origin+'/#lab');await revokedLab.locator('[data-lab-feature="compact_home"]').waitFor();
-  await revokedLab.locator('[data-lab-feature="compact_home"]').getByRole('button',{name:'فتح المعاينة',exact:true}).click();await revokedLab.locator('.lab-preview').waitFor();
+  await revokedLab.locator('[data-lab-feature="directory_experience"]').getByRole('button',{name:'فتح المعاينة',exact:true}).click();await revokedLab.locator('.directory-preview').waitFor();
   account.accountStatus='disabled';
   try{await revokedLab.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await revokedLab.locator('.login-card').waitFor();assert.equal(await revokedLab.locator('.lab-preview,.lab-feature-card,.development-lab').count(),0);}
   finally{account.accountStatus='active';await revokedContext.close();}
@@ -1513,6 +1559,7 @@ try {
         personalProfileAndAuthorOnlyReviewEditing: true,
         incompatibleBackendModerationBlocked: true,
         administratorLabPrivateVersionedResponsiveAndLegacyUrlRetired: true,
+        integratedDirectoryReadonlySearchBranchesAndHistory: true,
         moderationSavedDespiteDirectoryRefreshFailure: true,
         contentStudioCrudScheduleArchiveAndRepublish: true,
         anonymousReviewConsentCriteriaModerationAndWithdrawal: true,

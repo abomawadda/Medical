@@ -426,7 +426,11 @@ export function createService({
   const profileOperations=profileService({source,store,sourceWriter,authorize,digest,rate,now});
   return {
     ...profileOperations,
-    ...developmentLabService({store,authorize,now}),
+    ...developmentLabService({store,authorize,now,readDirectory:async()=>{
+      const catalog=memberCatalog(await store.catalog(),now()),allowed=targets(catalog);
+      const stats=Object.fromEntries(Object.entries(await store.getStats()).filter(([id])=>allowed.has(id)));
+      return {catalog,stats,facilityStats:await store.getGroupedStats(facilities.reviewGroups(catalog))};
+    }}),
     async memberLogin(body, ip) {
       await rate(ip, "member-ip", 30);
       const c = code(body.employee_code),

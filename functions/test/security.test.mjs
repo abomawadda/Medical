@@ -946,8 +946,8 @@ test('source-profile decisions use an immutable intent and never fall back to ap
 test('development lab authorizes every read, preview and decision against the live administrator',async()=>{
  const f=setup(),m=await member(f),a=await admin(f);
  for(const token of ['',m])for(const op of [()=>f.service.adminLab(token),()=>f.service.labPreview(token,'compact_home'),()=>f.service.saveLabFeature(token,'compact_home',{})])await assert.rejects(op,e=>e.status===(token?403:401));
- const data=await f.service.adminLab(a);assert.equal(data.features.length,3);assert.equal(data.memberReleaseSupported,false);
- assert.ok(data.features.every(r=>r.audience==='admin'&&!r.memberEnabled&&r.syntheticOnly));
+ const data=await f.service.adminLab(a);assert.equal(data.features.length,4);assert.equal(data.memberReleaseSupported,false);
+ assert.ok(data.features.every(r=>r.audience==='admin'&&!r.memberEnabled));assert.equal(data.features.find(f=>f.id==='directory_experience').syntheticOnly,false);
  const preview=await f.service.labPreview(a,'compact_home');assert.match(preview.scene.label,/توضيحية/);assert.equal(preview.scene.provider.rating,null);
  f.accounts[0].accountStatus='disabled';await assert.rejects(()=>f.service.labPreview(a,'compact_home'),e=>e.status===403);
  f.accounts[0].accountStatus='active';f.advance(600001);await assert.rejects(()=>f.service.adminLab(a),e=>e.status===401);
@@ -983,4 +983,17 @@ test('HTTP lab routes require live admin authorization and send no-store for eve
   assert.equal(r.headers['Cache-Control'],'no-store');
   if(token!==a)assert.ok(!JSON.stringify(r.body).includes('previewRevision'));
  }
+});
+test('real directory preview uses the member projection, never writes production, and status polling omits the catalog',async()=>{
+ const allowed={contract_listing:true,contract_entity:'تعاقد اختبار',contract_entity_id:'direct_we',contract_type:'direct_we'};
+ const store=fixtureStore({hospitals:[{...allowed,id:'parent',name:'مستشفى منشور'},{...allowed,id:'hidden',name:'مستشفى مخفي',directory_visibility:'hidden'}],records:[{...allowed,id:'visible-doctor',provider_id:'visible',name:'طبيب ظاهر'},{...allowed,id:'hidden-doctor',provider_id:'hidden',name:'طبيب محجوب',contract_type:'hospital',contract_entity_id:'hidden',hospital:'مستشفى مخفي'}],medical_guidelines:[{id:'draft',title:'مسودة',publication_status:'draft'}]});
+ const f=setup({store}),a=await admin(f),m=await member(f),before=await f.service.catalog(m),sourceBefore=structuredClone(f.employees);
+ for(const token of ['',m])await assert.rejects(()=>f.service.labPreview(token,'directory_experience'),e=>e.status===(token?403:401));
+ const preview=await f.service.labPreview(a,'directory_experience');assert.equal(preview.feature.syntheticOnly,false);assert.equal(preview.scene.mode,'directory-readonly');assert.equal(preview.feature.memberEnabled,false);
+ assert.deepEqual(preview.scene.catalog,before.catalog);assert.deepEqual(preview.scene.catalog.records.map(r=>r.id),['visible-doctor']);assert.equal(preview.scene.catalog.medical_guidelines.length,0);
+ const status=await f.service.labPreview(a,'directory_experience',true);assert.ok(!('scene'in status));
+ assert.equal(store.overlays.size,0);assert.equal(store.reviews.size,0);assert.equal(store.audit.length,0);assert.deepEqual(f.employees,sourceBefore);
+ await f.service.saveLabFeature(a,'directory_experience',{expected_version:0,previewRevision:preview.feature.previewRevision,review:'pending',note:'',previewEnabled:false});
+ for(const metadata of [true,false])await assert.rejects(()=>f.service.labPreview(a,'directory_experience',metadata),e=>e.code==='LAB_PAUSED');
+ assert.deepEqual(await f.service.catalog(m),before);
 });

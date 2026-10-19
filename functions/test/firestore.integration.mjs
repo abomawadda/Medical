@@ -341,6 +341,10 @@ assert.ok((await service.profileNotifications(member)).notifications[0].readAt);
 assert.equal(JSON.stringify((await foreign.collection('employees').get()).docs.map(d=>d.data())),before);
 // Lab reviews persist only in Medical and cannot change the member catalog or source.
 const memberBeforeLab=await service.catalog(member),lab=(await service.adminLab(admin)).features[0];
+const integrated=await service.labPreview(admin,'directory_experience');assert.equal(integrated.feature.dataMode,'directory-readonly');assert.deepEqual(integrated.scene.catalog,memberBeforeLab.catalog);
+assert.ok(!('scene' in await service.labPreview(admin,'directory_experience',true)));
+await assert.rejects(()=>service.labPreview(member,'directory_experience'),e=>e.status===403);
+
 await assert.rejects(()=>service.adminLab(member),e=>e.status===403);
 const labBody={expected_version:0,previewRevision:lab.previewRevision,review:'approved',note:'مراجعة تصميم مصطنعة',previewEnabled:true};
 const labSaves=await Promise.all([1,2].map(()=>service.saveLabFeature(admin,lab.id,labBody)));

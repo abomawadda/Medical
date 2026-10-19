@@ -75,6 +75,7 @@
     greetingName:"",
     headerMember:null,
     identityEpoch:0,
+    directoryNavigation:null,
     remote: false,
   };
   const $ = (s) => document.querySelector(s);
@@ -339,7 +340,7 @@
     connection();
     renderFilters();
     // The lab owns its guarded view; background catalog loading must not reset a review.
-    if(state.tab === "lab" && labView && isAdmin() && epoch===state.identityEpoch){$("#main").dataset.catalogReady="true";return;}
+    if(["lab","lab-directory"].includes(state.tab) && labView && isAdmin() && epoch===state.identityEpoch){$("#main").dataset.catalogReady="true";return;}
     if (location.hash.startsWith("#entity=")) route();
     else renderMain();
   }
@@ -1031,7 +1032,22 @@
   function renderDevelopmentLab(main){
     if(!isAdmin()){main.append(heading("المعاينة متاحة للإدارة فقط"),button("العودة للرئيسية",()=>go("home"),"button primary"));return;}
     const epoch=state.identityEpoch,root=el("section",{class:"development-lab","aria-label":"معمل التطوير الخاص"});main.append(root);
-    labView=window.MedicalDevelopmentLab.mount({root,api:API,el,button,replaceNodes,icon:careIcon,notice:toast,review:reviewLabFeature,exit:()=>go("admin"),allowed:()=>isAdmin()&&epoch===state.identityEpoch});
+    labView=window.MedicalDevelopmentLab.mount({root,api:API,el,button,replaceNodes,icon:careIcon,notice:toast,review:reviewLabFeature,exit:()=>go("admin"),directory:()=>directoryNavigate("",{filters:window.MedicalDirectoryModel.emptyFilters(),scroll:0}),allowed:()=>isAdmin()&&epoch===state.identityEpoch});
+  }
+  function directoryNavigate(target,next){
+    const hash=target==="specialties"?"lab-specialties":target?"lab-directory="+encodeURIComponent(target):"lab-directory";
+    pendingNavigation={tab:"lab-directory",filters:{directoryNavigation:next}};
+    if(location.hash==="#"+hash)route();else location.hash=hash;
+  }
+  function directoryBack(){
+    const prior=[...viewHistory.entries()].some(([key,v])=>key!==activeViewKey&&["#lab-directory","#lab-specialties"].includes(v.hash));
+    if(prior)history.back();else directoryNavigate("",{...(state.directoryNavigation||{}),scroll:0});
+  }
+  function renderDirectoryExperience(main){
+    if(!isAdmin()){main.append(heading("المعاينة متاحة للإدارة فقط"),button("العودة للرئيسية",()=>go("home"),"button primary"));return;}
+    const epoch=state.identityEpoch,root=el("section",{class:"development-lab","aria-label":"تجربة الدليل الخاصة"});main.append(root);
+    let detailId="";try{if(location.hash.startsWith("#lab-directory="))detailId=decodeURIComponent(location.hash.slice(15));}catch{return root.append(empty("رابط الجهة غير صالح."));}
+    labView=window.MedicalDirectoryPreview.mount({root,api:API,el,button,icon:careIcon,avatar:providerAvatar,notice:toast,allowed:()=>isAdmin()&&epoch===state.identityEpoch,navigate:directoryNavigate,back:directoryBack,exit:()=>go("lab"),review:reviewLabFeature,initial:state.directoryNavigation||{},detailId,specialties:location.hash==="#lab-specialties",onChange:value=>{state.directoryNavigation=value;}});
   }
   function reviewLabFeature(feature,reload){
     if(!isAdmin())return;const epoch=state.identityEpoch;
@@ -1058,9 +1074,9 @@
     main.replaceChildren();
     const signedIn = !!session();
     document.documentElement.classList.toggle("workspace-view",signedIn);
-    document.documentElement.classList.toggle("admin-view",signedIn && ["admin","lab"].includes(state.tab));
+    document.documentElement.classList.toggle("admin-view",signedIn && ["admin","lab","lab-directory"].includes(state.tab));
     const desktopAdmin=$(".desktop-admin-link");if(desktopAdmin)desktopAdmin.hidden=!isAdmin();
-    $(".search-panel").hidden = !signedIn || ["home","lab"].includes(state.tab);
+    $(".search-panel").hidden = !signedIn || ["home","lab","lab-directory"].includes(state.tab);
     $("#main-nav").hidden = !signedIn;
     if (!signedIn) {
       document.documentElement.classList.add("login-view");
@@ -1068,6 +1084,7 @@
     }
     document.documentElement.classList.remove("login-view");
     if (state.tab === "lab") return renderDevelopmentLab(main);
+    if (state.tab === "lab-directory") return renderDirectoryExperience(main);
     if (!state.remote) {
       main.append(
         heading("تحميل الدليل الطبي"),
@@ -1245,9 +1262,10 @@
       );
   }
   const viewHistory=new Map();
-  const viewFields=["tab","query","markaz","specialty","hospital","coverage","network","contractType","serviceKind","limit","adminKind","adminState","adminWorklist","adminSpecialty","adminCategory","adminMarkaz","adminNetwork","adminContract"];
+  const viewFields=["tab","query","markaz","specialty","hospital","coverage","network","contractType","serviceKind","limit","adminKind","adminState","adminWorklist","adminSpecialty","adminCategory","adminMarkaz","adminNetwork","adminContract","directoryNavigation"];
   let activeViewKey=null,activeViewHash="";
   function rememberView(){
+    if(state.tab==="lab-directory"&&labView?.navigation)state.directoryNavigation=labView.navigation();
     if(activeViewKey && session() && state.tab!=="profile") {
       viewHistory.set(activeViewKey,{hash:activeViewHash,state:Object.fromEntries(viewFields.map(k=>[k,state[k]])),scroll:window.scrollY});
       if(viewHistory.size>40)viewHistory.delete(viewHistory.keys().next().value);
@@ -1299,7 +1317,7 @@
       }
     }
     const previousTab=state.tab;
-    state.tab = [
+    state.tab = (hash==="lab-directory"||hash.startsWith("lab-directory=")||hash==="lab-specialties")?"lab-directory":[
       ...nav.map((n) => n[0]),
       "district-network",
       "search",
@@ -1313,6 +1331,7 @@
     ].includes(hash)
       ? hash
       : "home";
+    if(state.tab==="lab-directory"&&previousTab!==state.tab&&!pendingNavigation)state.directoryNavigation=null;
     if(state.tab !== previousTab || pendingNavigation?.tab === state.tab) {resetSearch();$("#filter-panel").open=false;}
     if(pendingNavigation?.tab === state.tab) Object.assign(state,pendingNavigation.filters);
     pendingNavigation=null;
@@ -1438,7 +1457,7 @@
     );
     form.save = async (data) => {
       viewHistory.clear();activeViewKey=null;
-    state.greetingName="";state.headerMember=null;state.identityEpoch++;
+    state.greetingName="";state.headerMember=null;state.directoryNavigation=null;state.identityEpoch++;
       await API.login("member", { ...data, remember: data.remember === "on" });
       form.reset();
       closeDialog();
@@ -1526,7 +1545,7 @@
       );
     form.save = async (data) => {
       viewHistory.clear();activeViewKey=null;
-    state.greetingName="";state.headerMember=null;state.identityEpoch++;
+    state.greetingName="";state.headerMember=null;state.directoryNavigation=null;state.identityEpoch++;
       await API.login("admin", data);
       form.reset();
       closeDialog();
@@ -2618,7 +2637,7 @@
   window.addEventListener("medical-session-invalidated", () => {
     clearLab();
     viewHistory.clear();activeViewKey=null;
-    state.greetingName="";state.headerMember=null;state.identityEpoch++;
+    state.greetingName="";state.headerMember=null;state.directoryNavigation=null;state.identityEpoch++;
     idleBanner.hidden=true;idleModalBanner.hidden=true;
     state.catalog = Object.fromEntries(kinds.map((k) => [k, []]));
     state.stats = {};
