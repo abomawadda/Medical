@@ -24,7 +24,7 @@ const employee = {
   phone: "01012345678",
   nationalId: "29901010101234",
   memberState: "نشط",
-  membershipId:"UNION-123", jobTitle:"مهندس اختبار", workplace:"سنترال اختبار",
+  membershipId:"UNION-123", membershipStatus:"عضو جمعية عمومية", jobTitle:"مهندس اختبار", workplace:"سنترال اختبار",
   name: "عضو الاختبار",
 };
 const account = {
@@ -199,7 +199,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.11.1");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.11.2");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -257,13 +257,16 @@ try {
   assert.ok(await p.locator("#connection-status").isHidden());
   assert.equal(await p.locator("#connection-status").textContent(), "");
   assert.ok(!(await p.locator("body").innerText()).includes("الخدمة المركزية"));
-  assert.equal(await p.locator("#member-button").textContent(), "مرحبًا، عضو الاختبار");
+  assert.equal(await p.locator("#member-button").textContent(), "عضو الاختبار");
   await p.goto(origin+'/#home');await p.locator('.care-home h1').waitFor();
   assert.equal(await p.locator('.care-home h1').textContent(),'رعاية أقرب.. لك ولأسرتك');
   assert.ok(await p.locator('#header-logout').isVisible());
+  await p.locator('#header-member-meta .header-workplace').getByText('سنترال اختبار',{exact:true}).waitFor();
+  assert.equal(await p.locator('.header-affiliation').textContent(),'نقابة عامة');
+  assert.ok((await p.locator('.care-greeting').textContent()).startsWith('مرحبًا، '));
   for(const width of [320,390,768,1440]){
     await p.setViewportSize({width,height:844});
-    const fit=await p.evaluate(()=>{const h=document.querySelector('.care-home h1'),tabs=[...document.querySelectorAll('.network-tab>span:last-child')],places=[...document.querySelectorAll('.care-district')];return {page:document.documentElement.scrollWidth<=innerWidth+1,heading:h.scrollWidth<=h.clientWidth+1,oneLine:h.getBoundingClientRect().height<=parseFloat(getComputedStyle(h).lineHeight)+1,tabs:tabs.every(n=>n.getBoundingClientRect().height<=parseFloat(getComputedStyle(n).lineHeight)+1),places:places.every(n=>Math.abs(n.getBoundingClientRect().top-places[0].getBoundingClientRect().top)<2)};});
+    const fit=await p.evaluate(()=>{const h=document.querySelector('.care-home h1'),tabs=[...document.querySelectorAll('.network-tab>span:last-child')],places=[...document.querySelectorAll('.care-district')];const member=document.querySelector('#member-button'),out=document.querySelector('#header-logout'),tools=document.querySelectorAll('.header-actions .icon-button');return {memberLine:new Set([...member.querySelectorAll("span")].map(n=>Math.round(n.getBoundingClientRect().top))).size<=1,memberFit:member.scrollWidth<=member.clientWidth+1,logoutLast:[...tools].every(n=>out.getBoundingClientRect().right<=n.getBoundingClientRect().left+1),page:document.documentElement.scrollWidth<=innerWidth+1,heading:h.scrollWidth<=h.clientWidth+1,oneLine:h.getBoundingClientRect().height<=parseFloat(getComputedStyle(h).lineHeight)+1,tabs:tabs.every(n=>n.getBoundingClientRect().height<=parseFloat(getComputedStyle(n).lineHeight)+1),places:places.every(n=>Math.abs(n.getBoundingClientRect().top-places[0].getBoundingClientRect().top)<2)};});
     assert.ok(Object.values(fit).every(Boolean),'Home rows fit at '+width+': '+JSON.stringify(fit));
   }
   await p.setViewportSize({width:390,height:844});
@@ -280,10 +283,14 @@ try {
   // Full profile names, not the two-word session label, drive compound-aware greetings.
   const namesContext=await context(true,"block",await memberContext.storageState());
   const named=await namesContext.newPage();
-  await named.route("https://medical.example.invalid/v1/profile",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({profile:{name:"أحمد محمد أبو النجا السيد"}})}));
+  await named.route("https://medical.example.invalid/v1/profile",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({profile:{name:"أحمد محمد أبو النجا السيد",workplace:"مقر تجربة مركّبة",membershipType:"نقابة مستقلة",memberState:"نشط"}})}));
   await named.goto(origin+"/#home");
-  await named.waitForFunction(()=>document.querySelector('#member-button')?.textContent === "مرحبًا، أحمد محمد أبو النجا");
+  await named.waitForFunction(()=>document.querySelector('#member-button')?.textContent === "أحمد محمد أبو النجا");
   assert.deepEqual(await named.locator('.greeting-name-part').allTextContents(),["أحمد","محمد","أبو النجا"]);
+  assert.equal(await named.locator('.header-affiliation').textContent(),'نقابة مستقلة');
+  assert.ok(!(await named.evaluate(()=>JSON.stringify(localStorage))).includes('مقر تجربة'));
+  await named.setViewportSize({width:390,height:844});
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await named.locator('.app-header').screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'member-header-mobile.png')});
   for(const width of [320,390]){await named.setViewportSize({width,height:844});assert.ok(await named.evaluate(()=>document.documentElement.scrollWidth)<=width,"Greeting and notification bell fit at "+width);}
   assert.ok(!(await named.evaluate(()=>JSON.stringify(localStorage))).includes("أبو النجا"));
   await namesContext.close();
@@ -349,7 +356,7 @@ try {
     r = await reopened.newPage();
   await r.goto(origin);
   await r.locator(".hero").waitFor();
-  assert.equal(await r.locator("#member-button").textContent(), "مرحبًا، عضو الاختبار");
+  assert.equal(await r.locator("#member-button").textContent(), "عضو الاختبار");
   assert.equal(await r.evaluate(() => MedicalAPI.session().role), "member");
   const groups = new Map();
   for (const item of seed.records) {
@@ -392,7 +399,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.11.1');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.11.2');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -630,7 +637,7 @@ try {
   assert.equal(await a.getByRole("button", {name:"اعتماد ونشر",exact:true}).count(),0);
   await a.getByRole("button", {name:"إغلاق النافذة"}).click();
   // The member's name opens their own profile and editing creates a new version.
-  await p.getByRole("button", {name:/مرحبًا، عضو الاختبار/}).click();
+  await p.locator("#member-button").click();
   await p.locator(".profile-hero").getByRole("heading").waitFor();
   await p.getByText("UNION-123", {exact:true}).waitFor();
   await p.getByText("مهندس اختبار", {exact:true}).waitFor();
@@ -1217,6 +1224,7 @@ try {
   await newsCard().getByRole('button',{name:'تعديل',exact:true}).click();
   await a.getByLabel('الموجز',{exact:true}).fill('موجز معدل بلا إشعار جديد');
   await a.getByRole('button',{name:'حفظ التغييرات',exact:true}).click();await a.locator('dialog').waitFor({state:'hidden'});
+  await newsCard().locator('.content-excerpt').getByText('موجز معدل بلا إشعار جديد',{exact:true}).waitFor();
   assert.equal((await store.catalog()).medical_guidelines.find(r=>r.id===news.id).publication_revision,1);
   await newsCard().getByRole('button',{name:'إيقاف النشر',exact:true}).click();await a.getByRole('button',{name:'تأكيد الإجراء',exact:true}).click();await a.locator('dialog').waitFor({state:'hidden'});
   await newsCard().locator('.content-status').getByText('مسودة',{exact:true}).waitFor();

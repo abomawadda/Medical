@@ -68,6 +68,7 @@
     adminSpecialty:"",adminCategory:"",adminMarkaz:"",adminNetwork:"",adminContract:"",
     options:{},
     greetingName:"",
+    headerMember:null,
     identityEpoch:0,
     remote: false,
   };
@@ -264,7 +265,12 @@
     updateNotifications();
     $("#filter-panel > small").hidden = !isAdmin();
     const greeting=u ? window.MedicalNames.parts(u.name).flatMap((part,index)=>[index ? " " : "",el("span",{class:"greeting-name-part"},part)]) : [];
-    $("#member-button").replaceChildren(...(u ? [u.role === "member" ? "مرحبًا، " : "",...greeting] : ["تسجيل الدخول"]).map(value=>typeof value === "string" ? document.createTextNode(value) : value));
+    $("#member-button").replaceChildren(...(u ? greeting : ["تسجيل الدخول"]).map(value=>typeof value === "string" ? document.createTextNode(value) : value));
+    const meta=$("#header-member-meta");
+    const details=u ? state.headerMember : null;
+    replaceNodes(meta,details?.workplace?el('span',{class:'header-workplace'},details.workplace):null,details?.affiliation?el('span',{class:'header-affiliation'},details.affiliation):null);
+    meta.hidden=!details || !(details.workplace || details.affiliation);
+
   }
   function connection() {
     const n = $("#connection-status");
@@ -307,11 +313,12 @@
     state.structuredBranches = result.structuredBranches === true;
     state.contentLifecycle = result.contentLifecycle === true;
     if(isAdmin() && state.adminWorkspace)state.options=(await API.adminOptions()).options || {};
-    if(!state.greetingName && (!isAdmin() || state.adminWorkspace)) {
+    if((!state.greetingName || !state.headerMember) && (!isAdmin() || state.adminWorkspace)) {
       try {
         const response=isAdmin() ? await API.adminProfile() : await API.profile();
         if(epoch === state.identityEpoch && session()) {
           state.greetingName=window.MedicalNames.greeting(display(response.profile?.name));
+          state.headerMember=isAdmin()?{workplace:"",affiliation:"إدارة المنظومة"}:window.MedicalMemberSummary.summary(response.profile);
           updateHeader();
         }
       } catch { /* Profile availability must not prevent directory access. */ }
@@ -1424,7 +1431,7 @@
     );
     form.save = async (data) => {
       viewHistory.clear();activeViewKey=null;
-    state.greetingName="";state.identityEpoch++;
+    state.greetingName="";state.headerMember=null;state.identityEpoch++;
       await API.login("member", { ...data, remember: data.remember === "on" });
       form.reset();
       closeDialog();
@@ -1512,7 +1519,7 @@
       );
     form.save = async (data) => {
       viewHistory.clear();activeViewKey=null;
-    state.greetingName="";state.identityEpoch++;
+    state.greetingName="";state.headerMember=null;state.identityEpoch++;
       await API.login("admin", data);
       form.reset();
       closeDialog();
@@ -1679,6 +1686,7 @@
           timeZone: "Africa/Cairo", dateStyle: "medium", timeStyle: "short",
         }).format(new Date(value)) : "لم يُسجّل بعد";
         if(!profileBox.isConnected || session()?.role!=='member')return;
+        state.headerMember=window.MedicalMemberSummary.summary(profile);updateHeader();
         const extended=profile.profileRequests===true && profile.fields;
         profileBox.classList.add('member-profile-v2');
         const hero=el('div',{class:'profile-hero'},el('div',{class:'profile-monogram','aria-hidden':'true'},'◎'),el('div',{},el('span',{class:'eyebrow'},'ملفي الشخصي · رعايتي'),el('h2',{},profile.name || 'بيانات العضو'),el('p',{},'كود الموظف: '+(profile.employeeCode || 'غير مسجل'))),el('span',{class:'profile-readonly'},'للعرض فقط'));
@@ -2605,7 +2613,7 @@
   }
   window.addEventListener("medical-session-invalidated", () => {
     viewHistory.clear();activeViewKey=null;
-    state.greetingName="";state.identityEpoch++;
+    state.greetingName="";state.headerMember=null;state.identityEpoch++;
     idleBanner.hidden=true;idleModalBanner.hidden=true;
     state.catalog = Object.fromEntries(kinds.map((k) => [k, []]));
     state.stats = {};

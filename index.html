@@ -33,15 +33,15 @@
     <meta name="twitter:image" content="https://reayati-we.vercel.app/img/rayati-share-4-4-2.jpg" />
     <meta name="twitter:image:alt" content="تطبيق رعايتي — شبكتك الطبية بين يديك، بهوية WE والنقابة" />
     <link rel="icon" type="image/webp" href="img/rayati-icon-512.webp" />
-    <link rel="manifest" href="manifest.json?v=20261019-homepolish" />
+    <link rel="manifest" href="manifest.json?v=20261019-memberstrip" />
     <link rel="apple-touch-icon" href="img/rayati-icon-512.png" />
-    <link rel="stylesheet" href="css/styles.css?v=20261019-homepolish" />
+    <link rel="stylesheet" href="css/styles.css?v=20261019-memberstrip" />
     <link rel="stylesheet" href="css/fonts.css" />
     <script defer src="js/config.js?v=20261017-live"></script>
     <script defer src="js/storage.js"></script>
-    <script defer src="js/admin-idle.js?v=20261019-homepolish"></script>
-    <script defer src="js/content-policy.js?v=20261019-homepolish"></script>
-    <script defer src="js/api.js?v=20261019-homepolish"></script>
+    <script defer src="js/admin-idle.js?v=20261019-memberstrip"></script>
+    <script defer src="js/content-policy.js?v=20261019-memberstrip"></script>
+    <script defer src="js/api.js?v=20261019-memberstrip"></script>
     <script defer src="js/quality.js?v=20261018-nabd"></script>
     <script defer src="js/contacts.js?v=20261018-nabd"></script>
     <script defer src="js/directory-research.js?v=20261018-compact"></script>
@@ -52,10 +52,11 @@
     <script defer src="js/review-criteria.js?v=20261018-batchdata"></script>
     <script defer src="js/locations.js?v=20261018-batchdata"></script>
     <script defer src="js/facility-directory.js?v=20261018-batchdata"></script>
-    <script defer src="js/recommendations.js?v=20261019-homepolish"></script>
-    <script defer src="js/member-profile.js?v=20261019-homepolish"></script>
-    <script defer src="js/release.js?v=20261019-homepolish"></script>
-    <script defer src="js/app.js?v=20261019-homepolish"></script>
+    <script defer src="js/recommendations.js?v=20261019-memberstrip"></script>
+    <script defer src="js/member-summary.js?v=20261019-memberstrip"></script>
+    <script defer src="js/member-profile.js?v=20261019-memberstrip"></script>
+    <script defer src="js/release.js?v=20261019-memberstrip"></script>
+    <script defer src="js/app.js?v=20261019-memberstrip"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">انتقل إلى المحتوى</a>
@@ -67,6 +68,10 @@
           ><small>اللجنة النقابية · الدقهلية</small></span
         >
       </a>
+      <div class="header-account">
+        <button id="member-button" class="button primary">تسجيل الدخول</button>
+        <div id="header-member-meta" class="header-member-meta" hidden></div>
+      </div>
       <div class="header-actions">
         <button id="notifications-button" class="icon-button notifications-button" aria-label="الإشعارات" hidden>
           <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4M12 2V1"/></svg>
@@ -75,10 +80,8 @@
         <button id="theme-toggle" class="icon-button" aria-label="تبديل المظهر">
           ◐
         </button>
-        <div class="header-account">
-          <button id="member-button" class="button primary">تسجيل الدخول</button>
-          <button id="header-logout" type="button" class="header-logout" aria-label="تسجيل الخروج" title="تسجيل الخروج" hidden><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4H5v16h5M9 12h12m-4-4 4 4-4 4"/></svg><span>خروج</span></button>
-        </div>
+
+        <button id="header-logout" type="button" class="header-logout" aria-label="تسجيل الخروج" title="تسجيل الخروج" hidden><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4H5v16h5M9 12h12m-4-4 4 4-4 4"/></svg><span>خروج</span></button>
       </div>
     </header>
     <div class="page-shell">
