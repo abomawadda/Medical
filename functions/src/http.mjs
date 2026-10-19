@@ -24,7 +24,7 @@ export function createHandler({ getService, origins, logger = console }) {
     if (req.method === "GET" && path === "/v1/health") {
       try {
         getService();
-        return res.json({ configured: true, capabilities: ["member-profile", "review-revisions", "staff-directory", "provider-images", "provider-illustrations", "directory-state-v1", "family-directory-v1", "directory-content-v1", "contract-directory-v1", "public-emergency-v1", "admin-workspace-v1", "review-criteria-v1", "facility-branches-v1", "admin-batch-v1", "admin-batch-data-v1", "structured-branches-v1", "admin-idle-v1", "content-lifecycle-v1"] });
+        return res.json({ configured: true, capabilities: ["member-profile", "review-revisions", "staff-directory", "provider-images", "provider-illustrations", "directory-state-v1", "family-directory-v1", "directory-content-v1", "contract-directory-v1", "public-emergency-v1", "admin-workspace-v1", "review-criteria-v1", "facility-branches-v1", "admin-batch-v1", "admin-batch-data-v1", "structured-branches-v1", "admin-idle-v1", "content-lifecycle-v1", "public-review-details-v1"] });
       } catch {
         return res.status(503).json({
           configured: false,
@@ -77,6 +77,8 @@ export function createHandler({ getService, origins, logger = console }) {
         data = await service.logout(token);
       else if (req.method === "POST" && path === "/v1/reviews")
         data = await service.submitReview(token, body, ip);
+      else if (req.method === 'GET' && /^\/v1\/reviews\/public\/[^/]+$/.test(path))
+        data=await service.publicReviews(token,decodeURIComponent(path.split('/').pop()),req.query?.page===undefined?0:Number(req.query.page));
       else if (req.method === "GET" && path === "/v1/reviews/mine")
         data = await service.ownReviews(token);
       else if (req.method === "GET" && path === "/v1/admin/reviews")

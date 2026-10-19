@@ -319,6 +319,14 @@ export function firebaseAdapters({
         facilityStatsCache.clear();
         return result;
       },
+      async targetReviews(targets){
+        const rows=[];
+        for(let i=0;i<targets.length;i+=30){
+          const snapshot=await reviews.where('target_id','in',targets.slice(i,i+30)).select('author_id','author_name','target_id','rating','criteria','comment','share_comment','status','updated_at').get();
+          rows.push(...snapshot.docs.map(d=>({...d.data(),id:d.id})));
+        }
+        return rows;
+      },
       async listReviews(filter) {
         const query = filter.author_id
           ? reviews.where("author_id", "==", filter.author_id)

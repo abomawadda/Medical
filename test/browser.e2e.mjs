@@ -68,6 +68,7 @@ const server = createServer(async (req, res) => {
       for await (const c of req) body += c;
       req.body = body ? JSON.parse(body) : {};
       req.path = url.pathname;
+      req.query = Object.fromEntries(url.searchParams);
       req.ip = "fixture-browser";
       req.get = (k) => req.headers[k.toLowerCase()];
       req.is = (t) => req.headers["content-type"]?.startsWith(t);
@@ -154,7 +155,7 @@ async function context(connected = true, sw = "block", storageState) {
   if (connected) {
     await c.route("https://medical.example.invalid/**", async (route) => {
       const request = route.request();
-      const response = await fetch(origin + new URL(request.url()).pathname, {
+      const response = await fetch(origin + new URL(request.url()).pathname + new URL(request.url()).search, {
         method: request.method(),
         headers: {
           "Content-Type": "application/json",
@@ -198,7 +199,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.8.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.9.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -374,12 +375,12 @@ try {
   await p
     .getByLabel("ملاحظاتك على الزيارة", { exact: true })
     .fill("ملاحظة اختبار <img src=x onerror=alert(1)>");
-  await p.getByRole("checkbox").check();
+  await p.locator('[name="visited"]').check();
   await p.getByRole("button", { name: "حفظ التقييم" }).click();
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.8.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.9.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -630,7 +631,7 @@ try {
   await p.getByRole("button", {name:"تعديل تقييمي",exact:true}).click();
   assert.equal(await p.getByLabel("ملاحظاتك على الزيارة",{exact:true}).inputValue(),"ملاحظة اختبار <img src=x onerror=alert(1)>");
   await p.getByLabel("ملاحظاتك على الزيارة",{exact:true}).fill("عدّل العضو تقييمه بنفسه");
-  await p.getByRole("checkbox").check();
+  await p.locator('[name="visited"]').check();
   await p.getByRole("button", {name:"حفظ التقييم",exact:true}).click();
   await p.locator("dialog").waitFor({state:"hidden"});
   await a.getByRole("button", {name:"مراجعة التقييمات",exact:true}).click();
@@ -1023,7 +1024,7 @@ try {
   await sectionMember.getByRole('button',{name:'قيّم الزيارة',exact:true}).click();
   await sectionMember.getByLabel('تقييم تجربة الزيارة',{exact:true}).selectOption('4');
   await sectionMember.getByLabel('ملاحظاتك على الزيارة',{exact:true}).fill('مراجعة اصطناعية للتحقق من ثبات التصنيف');
-  await sectionMember.getByRole('checkbox').check();
+  await sectionMember.locator('[name="visited"]').check();
   await sectionMember.getByRole('button',{name:'حفظ التقييم',exact:true}).click();
   await sectionMember.locator('dialog').waitFor({state:'hidden'});
   const sectionReview=[...store.reviews.values()].find(r=>r.target_id===canonicalTarget);
@@ -1070,6 +1071,45 @@ try {
   assert.deepEqual(store.reviews.get(sectionReview.id),sectionReview);
   assert.equal((await store.catalog()).hospitals.find(r=>String(r.id)===String(newHospitals[1].id)).category,'مستشفى استثماري');
   await sectionMemberContext.close();
+  // A member explicitly shares an old private comment; others receive no account identity.
+  const anonymousContext=await context(true,'block',await memberContext.storageState());
+  const anonymousPage=await anonymousContext.newPage();
+  await anonymousPage.goto(origin+'/#account');
+  const ownedPublic=()=>anonymousPage.locator('.review').filter({hasText:'مراجعة اصطناعية للتحقق من ثبات التصنيف'});
+  await ownedPublic().getByRole('button',{name:'تعديل تقييمي',exact:true}).click();
+  assert.equal(await anonymousPage.locator('[name="share_comment"]').isChecked(),false);
+  await anonymousPage.getByLabel('ملاحظاتك على الزيارة',{exact:true}).fill('مشاركة اصطناعية <img src=x onerror=alert(1)>');
+  await anonymousPage.getByLabel('الاستقبال والتعامل',{exact:true}).selectOption('4');
+  await anonymousPage.getByLabel('تنظيم الخدمة ووضوحها',{exact:true}).selectOption('5');
+  await anonymousPage.locator('[name="share_comment"]').check();
+  await anonymousPage.locator('[name="visited"]').check();
+  await anonymousPage.getByRole('button',{name:'حفظ التقييم',exact:true}).click();await anonymousPage.locator('dialog').waitFor({state:'hidden'});
+  await a.getByRole('button',{name:'مراجعة التقييمات',exact:true}).click();
+  let pendingShared=a.locator('.review').filter({hasText:'مشاركة اصطناعية <img'});
+  assert.ok((await pendingShared.innerText()).includes('عضو الاختبار'));
+  await pendingShared.getByRole('button',{name:'اعتماد ونشر',exact:true}).click();
+  await a.getByText('راجع الملاحظة وأكد خلوها من بيانات شخصية أو صحية قبل نشرها للأعضاء.',{exact:true}).waitFor();
+  pendingShared=a.locator('.review').filter({hasText:'مشاركة اصطناعية <img'});
+  await pendingShared.getByRole('checkbox',{name:'راجعت الملاحظة للنشر دون بيانات شخصية',exact:true}).check();
+  await pendingShared.getByRole('button',{name:'اعتماد ونشر',exact:true}).click();await a.locator('dialog').waitFor({state:'hidden'});
+  await anonymousPage.goto(origin+'/#entity='+encodeURIComponent(canonicalTarget));
+  await anonymousPage.getByRole('button',{name:'تفاصيل التقييم وآراء الأعضاء',exact:true}).first().click();
+  await anonymousPage.locator('.anonymous-review').waitFor();
+  assert.ok((await anonymousPage.locator('.anonymous-review').innerText()).includes('مشاركة اصطناعية <img'));
+  assert.equal(await anonymousPage.locator('.anonymous-review img').count(),0);
+  assert.equal((await anonymousPage.locator('.public-reviews-panel').innerText()).includes('عضو الاختبار'),false);
+  assert.equal(await anonymousPage.locator('.public-review-criteria meter').count(),2);
+  const publicPayload=await anonymousPage.evaluate(target=>window.MedicalAPI.publicReviews(target),canonicalTarget);
+  assert.deepEqual(Object.keys(publicPayload.comments[0]).sort(),['comment','criteria','rating']);
+  assert.ok(await anonymousPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await anonymousPage.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'anonymous-reviews-mobile.png'),fullPage:false});
+  await anonymousPage.locator('#app-dialog .dialog-header button').click();
+  await anonymousPage.goto(origin+'/#account');
+  await anonymousPage.locator('.review').filter({hasText:'مشاركة اصطناعية <img'}).getByRole('button',{name:'تعديل تقييمي',exact:true}).click();
+  await anonymousPage.locator('[name="share_comment"]').uncheck();await anonymousPage.locator('[name="visited"]').check();
+  await anonymousPage.getByRole('button',{name:'حفظ التقييم',exact:true}).click();await anonymousPage.locator('dialog').waitFor({state:'hidden'});
+  const withdrawn=await anonymousPage.evaluate(target=>window.MedicalAPI.publicReviews(target),canonicalTarget);assert.equal(withdrawn.comments.length,0);
+  await anonymousContext.close();
   // Content studio: every lifecycle operation is reachable on a narrow screen.
   await a.goto(origin+'/#admin');
   await a.getByRole('button',{name:'إدارة المحتوى',exact:true}).click();
@@ -1275,6 +1315,7 @@ try {
         optInCompanionPreviewAuthenticatedAndResponsive: true,
         moderationSavedDespiteDirectoryRefreshFailure: true,
         contentStudioCrudScheduleArchiveAndRepublish: true,
+        anonymousReviewConsentCriteriaModerationAndWithdrawal: true,
         dimensions,
         runtimeErrors: errors,
       },

@@ -292,6 +292,7 @@
       throw new Error("تعذر قراءة بيانات الدليل.");
     state.catalog = window.MedicalArabic.entity(cleanDisplay(result.catalog));
     state.reviewCriteria = result.reviewCriteria === true;
+    state.publicReviewDetails = result.publicReviewDetails === true;
     state.facilityBranches = result.facilityBranches === true;
     state.facilityStats = result.facilityStats || {};
     state.directoryState = result.directoryState === true;
@@ -415,8 +416,31 @@
     const count = Number(stats?.count);
     const average = stats?.average == null || stats.average === "" ? NaN : Number(stats.average);
     if (Number.isInteger(count) && count > 0 && Number.isFinite(average) && average >= 1 && average <= 5)
-      return el("div", {class:"rating"}, el("strong",{},"★ " + average.toFixed(1)), el("span",{class:"muted"},`${count} تقييم منشور`));
-    return el("p",{class:"rating-empty"},"لا يوجد تقييم متاح بعد · شارك تجربتك");
+      return el("div", {class:"rating"}, el("strong",{},"★ " + average.toFixed(1)), el("span",{class:"muted"},`${count} تقييم منشور`),state.publicReviewDetails ? button("تفاصيل التقييم وآراء الأعضاء",()=>publicReviewsDialog(target),"text-button review-details-button") : null);
+    return el("div",{class:"rating-empty"},el("p",{},"لا يوجد تقييم متاح بعد · شارك تجربتك"),state.publicReviewDetails ? button("تفاصيل التقييم وآراء الأعضاء",()=>publicReviewsDialog(target),"text-button review-details-button") : null);
+  }
+  function publicReviewsDialog(target){
+    if(!session())return;
+    const epoch=state.identityEpoch,box=el('section',{class:'public-reviews-panel'});
+    const load=async(page=0)=>{
+      replaceNodes(box,el('p',{role:'status'},'جارٍ تحميل تقييمات الأعضاء…'));
+      try{
+        const data=await API.publicReviews(target,page);
+        if(!session() || epoch!==state.identityEpoch || !box.isConnected)return;
+        const summary=data.summary;
+        replaceNodes(box,el('section',{class:'public-review-total'},el('span',{class:'eyebrow'},'التقييم الإجمالي'),el('strong',{dir:summary.count?'ltr':'rtl'},summary.count?Number(summary.average).toFixed(1)+' / 5':'لا توجد تقييمات منشورة بعد'),el('span',{},summary.count+' تقييم منشور')),
+          el('h3',{},'تفاصيل تجربة الخدمة'),el('p',{class:'muted'},'متوسط كل عنصر من التقييمات المنشورة لمن جرّبوه؛ هذه الدرجات لا تقيس الكفاءة الطبية.'),
+          el('div',{class:'public-review-criteria'},CRITERIA.items.map(item=>{const value=summary.criteria[item.id];return el('article',{},el('div',{},el('strong',{},item.label),el('span',{dir:value.count?'ltr':'rtl'},value.count?Number(value.average).toFixed(1)+' / 5':'لم يُقيّم بعد')),value.count?el('meter',{min:0,max:5,value:value.average,'aria-label':item.label}):null,el('small',{class:'muted'},value.count+' تقييم لهذا العنصر'));})),
+          el('div',{class:'section-heading'},el('h3',{},'تجارب الأعضاء'),el('span',{class:'muted'},data.commentCount+' ملاحظة منشورة دون اسم')));
+        if(!data.comments.length)box.append(empty('لا توجد ملاحظات اختار أصحابها مشاركتها واعتمدتها الإدارة بعد.'));
+        for(const r of data.comments)box.append(el('article',{class:'anonymous-review'},el('div',{class:'anonymous-review-heading'},el('strong',{},'تجربة عضو'),el('span',{dir:'ltr'},'★ '+r.rating+' / 5')),el('p',{},r.comment),el('dl',{class:'review-breakdown'},CRITERIA.items.filter(i=>r.criteria[i.id]).map(i=>el('div',{},el('dt',{},i.label),el('dd',{},r.criteria[i.id]+' / 5'))))));
+        const pages=el('div',{class:'actions-row'});
+        if(data.page>0)pages.append(button('السابق',()=>load(data.page-1),'button outline'));
+        if(data.hasMore)pages.append(button('التالي',()=>load(data.page+1),'button outline'));
+        box.append(pages,button('تحديث التقييمات',()=>load(data.page),'text-button'));
+      }catch(e){if(box.isConnected && session())replaceNodes(box,el('p',{class:'notice',role:'alert'},e.message),button('إعادة المحاولة',()=>load(page),'button outline'));}
+    };
+    dialog('تقييم الخدمة وتجارب الأعضاء',box);void load();
   }
   function favorite(target,aliases=[]) {
     const keys=[...new Set([target,...aliases])];
@@ -818,7 +842,7 @@
       el("ol", {},
         el("li", {}, el("strong", {}, "اختر الجهة والمقر"), el("p", {}, "ابحث حسب حاجتك وموقع الجهة، ثم اختر مقر الخدمة المناسب.")),
         el("li", {}, el("strong", {}, "تأكد قبل الزيارة"), el("p", {}, "اتصل للتأكد من المواعيد والخدمة والتغطية والإجراءات.")),
-        el("li", {}, el("strong", {}, "شارك تجربتك بعد الزيارة"), el("p", {}, "قيّم التجربة، وتابع حالتها من صفحتك. ملاحظاتك خاصة بك وبالإدارة.")))));
+        el("li", {}, el("strong", {}, "شارك تجربتك بعد الزيارة"), el("p", {}, "قيّم التجربة، وتابع حالتها من صفحتك. يمكنك اختيار مشاركة ملاحظتك دون اسم بعد مراجعتها.")))));
   }
   function networkTabs() {
     const nav=el("nav",{class:"network-tabs","aria-label":"شبكات الرعاية الطبية"});
@@ -913,7 +937,7 @@
       el("p",{},"نستخدم كود العامل ورقم الموبايل المسجل وآخر أربعة أرقام من الرقم القومي للتحقق من العضوية. لا يحفظ التطبيق هذه المدخلات في تخزين المتصفح."),
       el("p",{},"عند اختيار تذكّر الدخول، تبقى جلسة دخولك على الجهاز لمدة تصل إلى 30 يومًا. يمكنك إنهاؤها من زر تسجيل الخروج."),
       el("h3",{},"تقييمك وملاحظاتك"),
-      el("p",{},"تظهر درجات التقييم العامة بعد مراجعة الإدارة. ملاحظاتك النصية متاحة لك وللإدارة فقط، ويمكنك تعديل تجربتك من حسابك."),
+      el("p",{},"تظهر درجات التقييم الإجمالية وعناصر الخدمة بعد اعتماد الإدارة. ملاحظاتك خاصة ما لم تختر مشاركتها دون اسم؛ حينها تُعرض للأعضاء بعد المراجعة، ويظل اسمك ظاهرًا للإدارة فقط. الملاحظات القديمة لا تُشارك تلقائيًا. يمكنك تعديل التقييم أو إلغاء المشاركة من حسابك؛ يعاد التعديل للمراجعة وتُسحب النسخة المنشورة."),
       el("h3",{},"طبيعة الخدمة"),
       el("p",{},"التطبيق دليل للبحث والتواصل، ولا يقدم تشخيصًا أو حجز مواعيد، ولا يغيّر شروط التغطية الطبية المعتمدة من جهة العمل."),
       el("a",{class:"button outline",href:"https://wa.me/201550100025?text="+encodeURIComponent("لدي استفسار عن تطبيق رعايتي والخصوصية."),target:"_blank",rel:"noopener noreferrer"},"تواصل للاستفسار أو ملاحظات الخصوصية")));
@@ -1491,6 +1515,7 @@
       }
       form.querySelector('[name="comment"]').closest("label").before(measured);
     }
+    if(state.publicReviewDetails)form.append(el('label',{class:'remember-option'},el('input',{type:'checkbox',name:'share_comment',checked:previous?.share_comment===true}),'أوافق على عرض ملاحظتي للأعضاء دون اسمي بعد مراجعتها'),el('p',{class:'muted'},'اختياري. لا تكتب أسماء أو أرقامًا أو تشخيصًا أو تفاصيل صحية. إذا لم تختر المشاركة تبقى الملاحظة لك وللإدارة فقط.'));
     form.save = async (data) => {
       const measured=Object.fromEntries(CRITERIA.items.filter(i=>data["criteria_"+i.id]).map(i=>[i.id,Number(data["criteria_"+i.id])]));
       const result = await API.review({
@@ -1499,6 +1524,7 @@
         branch_id: branch,
         rating: Number(data.rating),
         comment: data.comment,
+        ...(state.publicReviewDetails ? {share_comment:data.share_comment==="on"} : {}),
         visited_declared: data.visited === "on",
       });
       closeDialog();
@@ -1596,10 +1622,11 @@
       el(
         "div",
         { class: "muted" },
-        `${display(r.author_name) || "عضو النقابة"} · ${score} · ${display(statusText(r.status)) || "قيد المراجعة"}`,
+        `${isAdmin() ? display(r.author_name) || "عضو النقابة" : "تقييمك"} · ${score} · ${display(statusText(r.status)) || "قيد المراجعة"}`,
       ),
       r.criteria ? el("dl",{class:"review-breakdown"},CRITERIA.items.filter(i=>r.criteria[i.id]).map(i=>el("div",{},el("dt",{},i.label),el("dd",{},r.criteria[i.id]+" / 5")))) : null,
       el("p", {}, r.comment),
+      el("small",{class:"muted"},r.share_comment===true ? "اختار صاحب التقييم مشاركة الملاحظة دون اسم بعد الاعتماد." : "الملاحظة خاصة بصاحبها والإدارة."),
     );
   }
   async function logout() {
@@ -2304,6 +2331,8 @@
         item.append(el("p", {class:"muted"}, "نسخة التقييم: " + (r.revision || 1)));
         if (r.status !== "pending") item.append(el("p", {class:"notice"},
           "تمت مراجعة هذه النسخة. العضو وحده يستطيع تعديل محتواها وإرسال نسخة جديدة للمراجعة."));
+        const publicCheck=el('input',{type:'checkbox','aria-label':'راجعت الملاحظة للنشر دون بيانات شخصية'});
+        if(r.share_comment===true && r.comment && r.status==='pending')item.append(el('label',{class:'notice public-comment-check'},publicCheck,'اختار العضو المشاركة دون اسم. راجعت النص وتأكدت من خلوه من بيانات شخصية وصحية.'));
         const actions = el("div", {class:"actions-row"});
         const statuses = r.status === "pending" ? ["published", "hidden"] : r.status === "published" ? ["hidden"] : [];
         for (const status of statuses) {
@@ -2312,7 +2341,7 @@
             busy = true;
             box.querySelectorAll("button[data-review-action]").forEach((b) => b.disabled=true);
             try {
-              const result = await API.moderate(r.id, status, r.revision || 1);
+              const result = await API.moderate(r.id, status, r.revision || 1,publicCheck.checked);
               r.status = status;
               closeDialog();
               let message = result.changed === false

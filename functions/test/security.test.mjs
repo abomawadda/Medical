@@ -846,3 +846,40 @@ test('content scheduling rejects invalid timestamps and conflicting validity win
   const row={id:'valid',title:'نشرة اختبار',summary:'موجز',document_type:'bulletin',publication_status:'draft'};
   for(const values of [{display_from:'2026-02-30T10:00:00.000Z'},{display_from:123},{display_from:'2026-10-19T10:00:00.000Z',display_until:'2026-10-19T10:00:00.000Z'},{display_from:'2026-10-19T10:00:00.000Z',expires_at:'2026-10-18'},{display_until:'2026-10-19T10:00:00.000Z',effective_from:'2026-10-20'},{steps:'not an array'}])assert.throws(()=>validateEntity('medical_guidelines',{...row,...values}),e=>e.code==='INVALID_ENTITY');
 });
+
+test('public reviews require sessions and visible targets; names stay admin-only and legacy comments remain private',async()=>{
+ const f=setup(),a=await admin(f),m=await member(f);
+ f.employees.push({...f.employees[0],id:'viewer-member',name:'قارئ اختبار آخر',jobId:'00999'});
+ const reader=(await f.service.memberLogin({...credentials,employee_code:'00999'},'viewer-ip')).token;
+ await f.service.submitReview(m,{...review,criteria:{reception:5,waiting:3}},'review-ip');
+ let r=(await f.service.adminReviews(a)).reviews[0];assert.equal(r.author_name,'عضو اختبار');
+ await f.service.moderateReview(a,r.id,{status:'published',revision:1,share_comment:true});
+ await assert.rejects(()=>f.service.publicReviews('',review.target_id),e=>e.status===401);
+ let result=await f.service.publicReviews(reader,review.target_id);
+ assert.equal(result.summary.average,4);assert.equal(result.summary.criteria.reception.average,5);assert.equal(result.summary.criteria.reception.count,1);assert.equal(result.summary.criteria.cleanliness.average,null);
+ assert.deepEqual(result.comments,[]);
+ await f.service.submitReview(m,{...review,criteria:{reception:5,waiting:3},share_comment:true},'review-ip');
+ r=(await f.service.adminReviews(a)).reviews[0];assert.equal(r.revision,2);
+ await assert.rejects(()=>f.service.moderateReview(a,r.id,{status:'published',revision:2}),e=>e.code==='PUBLIC_COMMENT_REVIEW_REQUIRED');
+ await f.service.moderateReview(a,r.id,{status:'published',revision:2,confirm_public_comment:true});
+ assert.equal((await f.service.moderateReview(a,r.id,{status:'published',revision:2})).changed,false);
+ result=await f.service.publicReviews(reader,review.target_id);
+ assert.equal(result.comments[0].comment,review.comment);assert.deepEqual(Object.keys(result.comments[0]).sort(),['comment','criteria','rating']);
+ const serialized=JSON.stringify(result);for(const secret of ['source-member','عضو اختبار محلي',r.id,'author_name','author_id','branch_id'])assert.equal(serialized.includes(secret),false);
+ assert.equal((await f.service.adminReviews(a)).reviews[0].author_name,'عضو اختبار');
+ await f.service.submitReview(m,{...review,criteria:{reception:5,waiting:3},share_comment:false},'review-ip');
+ assert.equal((await f.service.publicReviews(reader,review.target_id)).comments.length,0);
+ assert.equal((await f.service.publicReviews(reader,review.target_id)).summary.count,0);
+ await f.service.moderateReview(a,r.id,{status:'published',revision:3});
+ assert.equal((await f.service.publicReviews(reader,review.target_id)).summary.count,1);
+ await f.service.setEntityState(a,'records','1',{field:'directory_visibility',value:'hidden',scope:'entity',versions:{'1':0}});
+ await assert.rejects(()=>f.service.publicReviews(reader,review.target_id),e=>e.status===404);
+});
+test('anonymous comments are paginated and neither invalid consent nor invalid pages are accepted',async()=>{
+ const f=setup(),m=await member(f);
+ await assert.rejects(()=>f.service.submitReview(m,{...review,share_comment:'yes'},'review-ip'),e=>e.code==='INVALID_COMMENT');
+ for(let i=0;i<27;i++)f.store.reviews.set('fixture-'+i,{id:'fixture-'+i,author_id:'synthetic-'+i,author_name:'اسم سري',target_id:review.target_id,rating:5,criteria:i%2?{waiting:4}:{},comment:'تجربة اختبار '+i,share_comment:true,status:'published',updated_at:i});
+ const first=await f.service.publicReviews(m,review.target_id),second=await f.service.publicReviews(m,review.target_id,1);
+ assert.equal(first.summary.count,27);assert.equal(first.summary.criteria.waiting.count,13);assert.equal(first.comments.length,20);assert.equal(first.hasMore,true);assert.equal(second.comments.length,7);assert.equal(second.hasMore,false);
+ for(const page of [-1,0.2,1001,NaN])await assert.rejects(()=>f.service.publicReviews(m,review.target_id,page),e=>e.code==='INVALID_PAGE');
+});

@@ -196,6 +196,18 @@ await service.moderateReview(admin,id,{status:"published",revision:3});
 assert.equal((await service.catalog(admin)).stats["doctor:p1"].average,3);
 assert.deepEqual((await service.ownReviews(member)).reviews[0].criteria,{reception:5,waiting:2});
 assert.equal((await service.submitReview(member,{target_id:"doctor:p1",branch_id:"1",rating:3,criteria:{waiting:2,reception:5},comment:"نسخة جديدة من العضو",visited_declared:true},"same-criteria")).changed,false);
+// Anonymous member projection uses real Firestore field selection; legacy text stays private.
+let publicDetail=await service.publicReviews(member,'doctor:p1');
+assert.equal(publicDetail.summary.average,3);assert.equal(publicDetail.summary.criteria.reception.average,5);assert.equal(publicDetail.comments.length,0);
+const sharedReview={target_id:'doctor:p1',branch_id:'1',rating:3,criteria:{reception:5,waiting:2},comment:'مشاركة مصطنعة بالمحاكي',visited_declared:true,share_comment:true};
+await service.submitReview(member,sharedReview,'public-opt-in');
+await assert.rejects(()=>service.moderateReview(admin,id,{status:'published',revision:4}),e=>e.code==='PUBLIC_COMMENT_REVIEW_REQUIRED');
+await service.moderateReview(admin,id,{status:'published',revision:4,confirm_public_comment:true});
+publicDetail=await service.publicReviews(member,'doctor:p1');assert.equal(publicDetail.comments.length,1);
+assert.deepEqual(Object.keys(publicDetail.comments[0]).sort(),['comment','criteria','rating']);assert.ok(!JSON.stringify(publicDetail).includes(id));
+await service.submitReview(member,{...sharedReview,share_comment:false},'public-withdraw');
+assert.equal((await service.publicReviews(member,'doctor:p1')).comments.length,0);
+await service.moderateReview(admin,id,{status:'published',revision:5});
 // Duplicate imported aliases: retain historical documents, count the newest
 // authored experience once and edit it transactionally from either source ID.
 const aliasBody={target_id:'labs:family_20261018_068',branch_id:'family_20261018_068',rating:4,comment:'تجربة فرع محلية مصطنعة',visited_declared:true};

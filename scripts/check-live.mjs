@@ -19,6 +19,8 @@ for (const [flag, origin, label] of [
     checks.push(['api-health-'+label,'/v1/health','GET',origin,200],[label+'-catalog-requires-session','/v1/catalog','GET',origin,401],[label+'-browser-preflight','/v1/member/session','OPTIONS',origin,204]);
 }
 
+if(process.argv.includes('--require-public-reviews'))checks.push(['public-reviews-requires-token','/v1/reviews/public/doctor%3Afixture','GET',allowed,401]);
+
 const report = { checkedAt: new Date().toISOString(), project: 'we-medical-dakahlia', checks: [] };
 for (const [name, path, method, origin, expected] of checks) {
   const start = performance.now();
@@ -31,7 +33,7 @@ for (const [name, path, method, origin, expected] of checks) {
   if (name.startsWith('api-health')) {
     const value = await response.json();
     assert.equal(value.configured, true, 'API is not configured');
-    for (const capability of ['member-profile', 'review-revisions', ...(process.argv.includes('--require-content-lifecycle') ? ['content-lifecycle-v1'] : []), ...(process.argv.includes('--require-admin-idle') ? ['admin-idle-v1'] : []), ...(process.argv.includes('--require-admin-batch-data') ? ['admin-batch-data-v1'] : []), ...(process.argv.includes('--require-admin-batch') ? ['admin-batch-v1','structured-branches-v1'] : []), ...(process.argv.includes('--require-facility-branches') ? ['facility-branches-v1'] : []), ...(process.argv.includes('--require-review-criteria') ? ['review-criteria-v1'] : []), ...(process.argv.includes('--require-admin-workspace') ? ['admin-workspace-v1'] : []), ...(process.argv.includes('--require-public-emergency') ? ['public-emergency-v1'] : []), ...(process.argv.includes('--require-contracts') ? ['contract-directory-v1'] : []), ...(process.argv.includes('--require-content') ? ['directory-content-v1'] : []), ...(process.argv.includes('--require-family') ? ['family-directory-v1'] : []), ...(process.argv.includes('--require-staff') ? ['staff-directory','provider-images','provider-illustrations','directory-state-v1'] : [])])
+    for (const capability of ['member-profile', 'review-revisions', ...(process.argv.includes('--require-public-reviews') ? ['public-review-details-v1'] : []), ...(process.argv.includes('--require-content-lifecycle') ? ['content-lifecycle-v1'] : []), ...(process.argv.includes('--require-admin-idle') ? ['admin-idle-v1'] : []), ...(process.argv.includes('--require-admin-batch-data') ? ['admin-batch-data-v1'] : []), ...(process.argv.includes('--require-admin-batch') ? ['admin-batch-v1','structured-branches-v1'] : []), ...(process.argv.includes('--require-facility-branches') ? ['facility-branches-v1'] : []), ...(process.argv.includes('--require-review-criteria') ? ['review-criteria-v1'] : []), ...(process.argv.includes('--require-admin-workspace') ? ['admin-workspace-v1'] : []), ...(process.argv.includes('--require-public-emergency') ? ['public-emergency-v1'] : []), ...(process.argv.includes('--require-contracts') ? ['contract-directory-v1'] : []), ...(process.argv.includes('--require-content') ? ['directory-content-v1'] : []), ...(process.argv.includes('--require-family') ? ['family-directory-v1'] : []), ...(process.argv.includes('--require-staff') ? ['staff-directory','provider-images','provider-illustrations','directory-state-v1'] : [])])
       assert.ok(value.capabilities?.includes(capability), 'Missing API capability: ' + capability);
   } else await response.arrayBuffer();
   report.checks.push({ name, status: response.status, milliseconds: Math.round(performance.now() - start) });

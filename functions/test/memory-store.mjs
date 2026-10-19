@@ -99,6 +99,7 @@ export function fixtureStore(seed) {
       if (next.changed) reviews.set(next.review.id, structuredClone(next.review));
       return { changed: next.changed, status: next.review.status, revision: reviewRevision(next.review) };
     },
+    async targetReviews(targets){return [...reviews.values()].filter(r=>targets.includes(r.target_id));},
     async listReviews(filter) {
       return [...reviews.values()]
         .filter((r) => !filter.author_id || filter.author_id === r.author_id)

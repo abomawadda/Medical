@@ -8,6 +8,7 @@ import contacts from "./contacts.cjs";
 import facilities from "./facility-directory.cjs";
 import criteria from "./review-criteria.cjs";
 import content from "./content-policy.cjs";
+import {approvedExperiences,reviewSummary,publicReviewPage} from "./public-reviews.mjs";
 
 export class ApiError extends Error {
   constructor(status, code, message) {
@@ -509,7 +510,7 @@ export function createService({
       const catalog = user.role === "admin" ? all : memberCatalog(all,now());
       const allowed = targets(catalog);
       const stats = Object.fromEntries(Object.entries(await store.getStats()).filter(([id]) => allowed.has(id)));
-      return {catalog, stats, contentLifecycle:true, adminBatch:true, adminBatchData:true, structuredBranches:true, facilityBranches: true, facilityStats: await store.getGroupedStats(facilities.reviewGroups(catalog)), reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
+      return {catalog, stats, publicReviewDetails:true, contentLifecycle:true, adminBatch:true, adminBatchData:true, structuredBranches:true, facilityBranches: true, facilityStats: await store.getGroupedStats(facilities.reviewGroups(catalog)), reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
     },
     async adminProfile(token) {
       const session=await authorize(token,"admin");
@@ -556,6 +557,7 @@ export function createService({
         fail(400, "INVALID_RATING", "اختر تقييمًا من 1 إلى 5.");
       if (typeof body.comment !== "string" || body.comment.length > 1500)
         fail(400, "INVALID_COMMENT", "الملاحظات بحد أقصى 1500 حرف.");
+      if(body.share_comment !== undefined && typeof body.share_comment!=='boolean')fail(400,'INVALID_COMMENT','اختيار مشاركة الملاحظة غير صالح.');
       let measured;
       try { measured = criteria.parse(body.criteria); }
       catch { fail(400,"INVALID_CRITERIA","اختر درجة من 1 إلى 5 للعناصر التي جربتها فقط."); }
@@ -570,6 +572,7 @@ export function createService({
         rating: body.rating,
         ...(measured ? {criteria:measured} : {}),
         comment: body.comment.trim(),
+        share_comment:body.share_comment===true,
         visited_declared: true,
         status: "pending",
         updated_at: now(),
@@ -582,6 +585,16 @@ export function createService({
           ? "تم حفظ تقييمك وملاحظاتك، وسيظهر التقييم العام بعد المراجعة."
           : "تقييمك محفوظ بالفعل ولم يتغير؛ تظل حالة مراجعته كما هي.",
       };
+    },
+    async publicReviews(token,target,page=0) {
+      await authorize(token);
+      if(!Number.isInteger(page) || page<0 || page>1000)fail(400,'INVALID_PAGE','رقم الصفحة غير صالح.');
+      const catalog=memberCatalog(await store.catalog(),now());
+      if(typeof target!=='string' || !targets(catalog).has(target))fail(404,'NOT_FOUND','الجهة غير متاحة في الدليل.');
+      await rate('', 'public-reviews',60,digest(token));
+      const group=facilities.reviewGroup(facilities.reviewGroups(catalog),target);
+      const rows=approvedExperiences(await store.targetReviews(group.targets),group);
+      return {summary:reviewSummary(rows),...publicReviewPage(rows,page)};
     },
     async ownReviews(token) {
       const s = await authorize(token, "member");
@@ -602,6 +615,7 @@ export function createService({
         fail(409, "REVIEW_CHANGED", "حدّث التطبيق وقائمة التقييمات قبل الاعتماد.");
       const previous=await store.getReview(id);
       if(!previous)fail(404,"NOT_FOUND","التقييم غير موجود.");
+      if(body.status==='published' && previous.status==='pending' && (previous.revision || 1)===body.revision && previous.share_comment===true && previous.comment && body.confirm_public_comment!==true)fail(400,'PUBLIC_COMMENT_REVIEW_REQUIRED','راجع الملاحظة وأكد خلوها من بيانات شخصية أو صحية قبل نشرها للأعضاء.');
       const group=facilities.reviewGroup(facilities.reviewGroups(await store.catalog()),previous.target_id);
       const candidates=group.targets.map(target=>digest(`${previous.author_id}|${target}`));
       const result = await store.moderateReview(id, body.status, s.sourceId, now(), body.revision,candidates);

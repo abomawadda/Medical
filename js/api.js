@@ -226,12 +226,13 @@ window.MedicalAPI = (() => {
     profile: () => request("/profile", { protectedRequest: true }),
     review: (body) =>
       request("/reviews", { method: "POST", body, protectedRequest: true }),
+    publicReviews:(target,page=0)=>request("/reviews/public/"+encodeURIComponent(target)+"?page="+page,{protectedRequest:true}),
     myReviews: () => request("/reviews/mine", { protectedRequest: true }),
     adminReviews: () => request("/admin/reviews", { protectedRequest: true }),
-    moderate: (id, status, revision) =>
+    moderate: (id, status, revision, confirmPublicComment=false) =>
       request("/admin/reviews/" + encodeURIComponent(id), {
         method: "PATCH",
-        body: { status, revision },
+        body: { status, revision, confirm_public_comment:confirmPublicComment },
         protectedRequest: true,
       }),
     setState: (kind,id,body) => request("/admin/entities/"+encodeURIComponent(kind)+"/"+encodeURIComponent(id),{method:"PATCH",body,protectedRequest:true}),
