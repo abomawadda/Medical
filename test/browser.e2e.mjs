@@ -135,6 +135,7 @@ async function context(connected = true, sw = "block", storageState) {
     serviceWorkers: sw,
     ...(storageState ? { storageState } : {}),
   });
+  c.on("page",page=>page.on("dialog",dialog=>dialog.accept()));
   await c.route("https://europe-west1-we-medical-dakahlia.cloudfunctions.net/**", (r) => r.abort());
   await c.route("https://abomawadda.github.io/Medical/img/providers/*", async (r) => {
     const filename = new URL(r.request().url()).pathname.split("/").pop();
@@ -197,7 +198,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.5.1");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.6.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -294,6 +295,27 @@ try {
   for(const width of [320,390,1440]){await facility.setViewportSize({width,height:900});assert.ok(await facility.evaluate(()=>document.documentElement.scrollWidth)<=width);}
   if(process.env.MEDICAL_SCREENSHOT_DIR)await facility.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'unified-facility-branch.png'),fullPage:true,style:'#toast{visibility:hidden}'});
   await facilitiesContext.close();
+  const navigationContext=await context(true,'block',await memberContext.storageState());
+  const browsing=await navigationContext.newPage();await browsing.goto(origin+'/#doctors');
+  await browsing.locator('.doctor-card').first().waitFor();
+  await browsing.locator('#search-input').fill('محمد');
+  await browsing.locator('.doctor-card').first().waitFor();
+  await browsing.evaluate(()=>window.scrollTo(0,650));
+  const searchScroll=await browsing.evaluate(()=>window.scrollY);
+  await browsing.locator('.profile-open').first().evaluate(link=>link.click());
+  await browsing.locator('.doctor-profile-page').waitFor();
+  await browsing.getByRole('button',{name:'العودة إلى النتائج',exact:true}).click();
+  await browsing.locator('.doctor-card').first().waitFor();
+  await browsing.waitForFunction(expected=>Math.abs(window.scrollY-expected)<3,searchScroll);
+  assert.equal(await browsing.locator('#search-input').inputValue(),'محمد');
+  await browsing.locator('.profile-open').first().evaluate(link=>link.click());await browsing.locator('.doctor-profile-page').waitFor();
+  await browsing.goBack();await browsing.locator('.doctor-card').first().waitFor();
+  assert.equal(await browsing.locator('#search-input').inputValue(),'محمد');
+  await browsing.locator('#main-nav a[href="#services"]').click();
+  await browsing.waitForFunction(()=>location.hash==='#services');
+  assert.equal(await browsing.locator('#search-input').inputValue(),'');
+  await navigationContext.close();
+
   await p.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
   await p.reload();
   await p.locator('#main[data-catalog-ready="true"]').waitFor();
@@ -357,7 +379,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.5.1');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.6.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -391,6 +413,20 @@ try {
   await a.getByRole("button", { name: "دخول الإدارة" }).click();
   await a.getByRole("heading", { name: "مركز إدارة تطبيق رعايتي" }).waitFor();
   assert.ok(await a.locator("#connection-status").isVisible());
+  for(const width of [320,390,600,768,1440]){
+    await a.setViewportSize({width,height:844});
+    assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),"Administration fits at "+width);
+    const bounds=await a.locator('.admin-intro').boundingBox();assert.ok(bounds.x>=0 && bounds.x+bounds.width<=width+1);
+  }
+  await a.setViewportSize({width:390,height:844});
+  const specialty=seed.records[0].specialty;
+  await a.getByLabel('التخصص الطبي',{exact:true}).selectOption(specialty);
+  const ids=await a.locator('tbody tr').evaluateAll(rows=>rows.map(row=>row.dataset.adminId));
+  assert.ok(ids.length>0 && ids.every(id=>seed.records.some(r=>String(r.id)===id && r.specialty===specialty)));
+  await a.getByRole('button',{name:'مسح الفلاتر وعرض الكل',exact:true}).click();
+  assert.equal(await a.getByLabel('نوع السجلات',{exact:true}).inputValue(),'all');
+  await a.getByLabel('نوع السجلات',{exact:true}).selectOption('records');
+  await a.getByLabel('قائمة العمل',{exact:true}).selectOption('pending');
   await a.locator("#member-button").click();
   await a.getByRole("heading",{name:"حساب مدير المنظومة",exact:true}).waitFor();
   await a.getByText("الصلاحية",{exact:true}).waitFor();
@@ -431,11 +467,14 @@ try {
   // New hospital defaults and independent addresses persist as two branches.
   await a.getByLabel('نوع السجلات',{exact:true}).selectOption('hospitals');
   await a.getByRole('button',{name:'إضافة سجل',exact:true}).click();
-  assert.equal(await a.getByLabel('نوع الجهة',{exact:true}).inputValue(),'مستشفى استثماري');
+  assert.equal(await a.getByLabel('تصنيف الجهة',{exact:true}).inputValue(),'مستشفى استثماري');
+  assert.equal(await a.getByLabel('القسم الرئيسي للجهة',{exact:true}).inputValue(),'hospitals');
   await a.getByLabel('الاسم',{exact:true}).fill('مستشفى فروع اختبار');
   await a.getByLabel('المركز / المدينة',{exact:true}).selectOption('المنصورة');
   await a.getByLabel('العنوان',{exact:true}).fill('عنوان رئيسي مصطنع');
   await a.getByLabel('المحمول',{exact:true}).fill('01012345678');
+  await a.getByRole('button',{name:'معاينة بيانات الجهة قبل الحفظ',exact:true}).click();
+  assert.ok((await a.locator('.editor-preview').innerText()).includes('مستشفى فروع اختبار'));
   await a.getByLabel('المستفيدون',{exact:true}).selectOption('all');
   await a.getByRole('button',{name:'+ إضافة عنوان / فرع',exact:true}).click();
   await a.getByLabel('اسم مختصر للفرع',{exact:true}).fill('فرع طلخا');
@@ -624,10 +663,12 @@ try {
   await a.getByLabel("مسار التعاقد",{exact:true}).selectOption("direct_we");
   await a.getByLabel("المحمول", {exact:true}).fill("0502332691");
   await a.getByRole("button", { name: "حفظ التغييرات" }).click();
-  await a.getByText("راجع أرقام الاتصال: أدخل كل رقم كاملًا داخل فئته الصحيحة.",{exact:true}).waitFor();
+  assert.ok(await a.getByLabel("المحمول",{exact:true}).evaluate(e=>!e.validity.valid));
+  await a.locator(".field-error").getByText(/أدخل رقمًا كاملًا/).waitFor();
   await a.getByLabel("المحمول", {exact:true}).fill("01013588730");
   await a.getByLabel("الأرضي", {exact:true}).fill("0502332691");
   await a.getByLabel("الأرقام المختصرة", {exact:true}).fill("19989");
+  await a.locator(".editor-advanced").evaluate(e=>e.open=true);
   await a.getByLabel("رابط صورة الطبيب أو الجهة (https)", {exact:true}).fill("https://images.example.invalid/provider.png");
   await a.getByLabel("مصدر الصورة وحق استخدامها (https)", {exact:true}).fill("https://example.invalid/provider");
   await a.getByRole("checkbox", {name:/تأكدت من هوية صاحب الصورة/}).check();
@@ -844,10 +885,10 @@ try {
   assert.ok(!(await g.locator("#main").innerText()).includes("اتصل لمعرفة المواعيد"));
   await g.goto(origin+"/#doctors");
   await g.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_7"));
-  await g.locator(".anime-doctor_female").waitFor();
+  await g.locator('.provider-profile[data-target="doctor:provider_7"] .anime-doctor_female').waitFor();
   assert.equal(await g.locator(".anime-doctor_male").count(),0);
   await g.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_1"));
-  await g.locator(".anime-doctor_male").waitFor();
+  await g.locator('.provider-profile[data-target="doctor:provider_1"] .anime-doctor_male').waitFor();
   assert.equal(await g.locator(".anime-doctor_female,.anime-doctor_team").count(),0);
   await g.goto(origin + "/#hospitals");
   if (!await g.locator("#filter-panel").evaluate(n=>n.open)) await g.locator("#filter-panel summary").click();
