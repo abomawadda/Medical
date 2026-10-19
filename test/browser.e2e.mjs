@@ -199,7 +199,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.9.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.10.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -380,7 +380,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.9.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.10.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1071,6 +1071,48 @@ try {
   assert.deepEqual(store.reviews.get(sectionReview.id),sectionReview);
   assert.equal((await store.catalog()).hospitals.find(r=>String(r.id)===String(newHospitals[1].id)).category,'مستشفى استثماري');
   await sectionMemberContext.close();
+  // Synthetic published totals exercise confidence ranking, filter scoping and return navigation.
+  const recAdmin=await a.evaluate(()=>JSON.parse(sessionStorage.getItem('medical_session_v1')).token);
+  const recDefinitions=[['a','المنصورة','باطنة تجريبية',['employee'],5,5],['b','طلخا','باطنة تجريبية',['employee'],20,4.8],['c','المنصورة','جلدية تجريبية',['family','retiree'],6,4.5],['d','المنصورة','أطفال تجريبية',['employee'],10,4.4]];
+  const recRows=[];
+  for(const [key,city,specialty,network,count,average] of recDefinitions){
+    const id='recommend_fixture_'+key;
+    await service.putEntity(recAdmin,'records',id,{entity:{name:'طبيب ترشيح تجريبي '+key,specialty,hospital:'عيادة مستقلة',markaz:city,city,network_members:network,contract_type:'direct_we',contract_entity:'تعاقد اختبار',contract_entity_id:'direct_we'},expected_version:0,approve_contract:true});
+    const r=(await store.catalog()).records.find(r=>r.id===id);recRows.push(r);
+    const fours=Math.round((5-average)*count);
+    for(let i=0;i<count;i++)store.reviews.set('recommend_'+key+'_'+i,{id:'recommend_'+key+'_'+i,author_id:'recommend_author_'+i,target_id:'doctor:'+r.provider_id,branch_id:id,rating:i<fours?4:5,status:'published',updated_at:Date.now()});
+  }
+  const recContext=await context(true,'block',await memberContext.storageState()),recPage=await recContext.newPage();
+  await recPage.goto(origin+'/#home');await recPage.locator('.recommendation-home').waitFor();
+  assert.equal(await recPage.locator('.recommendation-home .recommendation-card').count(),3);
+  assert.equal(await recPage.locator('.recommendation-card').first().getAttribute('data-recommendation'),'doctor:'+recRows[1].provider_id);
+  assert.equal(await recPage.locator('[data-recommendation="doctor:'+recRows[0].provider_id+'"]').count(),0);
+  await recPage.locator('.recommendation-card').first().getByRole('button',{name:'لماذا ظهر؟',exact:true}).click();
+  await recPage.getByRole('heading',{name:'لماذا ظهر هذا الترشيح؟',exact:true}).waitFor();
+  assert.ok((await recPage.locator('dialog').innerText()).includes('اختيار الجهة يعود إليك'));
+  await recPage.locator('#app-dialog .dialog-header button').click();
+  await recPage.locator('.recommendation-home').scrollIntoViewIfNeeded();
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await recPage.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'recommendations-home-mobile.png'),fullPage:false});
+  assert.ok(await recPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  await recPage.setViewportSize({width:1440,height:1000});
+  assert.ok(await recPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await recPage.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'recommendations-home-desktop.png'),fullPage:false});
+  await recPage.setViewportSize({width:390,height:844});
+  await recPage.goto(origin+'/#doctors');await recPage.locator('.recommendation-inline').waitFor();
+  await recPage.locator('#filter-panel summary').click();
+  await recPage.getByLabel('التخصص',{exact:true}).selectOption('باطنة تجريبية');
+  await recPage.getByLabel('المركز / المدينة',{exact:true}).selectOption('المنصورة');
+  await recPage.locator('[data-recommendation="doctor:'+recRows[0].provider_id+'"]').waitFor();
+  assert.equal(await recPage.locator('.recommendation-card').count(),1);
+  await recPage.locator('#search-input').fill('عبارة لا تطابق الترشيح إطلاقًا');await recPage.locator('.recommendation-inline').waitFor({state:'hidden'});
+  await recPage.locator('#search-input').fill('');await recPage.locator('.recommendation-inline').waitFor();
+  await recPage.locator('.recommendation-card').getByRole('button',{name:'عرض التفاصيل',exact:true}).click();await recPage.locator('.doctor-profile-page').waitFor();
+  await recPage.getByRole('button',{name:'العودة إلى النتائج',exact:true}).click();await recPage.locator('.recommendation-inline').waitFor();
+  assert.equal(await recPage.getByLabel('التخصص',{exact:true}).inputValue(),'باطنة تجريبية');assert.equal(await recPage.getByLabel('المركز / المدينة',{exact:true}).inputValue(),'المنصورة');
+  await recPage.locator('.network-tab').filter({hasText:'الأسر والمعاشات'}).click();assert.equal(await recPage.locator('.recommendation-card').count(),0);
+  await recPage.getByLabel('التخصص',{exact:true}).selectOption('');await recPage.locator('[data-recommendation="doctor:'+recRows[2].provider_id+'"]').waitFor();
+  await recContext.close();
+  for(const r of recRows)store.overlays.delete('records:'+r.id);for(const key of [...store.reviews.keys()])if(key.startsWith('recommend_'))store.reviews.delete(key);
   // A member explicitly shares an old private comment; others receive no account identity.
   const anonymousContext=await context(true,'block',await memberContext.storageState());
   const anonymousPage=await anonymousContext.newPage();
@@ -1316,6 +1358,7 @@ try {
         moderationSavedDespiteDirectoryRefreshFailure: true,
         contentStudioCrudScheduleArchiveAndRepublish: true,
         anonymousReviewConsentCriteriaModerationAndWithdrawal: true,
+        recommendationsWeightedScopedResponsiveAndReturnToResults: true,
         dimensions,
         runtimeErrors: errors,
       },

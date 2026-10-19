@@ -8,6 +8,7 @@ import contacts from "./contacts.cjs";
 import facilities from "./facility-directory.cjs";
 import criteria from "./review-criteria.cjs";
 import content from "./content-policy.cjs";
+import recommendations from "./recommendations.cjs";
 import {approvedExperiences,reviewSummary,publicReviewPage} from "./public-reviews.mjs";
 
 export class ApiError extends Error {
@@ -510,7 +511,10 @@ export function createService({
       const catalog = user.role === "admin" ? all : memberCatalog(all,now());
       const allowed = targets(catalog);
       const stats = Object.fromEntries(Object.entries(await store.getStats()).filter(([id]) => allowed.has(id)));
-      return {catalog, stats, publicReviewDetails:true, contentLifecycle:true, adminBatch:true, adminBatchData:true, structuredBranches:true, facilityBranches: true, facilityStats: await store.getGroupedStats(facilities.reviewGroups(catalog)), reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
+      const facilityStats=await store.getGroupedStats(facilities.reviewGroups(catalog));
+      const visible=user.role==='admin'?memberCatalog(all,now()):catalog;
+      const recommendationStats=user.role==='admin'?await store.getGroupedStats(facilities.reviewGroups(visible)):facilityStats;
+      return {catalog, stats, recommendations:{version:1,policy:recommendations.policy,items:recommendations.build(visible,stats,recommendationStats)}, publicReviewDetails:true, contentLifecycle:true, adminBatch:true, adminBatchData:true, structuredBranches:true, facilityBranches: true, facilityStats, reviewCriteria: true, directoryState: true, contractDirectory: true, adminWorkspace: true, familyDirectory: Object.values(all).flat().some(r=>r.source_ref === "family-20261018" || r.contract_relationships?.some(c=>c.source_ref === "family-20261018"))};
     },
     async adminProfile(token) {
       const session=await authorize(token,"admin");

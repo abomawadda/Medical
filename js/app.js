@@ -293,6 +293,7 @@
     state.catalog = window.MedicalArabic.entity(cleanDisplay(result.catalog));
     state.reviewCriteria = result.reviewCriteria === true;
     state.publicReviewDetails = result.publicReviewDetails === true;
+    state.recommendations=result.recommendations?.version===1 && Array.isArray(result.recommendations.items)?result.recommendations.items:[];
     state.facilityBranches = result.facilityBranches === true;
     state.facilityStats = result.facilityStats || {};
     state.directoryState = result.directoryState === true;
@@ -943,8 +944,46 @@
       el("a",{class:"button outline",href:"https://wa.me/201550100025?text="+encodeURIComponent("لدي استفسار عن تطبيق رعايتي والخصوصية."),target:"_blank",rel:"noopener noreferrer"},"تواصل للاستفسار أو ملاحظات الخصوصية")));
   }
   document.querySelector("#about-app").onclick=showAbout;
+  function recommendationSection(home){
+    if(isAdmin() || !session() || !state.remote || !window.MedicalRecommendations)return null;
+    if(!home && !['doctors','hospitals','services','dental','district-network'].includes(state.tab))return null;
+    const choices=[];
+    for(const item of state.recommendations || []){
+      let rows=(state.catalog[item.kind] || []).filter(r=>item.ids.includes(String(r.id)) && r.service_status!=='suspended' && r.directory_visibility!=='hidden' && r.contract_listing!==false && matchesBranch(r));
+      if(item.kind==='records'){
+        if(state.specialty && item.specialty!==state.specialty)continue;
+        rows=rows.filter(r=>matchesText([r.display_name || r.name,'الأطباء والعيادات',item.specialty,r.hospital,r.address,r.markaz,r.raw_phone]));
+      }else{
+        if(state.specialty)continue;
+        rows=rows.filter(r=>matchesText([r.name,labels[facilitySection(item.kind,r)],r.category,...[r.services].flat().filter(Boolean),r.address,r.markaz,r.phone]));
+      }
+      rows=rows.filter(r=>{
+        const kind=item.kind==='records'?'records':facilitySection(item.kind,r);
+        if(home)return true;
+        if(state.tab==='doctors')return kind==='records';
+        if(state.tab==='hospitals')return kind==='hospitals';
+        if(state.tab==='services')return ['labs','radiology','pharmacies','specialized_centers'].includes(kind) && (!state.serviceKind || state.serviceKind===kind);
+        if(state.tab==='dental')return isDental(r);
+        return true;
+      });
+      if(!rows.length)continue;
+      const row=rows[0];
+      choices.push({...item,row,name:row.display_name || row.name,selectedTarget:item.kind==='records'?item.target:entityTarget(item.kind,row),location:row.markaz || row.city || ''});
+    }
+    const selected=window.MedicalRecommendations.select(choices,{limit:home?3:1,diverse:home});
+    if(!selected.length)return null;
+    const explain=item=>dialog('لماذا ظهر هذا الترشيح؟',el('section',{class:'form-stack'},el('h3',{},item.name),el('p',{},'ضمن '+item.label+'، وله '+item.count+' تقييمًا منشورًا بمتوسط '+item.average.toFixed(1)+' من 5.'),item.kind==='records'?el('p',{},'درجة الطبيب مجمعة عبر مقاره؛ نعرض المقر المطابق لخياراتك.'):el('p',{},'تخص الدرجة الفرع المعروض.'),el('p',{},'يطابق الفلاتر الحالية. نراعي الدرجة وعدد الآراء معًا؛ ولا يكفي تقييم واحد للتصدر.'),el('p',{},'لا نعرض ترشيحًا بأقل من 5 تقييمات أو متوسط أقل من 4 من 5. تقييم التجربة لا يقيس الكفاءة الطبية ولا يؤكد شروط التغطية.'),el('p',{class:'notice'},'وفق تجارب الأعضاء، وليست توصية طبية؛ اختيار الجهة يعود إليك.')));
+    return el('section',{class:'recommendation-section'+(home?' recommendation-home':' recommendation-inline'),'aria-label':home?'اختيارات تساعدك':'قد يناسب بحثك'},
+      el('div',{class:'recommendation-heading'},el('strong',{},home?'✦ اختيارات تساعدك':'✦ قد يناسب بحثك'),el('small',{class:'muted'},'حسب تقييمات الأعضاء')),
+      el('div',{class:'recommendation-strip'},selected.map(item=>el('article',{class:'recommendation-card','data-recommendation':item.target},
+        el('div',{class:'recommendation-category'},el('span',{},'مرشح في '+item.label),el('small',{},item.location)),el('strong',{class:'recommendation-name'},item.name),
+        el('div',{class:'recommendation-score'},el('strong',{dir:'ltr'},'★ '+item.average.toFixed(1)+' / 5'),el('span',{},item.count+' تقييمًا منشورًا')),
+        el('div',{class:'recommendation-actions'},button('عرض التفاصيل',()=>{location.hash='entity='+encodeURIComponent(item.selectedTarget);},'text-button'),button('لماذا ظهر؟',()=>explain(item),'text-button'))))),
+      el('small',{class:'recommendation-disclaimer'},'وفق تجارب الأعضاء، وليست توصية طبية؛ اختيار الجهة يعود إليك.'));
+  }
+  function renderRecommendations(main,home){const section=recommendationSection(home);if(section)main.append(section);}
   function renderHome(main) {
-    if (companionPreview) {renderCompanionHome(main);recentUpdates(main);return;}
+    if (companionPreview) {renderCompanionHome(main);renderRecommendations(main,true);recentUpdates(main);return;}
     const networkRecords=state.catalog.records.filter(r=>!state.network || (r.network_members || []).includes(state.network));
     const networkProviders=providers().filter(p=>p.branches.some(r=>!state.network || (r.network_members || []).includes(state.network)));
     const search=el("form",{class:"care-home-search",role:"search"},
@@ -965,6 +1004,7 @@
         el("span",{class:"care-orbit-label"},"الموظفون · الأُسَر والمعاشات"),el("small",{},"شبكتك الطبية.. بين يديك"))));
     main.append(el("section",{class:"care-metrics","aria-label":"ملخص الجهات الظاهرة في الشبكة"},
       [[networkProviders.length,"طبيب وقسم", "doctors"], [new Set(networkRecords.map(r=>r.specialty)).size,"تخصصًا", "guidelines"], [facilityEntries("hospitals").filter(r=>!state.network || r.network_members?.includes(state.network)).length,"مستشفيات", "hospitals"]].map(([count,label,icon])=>el("div",{},careIcon(icon),el("span",{},el("strong",{},count),el("small",{},label))))));
+    renderRecommendations(main,true);
     main.append(el("div",{class:"section-heading care-section-heading"},el("div",{},el("p",{class:"eyebrow"},"ابدأ من هنا"),el("h2",{},"ما الخدمة التي تبحث عنها؟")),button("مراكز الدقهلية",()=>go("districts"),"text-button")));
     const categories=[
       ["الأطباء والعيادات","doctors","التخصصات ومقار الكشف",()=>go("doctors")],
@@ -1165,6 +1205,7 @@
         }[state.tab] || "الدليل",
         `${cards.length} نتيجة`,
       ),
+      ...[recommendationSection(false)].filter(node=>node instanceof Node),
       gridCards(cards.slice(0, state.limit)),
     );
     if (cards.length > state.limit)
@@ -2498,6 +2539,7 @@
     idleBanner.hidden=true;idleModalBanner.hidden=true;
     state.catalog = Object.fromEntries(kinds.map((k) => [k, []]));
     state.stats = {};
+    state.recommendations=[];
     state.remote = false;
     if ($("#app-dialog").open) closeDialog(true);
     route();

@@ -117,3 +117,6 @@ cd ~/cloudshell_open/Medical && git pull --ff-only && bash scripts/deploy-medica
 
 
 تفاصيل العناصر والملاحظات المشتركة تحتاج public-review-details-v1؛ لا يُعرض اسم صاحب التقييم في مسار القراءة للأعضاء. يظل مسار الإدارة خاصًا ويتطلب نشر Firebase، مع بقاء MyNekaba للقراءة فقط.
+
+
+ترشيحات 4.10.0 من المجاميع المنشورة فقط، وتحتاج review-recommendations-v1. لا تقرأ أسماء أو تعليقات لهذا الحساب. راجع [اختيارات تساعدك](RECOMMENDATIONS_4_10_AR.md) لشروط العدد والدرجة والفلاتر والنشر.

@@ -883,3 +883,13 @@ test('anonymous comments are paginated and neither invalid consent nor invalid p
  assert.equal(first.summary.count,27);assert.equal(first.summary.criteria.waiting.count,13);assert.equal(first.comments.length,20);assert.equal(first.hasMore,true);assert.equal(second.comments.length,7);assert.equal(second.hasMore,false);
  for(const page of [-1,0.2,1001,NaN])await assert.rejects(()=>f.service.publicReviews(m,review.target_id,page),e=>e.code==='INVALID_PAGE');
 });
+
+test('recommendations use only published totals and visible active targets, including when the caller is an administrator',async()=>{
+ const f=setup(),m=await member(f),a=await admin(f);
+ for(let i=0;i<5;i++)f.store.reviews.set('rec'+i,{id:'rec'+i,author_id:'synthetic'+i,author_name:'اسم خاص',target_id:'doctor:p1',rating:5,status:i===0?'pending':'published',comment:'خاص'});
+ assert.equal((await f.service.catalog(m)).recommendations.items.length,0);
+ f.store.reviews.get('rec0').status='published';
+ let result=(await f.service.catalog(m)).recommendations;assert.equal(result.version,1);assert.equal(result.items[0].target,'doctor:p1');assert.equal(result.items[0].count,5);assert.ok(!JSON.stringify(result).includes('اسم خاص'));
+ await f.service.setEntityState(a,'records','1',{field:'service_status',value:'suspended',scope:'entity',versions:{'1':0}});
+ assert.equal((await f.service.catalog(m)).recommendations.items.length,0);assert.equal((await f.service.catalog(a)).recommendations.items.length,0);
+});
