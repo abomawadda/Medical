@@ -1463,3 +1463,10 @@ html { overflow-anchor:none; scroll-behavior:auto; }
 .member-today{font-size:.6rem;line-height:1.6;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
 @media(max-width:360px){.header-profile-hint{font-size:.64rem}.member-today{font-size:.57rem}.header-profile-footer{gap:4px 6px}}
 @media(prefers-reduced-motion:reduce){.workspace-view .header-account{transition:none}}
+
+
+/* Install stays before notifications, independent of the member's login. */
+.header-actions .install-action,.workspace-view .header-actions .install-action{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:46px;width:46px;min-height:44px;padding:5px 4px;font-size:.6rem;line-height:1.25;border:1px solid var(--border);background:var(--primary-soft);color:var(--primary);border-radius:13px}
+.header-actions .install-action.is-installed,.workspace-view .header-actions .install-action.is-installed{background:var(--card);border-color:var(--primary)}.install-action:focus-visible{outline:2px solid var(--primary);outline-offset:3px}.install-action span{white-space:nowrap}
+.install-guide{display:grid;gap:14px}.install-guide>img{border-radius:18px}.install-guide h3{color:var(--primary)}.install-guide ol{margin:0;padding-inline-start:24px;line-height:2}.install-guide li+li{margin-top:9px}.install-guide .muted{font-size:.8rem}
+@media(max-width:360px){.workspace-view .header-actions{gap:2px}.header-actions .install-action,.workspace-view .header-actions .install-action{min-width:40px;width:40px}.workspace-view .header-actions .icon-button:not(.install-action){min-width:34px;width:34px}.workspace-view .header-actions .header-logout{min-width:38px}}

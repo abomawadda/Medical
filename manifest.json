@@ -79,5 +79,11 @@
       ]
     }
   ],
-  "id": "./"
+  "id": "./",
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "./manifest.json"
+    }
+  ]
 }

@@ -926,6 +926,30 @@
     if(rows.length)box.append(button("تحديد الإعلانات كمقروءة",()=>{markAnnouncements(rows);showNotifications();},"button outline"));
     dialog("الإشعارات",box);
   }
+
+  const installControl=window.MedicalInstall.create({
+    host:window,navigator,manifestURL:document.querySelector('link[rel="manifest"]').href,
+    storage:{getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value)},
+    onChange:({installed,busy})=>{const b=$('#install-app');b.disabled=busy;b.setAttribute('aria-busy',String(busy));b.classList.toggle('is-installed',installed);b.querySelector('span').textContent=busy?'انتظر':installed?'مثبت':'تثبيت';b.querySelector('path').setAttribute('d',installed?'M5 12l4 4L19 6':'M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5');b.setAttribute('aria-label',installed?'التطبيق مثبت — التحقق من التثبيت':'تثبيت التطبيق على الجهاز');b.title=installed?'رعايتي مثبت — اضغط للتحقق':'تثبيت تطبيق رعايتي';},
+    onInstalled:()=>toast('تم تثبيت تطبيق رعايتي بنجاح على جهازك.'),
+  });
+  function installGuide(previouslyConfirmed){
+    const ua=navigator.userAgent,ios=/iPhone|iPad|iPod/i.test(ua)||(/Macintosh/i.test(ua)&&navigator.maxTouchPoints>1),android=/Android/i.test(ua);
+    const steps=ios?['افتح الرابط في Safari واضغط زر المشاركة.','اختر «إضافة إلى الشاشة الرئيسية»؛ قد تجدها ضمن «تعديل الإجراءات».','فعّل «فتح كتطبيق» إن ظهر، ثم اضغط «إضافة».']:
+      android?['افتح الرابط في Chrome أو Edge خارج متصفح فيسبوك أو واتساب.','من قائمة المتصفح ⋮ اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».','أكّد الإضافة ثم افتح رعايتي من الأيقونة الجديدة.']:
+      ['من شريط العنوان أو قائمة Chrome أو Edge اختر «تثبيت التطبيق».','إذا لم يظهر الخيار، افتح الرابط في متصفح يدعم التثبيت أو جرّب من هاتفك.'];
+    dialog('تثبيت تطبيق رعايتي',el('section',{class:'install-guide'},el('img',{src:'img/rayati-icon-192.png',alt:'',width:64,height:64}),el('h3',{},'رعايتي على شاشتك الرئيسية'),el('p',{},'وصول أسرع إلى دليلك الطبي من أيقونة التطبيق.'),previouslyConfirmed?el('p',{class:'notice'},'سبق تأكيد التثبيت في هذا المتصفح. لا يمكن التحقق من بقائه مثبتًا الآن؛ افتحه من الشاشة الرئيسية، أو أعد إضافته إذا حُذف.'):null,el('ol',{},steps.map(step=>el('li',{},step))),el('p',{class:'muted'},'إذا كنت أضفته بالفعل، افتحه من أيقونته؛ عندها يظهر تأكيد بأنه مثبت.'),button('تم، فهمت',()=>closeDialog(),'button primary')));
+  }
+  $('#install-app').addEventListener('click',async()=>{
+    if($('#app-dialog').open){toast('أكمل النافذة المفتوحة أو أغلقها أولًا، ثم اضغط تثبيت.');return;}
+    const result=await installControl.install();
+    if(result.status==='already')toast('تطبيق رعايتي مثبت بالفعل على جهازك.');
+    else if(result.status==='pending')toast('تمت الموافقة على التثبيت؛ ننتظر تأكيد المتصفح لإتمامه.');
+    else if(result.status==='dismissed')toast('لم يتم التثبيت. يمكنك المحاولة مرة أخرى من زر التثبيت أو قائمة المتصفح.');
+    else if(result.status==='ready')toast('التثبيت جاهز الآن؛ اضغط زر التثبيت مرة أخرى.');
+    else if(result.status==='manual')installGuide(result.history);
+  });
+  void installControl.check();
   $("#notifications-button").onclick=showNotifications;
   window.addEventListener("storage",e=>{if(e.key===notificationKey)updateNotifications();});
   function recentUpdates(main) {

@@ -190,6 +190,38 @@ async function memberLogin(page, remember = false) {
   await page.locator('#main[data-catalog-ready="true"]').waitFor();
 }
 try {
+  // Native PWA events are simulated; these checks do not install software on the test host.
+  const installContext=await context();
+  await installContext.addInitScript(()=>{
+    window.addEventListener('beforeinstallprompt',event=>{if(event.isTrusted){event.preventDefault();event.stopImmediatePropagation();}});
+    Object.defineProperty(navigator,'getInstalledRelatedApps',{configurable:true,value:async()=>[]});
+  });
+  const installPage=await installContext.newPage();await installPage.goto(origin);await installPage.locator('.login-card').waitFor();
+  assert.ok(await installPage.locator('#install-app').isVisible());
+  assert.ok(await installPage.evaluate(()=>{const ids=[...document.querySelector('.header-actions').children].map(n=>n.id);return ids.indexOf('install-app')<ids.indexOf('notifications-button');}));
+  async function offerInstall(outcome){await installPage.evaluate(outcome=>{const event=new Event('beforeinstallprompt',{cancelable:true});Object.assign(event,{prompt:async()=>{window.installPrompts=(window.installPrompts || 0)+1;},userChoice:Promise.resolve({outcome})});window.dispatchEvent(event);},outcome);}
+  await offerInstall('dismissed');await installPage.locator('#install-app').click();await installPage.locator('#toast').getByText(/لم يتم التثبيت/).waitFor();
+  assert.equal(await installPage.evaluate(()=>localStorage.getItem('medical_install_confirmed_v1')),null);
+  await offerInstall('accepted');await installPage.locator('#install-app').click();await installPage.locator('#toast').getByText(/ننتظر تأكيد المتصفح/).waitFor();
+  assert.equal(await installPage.evaluate(()=>localStorage.getItem('medical_install_confirmed_v1')),null);
+  await installPage.evaluate(()=>window.dispatchEvent(new Event('appinstalled')));await installPage.locator('#toast').getByText('تم تثبيت تطبيق رعايتي بنجاح على جهازك.',{exact:true}).waitFor();
+  await installPage.locator('#install-app').click();await installPage.locator('#toast').getByText('تطبيق رعايتي مثبت بالفعل على جهازك.',{exact:true}).waitFor();
+  assert.equal(await installPage.evaluate(()=>window.installPrompts),2);
+  await installPage.reload();await installPage.locator('.login-card').waitFor();await installPage.locator('#install-app').click();
+  await installPage.getByRole('heading',{name:'تثبيت تطبيق رعايتي',exact:true}).waitFor();await installPage.getByText(/سبق تأكيد التثبيت في هذا المتصفح/).waitFor();
+  await installPage.locator('#dialog-close').click();
+  await installPage.evaluate(()=>Object.defineProperty(navigator,'getInstalledRelatedApps',{configurable:true,value:async()=>[{platform:'webapp',url:location.origin+'/manifest.json'}]}));
+  await installPage.locator('#install-app').click();await installPage.locator('#toast').getByText('تطبيق رعايتي مثبت بالفعل على جهازك.',{exact:true}).waitFor();
+  await installPage.reload();await installPage.locator('.login-card').waitFor();
+  await installPage.evaluate(()=>Object.defineProperty(navigator,'userAgent',{configurable:true,value:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile Safari/604.1'}));
+  await installPage.locator('#install-app').click();await installPage.locator('.install-guide').getByText('افتح الرابط في Safari واضغط زر المشاركة.',{exact:true}).waitFor();
+  assert.ok(await installPage.locator('.login-card').isVisible());
+  if(process.env.MEDICAL_SCREENSHOT_DIR){await mkdir(process.env.MEDICAL_SCREENSHOT_DIR,{recursive:true});await installPage.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'ios-install-guide.png'),fullPage:true});}
+  await installPage.locator('#dialog-close').click();
+  await installPage.evaluate(()=>Object.defineProperty(navigator,'standalone',{configurable:true,value:true}));
+  await installPage.locator('#install-app').click();await installPage.locator('#toast').getByText('تطبيق رعايتي مثبت بالفعل على جهازك.',{exact:true}).waitFor();
+  assert.equal(await installPage.evaluate(()=>localStorage.getItem('medical_remembered_session_v1')),null);
+  await installContext.close();
   const memberContext = await context(),
     p = await memberContext.newPage();
   const requests = [];
@@ -199,7 +231,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.11.3");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.12.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -413,7 +445,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.11.3');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.12.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1426,6 +1458,7 @@ try {
         anonymousReviewConsentCriteriaModerationAndWithdrawal: true,
         recommendationsWeightedScopedResponsiveAndReturnToResults: true,
         profileReadOnlyPartialAppApprovalAndPrivateNotifications: true,
+        installNativeConfirmationRepeatChecksAndSafariGuidance: true,
         dimensions,
         runtimeErrors: errors,
       },
