@@ -46,7 +46,7 @@ test('acceptance rejects changed source data, visibility, disappearance and newl
 test('ambiguous, invalid, matching and within-file duplicate rows cannot be accepted; batch decisions are all-or-nothing',async()=>{
  const f=fixture();const batch=await f.analyze([input(),{source_row:3,values:{name:'ناقص'}}]);await reject(()=>f.save('decide',{batch_id:batch.id,rows:[2,3],decision:'accepted'}),'IMPORT_BLOCKED');assert.equal((await f.service.labImports('admin',batch.id)).batch.rows[0].decision,'pending');
  const duplicate=await f.analyze([input(),{...input(),source_row:4}]);assert.ok(duplicate.rows.every(r=>r.status==='possible_duplicate'));await reject(()=>f.save('decide',{batch_id:duplicate.id,rows:[2],decision:'accepted'}),'IMPORT_BLOCKED');
- const exact=await f.analyze([{source_row:2,values:M.sourceRow(f.catalog.labs[0])}]);assert.equal(exact.rows[0].status,'unchanged');await reject(()=>f.save('decide',{batch_id:exact.id,rows:[2],decision:'accepted'}),'IMPORT_BLOCKED');
+ const exact=await f.analyze([{source_row:2,values:Object.fromEntries(Object.entries(M.sourceRow(f.catalog.labs[0])).filter(([,v])=>v))}]);assert.equal(exact.rows[0].status,'unchanged');await reject(()=>f.save('decide',{batch_id:exact.id,rows:[2],decision:'accepted'}),'IMPORT_BLOCKED');
 });
 test('undo restores complete prior row decisions; discarded private batches cannot be used and may be deleted without live rollback',async()=>{
  const f=fixture(),batch=await f.analyze([input(),{source_row:3,values:{name:'ناقص'}}]);await f.save('decide',{batch_id:batch.id,rows:[2],decision:'accepted'});await f.save('decide',{batch_id:batch.id,rows:[2,3],decision:'rejected'});
@@ -67,4 +67,71 @@ test('batch and decision history limits preserve saved reviews rather than silen
 test('truncated display of candidate branches never hides an exact duplicate later in the directory',()=>{
  const labs=Array.from({length:10},(_,i)=>row(String(i),{address:'عنوان آخر '+i}));labs[9].address='عنوان تجريبي';const found=M.analyze('labs',input({name:'معمل تجريبي'}),{labs});assert.equal(found.candidates.length,8);assert.equal(found.candidateCount,10);assert.equal(found.status,'possible_duplicate');
  assert.throws(()=>M.parse(Array.from({length:41},()=> 'x').join(',')),/40/);assert.throws(()=>M.parse(Array.from({length:1002},()=> 'x').join('\n')),/1000/);
+});
+
+test('private row correction repairs blocked phones, preserves the uploaded original and invalidates only affected decisions',async()=>{
+ const f=fixture(),batch=await f.analyze([input({raw_phone:'1012345678'}),{source_row:3,values:{name:'معمل ثان تجريبي',address:'عنوان ثان',markaz:'طلخا',raw_phone:'01112345678'}}]);
+ await f.save('decide',{batch_id:batch.id,rows:[3],decision:'accepted'});
+ let view=(await f.save('amend',{batch_id:batch.id,source_row:2,values:input().values,confirm_identity:false})).workspace;
+ assert.equal(view.batch.rows[0].status,'new');assert.equal(view.batch.rows[0].decision,'pending');assert.equal(view.batch.rows[0].originalInput.raw_phone,'1012345678');assert.equal(view.batch.rows[0].input.raw_phone,input().values.raw_phone);assert.equal(view.batch.rows[1].decision,'accepted');
+ await f.save('decide',{batch_id:batch.id,rows:[2],decision:'accepted'});
+ view=(await f.save('amend',{batch_id:batch.id,source_row:2,values:input({address:'عنوان منقح'}).values,confirm_identity:false})).workspace;assert.equal(view.batch.rows[0].decision,'pending');assert.equal(view.batch.rows[1].decision,'accepted');assert.equal(view.batch.lastAnalysis.decisionsReset,1);
+ view=(await f.save('undo',{batch_id:batch.id})).workspace;assert.equal(view.batch.rows[0].decision,'accepted');assert.equal(view.batch.rows[0].input.address,'عنوان تجريبي');assert.equal(view.batch.rows[0].originalInput.raw_phone,'1012345678');
+});
+test('explicit identity confirmation resolves duplicates without auto-merging branches or modifying live identifiers',async()=>{
+ const f=fixture(),before=await f.store.catalog(),batch=await f.analyze([input({name:'معمل تجريبي',address:'عنوان مصطنع أول'})]);assert.equal(batch.rows[0].status,'possible_duplicate');
+ const update=input({id:'one',name:'معمل تجريبي',address:'عنوان مصطنع أول',raw_phone:'01112345678'}).values;
+ await reject(()=>f.save('amend',{batch_id:batch.id,source_row:2,values:update,confirm_identity:false}),'IMPORT_IDENTITY_CONFIRMATION');
+ let view=(await f.save('amend',{batch_id:batch.id,source_row:2,values:update,confirm_identity:true})).workspace;assert.equal(view.batch.rows[0].status,'update');assert.equal(view.batch.rows[0].before.id,'one');assert.equal(view.batch.rows[0].originalInput.id,undefined);
+ assert.ok(view.batch.rows[0].notes.some(note=>note.includes('الإخفاء')));assert.ok(view.batch.rows[0].notes.some(note=>note.includes('الإيقاف')));
+ await f.save('decide',{batch_id:batch.id,rows:[2],decision:'accepted'});const plan=await f.service.labImportPlan('admin',batch.id);assert.equal(plan.items[0].existingId,'one');assert.equal(plan.items[0].operation,'propose_update');assert.deepEqual(plan.items[0].contacts.mobile,['01112345678']);assert.equal(Object.hasOwn(plan.items[0].after,'service_status'),false);assert.equal(Object.hasOwn(plan.items[0].after,'directory_visibility'),false);assert.deepEqual(await f.store.catalog(),before);
+ await reject(()=>f.save('amend',{batch_id:batch.id,source_row:2,values:input().values,confirm_identity:false}),'IMPORT_IDENTITY_CONFIRMATION');
+});
+test('editing one row rechecks duplicates across its whole batch and invalidates decisions when another row becomes identical',async()=>{
+ const f=fixture(),batch=await f.analyze([input(),{source_row:3,values:input({name:'اسم ثان مختلف'}).values}]);await f.save('decide',{batch_id:batch.id,rows:[2],decision:'accepted'});
+ const view=(await f.save('amend',{batch_id:batch.id,source_row:3,values:input().values,confirm_identity:false})).workspace;
+ assert.ok(view.batch.rows.every(row=>row.status==='possible_duplicate'));assert.equal(view.batch.rows[0].decision,'pending');await reject(()=>f.save('decide',{batch_id:batch.id,rows:[2],decision:'accepted'}),'IMPORT_BLOCKED');
+});
+test('rescan refreshes source values and undo cannot resurrect acceptance of a changed directory snapshot',async()=>{
+ const f=fixture(),batch=await f.analyze([input({id:'one'})]);await f.save('decide',{batch_id:batch.id,rows:[2],decision:'accepted'});await f.save('decide',{batch_id:batch.id,rows:[2],decision:'rejected'});
+ f.catalog.labs[0].address='عنوان غُيّر في الدليل';
+ let view=(await f.save('undo',{batch_id:batch.id})).workspace;assert.equal(view.batch.rows[0].decision,'pending');assert.equal(view.batch.rows[0].before.address,f.catalog.labs[0].address);
+ await f.save('decide',{batch_id:batch.id,rows:[2],decision:'accepted'});f.catalog.labs[0]._version++;
+ await reject(()=>f.service.labImportPlan('admin',batch.id),'IMPORT_SOURCE_CHANGED');view=(await f.save('rescan',{batch_id:batch.id})).workspace;assert.equal(view.batch.rows[0].decision,'pending');assert.equal(view.batch.lastAnalysis.decisionsReset,1);
+ await f.save('undo',{batch_id:batch.id});assert.equal((await f.service.labImports('admin',batch.id)).batch.rows[0].decision,'pending');
+});
+test('legacy batches require explicit rescan and old decisions remain historical even after undo through legacy journal entries',async()=>{
+ const f=fixture(),batch=await f.analyze();await f.save('decide',{batch_id:batch.id,rows:[2],decision:'accepted'});await f.save('decide',{batch_id:batch.id,rows:[2],decision:'rejected'});
+ const stored=await f.store.labWorkspaceRead(feature.id,'admin');delete stored.state.batches[0].analysisRevision;stored.state.batches[0].history=[{at:1,rows:[{source_row:2,decision:'pending'}]},{at:2,rows:[{source_row:2,decision:'accepted'}]}];delete stored.state.batches[0].rows[0].originalInput;f.store.labWorkspaces.set(feature.id+'|admin',stored);
+ assert.equal((await f.service.labImports('admin',batch.id)).batch.requiresRescan,true);await reject(()=>f.service.labImportPlan('admin',batch.id),'IMPORT_RESCAN_REQUIRED');await reject(()=>f.save('amend',{batch_id:batch.id,source_row:2,values:input().values,confirm_identity:false}),'IMPORT_RESCAN_REQUIRED');
+ let view=(await f.save('rescan',{batch_id:batch.id})).workspace;assert.equal(view.batch.requiresRescan,false);assert.equal(view.batch.rows[0].decision,'pending');assert.deepEqual(view.batch.rows[0].originalInput,input().values);
+ await f.save('undo',{batch_id:batch.id});await f.save('undo',{batch_id:batch.id});view=await f.service.labImports('admin',batch.id);assert.equal(view.batch.rows[0].decision,'pending');
+});
+test('private proposal downloads require fresh live administrator access and include only accepted provider fields',async()=>{
+ const f=fixture(),before=await f.store.catalog(),batch=await f.analyze([input(),{source_row:3,values:{name:'ناقص'}}]);
+ await reject(()=>f.service.labImportPlan('admin',batch.id),'IMPORT_NO_ACCEPTED_ROWS');await f.save('decide',{batch_id:batch.id,rows:[2],decision:'accepted'});
+ for(const token of ['','member'])await assert.rejects(()=>f.service.labImportPlan(token,batch.id),e=>e.status===(token?403:401));await reject(()=>f.service.labImportPlan('other',batch.id),'IMPORT_NOT_FOUND');
+ const plan=await f.service.labImportPlan('admin',batch.id);assert.equal(plan.items.length,1);assert.equal(plan.scope,'private-proposals-only');assert.equal(plan.memberEnabled,false);assert.equal(plan.productionWriteSupported,false);assert.equal(plan.items[0].operation,'propose_add');assert.equal('history'in plan,false);assert.equal('originalInput'in plan.items[0],false);assert.equal(plan.planFingerprint.length,64);assert.deepEqual(await f.store.catalog(),before);
+ f.store.labRows.set(feature.id,{previewEnabled:false});await reject(()=>f.service.labImportPlan('admin',batch.id),'LAB_PAUSED');f.store.labRows.clear();f.revoke();await assert.rejects(()=>f.service.labImportPlan('admin',batch.id),e=>e.status===403);
+});
+test('corrections and rescans keep concurrency, immutable request intents and the pause gate inside the transaction',async()=>{
+ const f=fixture(),batch=await f.analyze(),body=await f.body('amend',{batch_id:batch.id,source_row:2,values:input({address:'عنوان معدل'}).values,confirm_identity:false});
+ const result=await Promise.all([1,2].map(()=>f.service.saveLabImport('admin',body)));assert.equal(result.filter(r=>r.changed).length,1);assert.equal(result[0].workspace.batch.history.length,1);
+ await reject(()=>f.service.saveLabImport('admin',{...body,payload:{...body.payload,values:input().values}}),'LAB_REQUEST_REUSED');await reject(()=>f.save('amend',body.payload,{expected_version:1}),'LAB_WORKSPACE_CONFLICT');
+ for(const values of [{...input().values,nationalId:'private'},{...input().values,contract_listing:true},{...input().values,raw_phone:''}])await reject(()=>f.save('amend',{...body.payload,values}),'INVALID_IMPORT');
+ const transact=f.store.labWorkspaceTransact;f.store.labWorkspaceTransact=(...args)=>{f.store.labRows.set(feature.id,{previewEnabled:false});return transact(...args);};await reject(()=>f.save('rescan',{batch_id:batch.id}),'LAB_PAUSED');
+});
+test('CSV proposal export quotes cells, neutralizes spreadsheet formulas and preserves phone and identifier leading zeros',()=>{
+ const plan={audience:'admin',memberEnabled:false,productionWriteSupported:false,scope:'private-proposals-only',items:[{source_row:2,operation:'propose_update',existingId:'00123',after:{name:'=HYPERLINK("https://example.invalid")',address:'\t@SUM(1)',markaz:'طلخا',specialty:'مختبر',schedule:'سطر\nثان'},contacts:{mobile:['01012345678'],landline:['0502345678'],shortcode:['16133']}}]};
+ const csv=M.planCSV(plan);assert.match(csv,/"'00123"/);assert.match(csv,/"'01012345678"/);assert.match(csv,/"'=HYPERLINK/);assert.match(csv,/"'\t@SUM/);assert.match(csv,/"سطر\nثان"/);assert.throws(()=>M.planCSV({...plan,memberEnabled:true}));
+});
+
+test('common spelling corrections still reveal potential duplicates without rewriting source identity',()=>{
+ const original=row('pharmacy',{name:'صيدليه المثال'}),found=M.analyze('pharmacies',input({name:'صيدلية المثال',address:original.address}),{pharmacies:[original]});assert.equal(found.status,'possible_duplicate');assert.equal(found.candidates[0].id,original.id);assert.equal(original.name,'صيدليه المثال');
+});
+test('snapshot journal size limits reject the whole operation and preserve prior decisions without silent eviction',async()=>{
+ const f=fixture(),rows=Array.from({length:20},(_,i)=>({source_row:i+2,values:{name:'معمل اختبار '+i,address:'ع'.repeat(500),markaz:'طلخا',raw_phone:'01012345678'}})),batch=await f.analyze(rows);
+ let limit=false;
+ for(let i=0;i<30;i++){const before=await f.service.labImports('admin',batch.id);try{await f.save('decide',{batch_id:batch.id,rows:rows.map(row=>row.source_row),decision:i%2?'rejected':'accepted'});}catch(error){assert.equal(error.code,'LAB_SPACE_LIMIT');assert.deepEqual(await f.service.labImports('admin',batch.id),before);limit=true;break;}}
+ assert.equal(limit,true);
 });

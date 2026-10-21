@@ -394,6 +394,13 @@ const importDecisions=await Promise.all([1,2].map(()=>service.saveLabImport(admi
 await service.saveLabImport(admin,{...decisionBody,expected_version:2,request_id:'c1'.repeat(16),operation:'undo',payload:{batch_id:importBody.request_id}});assert.equal((await service.labImports(admin,importBody.request_id)).batch.rows[0].decision,'pending');
 assert.deepEqual(await service.catalog(member),visitBefore);assert.equal(JSON.stringify((await foreign.collection('employees').get()).docs.map(d=>d.data())),before);
 assert.equal((await roadmapDb.collection('medical_lab_workspaces').get()).size,3);
+// Corrections, original preservation and proposal validation remain inside the private document.
+const amendInput={...decisionBody,expected_version:3,request_id:'d1'.repeat(16),operation:'amend',payload:{batch_id:importBody.request_id,source_row:2,values:{...importBody.payload.rows[0].values,address:'عنوان منقح بالمحاكي'},confirm_identity:false}};
+const amendments=await Promise.all([1,2].map(()=>service.saveLabImport(admin,amendInput)));assert.equal(amendments.filter(r=>r.changed).length,1);assert.equal(amendments[0].workspace.batch.rows[0].originalInput.address,'عنوان مصطنع مستقل');assert.equal(amendments[0].workspace.batch.rows[0].input.address,'عنوان منقح بالمحاكي');
+await service.saveLabImport(admin,{...decisionBody,expected_version:4,request_id:'e1'.repeat(16)});
+const proposals=await service.labImportPlan(admin,importBody.request_id);assert.equal(proposals.items.length,1);assert.equal(proposals.scope,'private-proposals-only');assert.equal(proposals.productionWriteSupported,false);assert.equal(proposals.items[0].after.address,'عنوان منقح بالمحاكي');await assert.rejects(()=>service.labImportPlan(member,importBody.request_id),e=>e.status===403);
+assert.deepEqual(await service.catalog(member),visitBefore);assert.equal(JSON.stringify((await foreign.collection('employees').get()).docs.map(d=>d.data())),before);
+
 // Lab reviews persist only in Medical and cannot change the member catalog or source.
 const memberBeforeLab=await service.catalog(member),lab=(await service.adminLab(admin)).features[0];
 const integrated=await service.labPreview(admin,'directory_experience');assert.equal(integrated.feature.dataMode,'directory-readonly');assert.deepEqual(integrated.scene.catalog,memberBeforeLab.catalog);

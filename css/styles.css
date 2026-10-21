@@ -1513,3 +1513,7 @@ html { overflow-anchor:none; scroll-behavior:auto; }
 .import-diffs dd { margin:0; display:grid; gap:.35rem; }
 .import-row details summary,.import-panel details summary { cursor:pointer; padding-block:.65rem; min-height:44px; }
 @media(max-width:480px){ .import-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .import-contact-groups{grid-template-columns:1fr;} .import-actions>* { max-width:100%; } .import-row .lab-card-heading{flex-wrap:wrap;} }
+.import-row-editor { margin-block:1rem; padding:clamp(.8rem,2vw,1.5rem); background:var(--page); border:1px solid var(--primary); border-radius:1.2rem; scroll-margin-block-start:220px; }
+.import-plan-panel { margin-block:1rem; padding:1rem; border-radius:1rem; background:var(--primary-soft); }
+.import-match-option { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:.65rem; padding-block:.7rem; border-block-end:1px solid var(--border); }
+@media(max-width:540px){.import-match-option{grid-template-columns:1fr;}.import-row-editor{scroll-margin-block-start:190px;}.import-row-editor input{font-size:16px;}}

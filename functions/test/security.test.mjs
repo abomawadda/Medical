@@ -1065,7 +1065,7 @@ test('HTTP roadmap routes enforce live admin ownership, private caching and prev
 test('phase readiness is read-only, live-admin protected, aggregate-only and never publishes a phase',async()=>{
  const f=visitFixture(),a=await admin(f),m=await member(f),before=await f.service.catalog(m),sourceBefore=structuredClone(f.employees),handler=createHandler({getService:()=>f.service,origins:['https://abomawadda.github.io']});
  for(const token of ['',m,a]){const r=response();await handler(request('/v1/admin/lab/readiness','GET',{}, {authorization:'Bearer '+token}),r);assert.equal(r.statusCode,token===a?200:token?403:401);assert.match(r.headers['Cache-Control'],/no-store/);if(token===a){assert.equal(r.body.phases.length,7);assert.equal(r.body.releaseSupported,false);assert.equal(r.body.bookingConnected,false);assert.equal(r.body.memberEnabled,false);assert.equal(r.body.scope,'admin-sandbox');}}
- const light=await f.service.labReadiness(a,true);assert.equal(light.revision,'p0-readiness-20261021-2');assert.equal('phases'in light,false);assert.equal(f.store.audit.length,0);
+ const light=await f.service.labReadiness(a,true);assert.equal(light.revision,'p0-readiness-20261021-3');assert.equal('phases'in light,false);assert.equal(f.store.audit.length,0);
  const body={expected_version:0,previewRevision:'p4-p5-20261021-2',request_id:'a'.repeat(32),operation:'save_role',payload:{id:'b'.repeat(32),label:'دور خاص لا يصدر في التقرير',channel:'قناة خاصة لا تصدر'}};await f.service.saveLabWorkspace(a,'service_planning',body);
  let report=await f.service.labReadiness(a);assert.equal(report.phases.find(p=>p.id==='P4').evidence.find(e=>e.label.includes('أدوار')).count,1);assert.ok(!JSON.stringify(report).includes('قناة خاصة'));assert.ok(!JSON.stringify(report).includes('دور خاص'));assert.ok(!JSON.stringify(report).includes(f.employees[0].name));
  const feature=(await f.service.adminLab(a)).features.find(f=>f.id==='service_planning');await f.service.saveLabFeature(a,feature.id,{expected_version:feature.version,previewRevision:feature.previewRevision,review:'approved',note:'ملاحظة خاصة لا تصدر',previewEnabled:false});
@@ -1082,8 +1082,14 @@ test('readiness status polling avoids directory/statistics reads and never impor
 
 test('HTTP import review endpoints enforce live administration, no-store, bounded bodies and no public write route',async()=>{
  const f=visitFixture(),a=await admin(f),m=await member(f),h=createHandler({getService:()=>f.service,origins:['https://abomawadda.github.io'],logger:{error(){}}});
- for(const [path,method]of [['/v1/admin/lab/imports','GET'],['/v1/admin/lab/imports','POST'],['/v1/admin/lab/imports/'+'a'.repeat(32),'GET']])for(const [token,status]of [['',401],[m,403]]){const r=response();await h(request(path,method,{},token?{authorization:'Bearer '+token}:{}),r);assert.equal(r.statusCode,status);assert.match(r.headers['Cache-Control'],/no-store/);}
+ for(const [path,method]of [['/v1/admin/lab/imports','GET'],['/v1/admin/lab/imports','POST'],['/v1/admin/lab/imports/'+'a'.repeat(32),'GET'],['/v1/admin/lab/imports/'+'a'.repeat(32)+'/plan','GET']])for(const [token,status]of [['',401],[m,403]]){const r=response();await h(request(path,method,{},token?{authorization:'Bearer '+token}:{}),r);assert.equal(r.statusCode,status);assert.match(r.headers['Cache-Control'],/no-store/);}
  const r=response();await h(request('/v1/admin/lab/imports','GET',{}, {authorization:'Bearer '+a}),r);assert.equal(r.body.productionWriteSupported,false);assert.equal(r.body.batches.length,0);
  const big=response();await h(request('/v1/admin/lab/imports','POST',{source:'x'.repeat(40000)}, {authorization:'Bearer '+a}),big);assert.equal(big.statusCode,413);
  f.accounts[0].accountStatus='disabled';const revoked=response();await h(request('/v1/admin/lab/imports','GET',{}, {authorization:'Bearer '+a}),revoked);assert.equal(revoked.statusCode,403);
+});
+
+test('phase evidence separates historic import approvals from current revision proposals without exporting row values',async()=>{
+ const f=visitFixture(),a=await admin(f),revision=(await f.service.adminLab(a)).features.find(f=>f.id==='catalog_staging').previewRevision,read=f.store.labWorkspaceRead;
+ f.store.labWorkspaceRead=async(id,owner)=>id==='catalog_staging'?{state:{batches:[{discarded:false,analysisRevision:revision,source:'مرجع لا يصدر',rows:[{name:'اسم لا يصدر',decision:'accepted'}]},{discarded:false,analysisRevision:'catalog-staging-20261021-1',rows:[{decision:'accepted'}]},{discarded:true,analysisRevision:revision,rows:[{decision:'accepted'}]}]}}:read(id,owner);
+ const report=await f.service.labReadiness(a),evidence=report.phases.find(p=>p.id==='P1').evidence;assert.equal(evidence.find(e=>e.label==='دفعات جهات خاصة غير مستبعدة').count,2);assert.equal(evidence.find(e=>e.label==='دفعات تحتاج إعادة فحص الإصدار').count,1);assert.equal(evidence.find(e=>e.label==='صفوف مقبولة للمراجعة فقط').count,1);assert.ok(!JSON.stringify(report).includes('لا يصدر'));
 });

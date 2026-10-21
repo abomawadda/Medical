@@ -1045,7 +1045,7 @@
   function renderCatalogStaging(main){
     if(!isAdmin()){main.append(heading("المعاينة متاحة للإدارة فقط"),button("العودة للرئيسية",()=>go("home"),"button primary"));return;}
     const epoch=state.identityEpoch,root=el("section",{class:"development-lab","aria-label":"مركز جودة الدليل الخاص"});main.append(root);
-    labView=window.MedicalCatalogWorkspace.mount({root,api:API,el,button,notice:toast,memory:state.roadmapMemory.catalog_staging||={},allowed:()=>isAdmin()&&epoch===state.identityEpoch,exit:()=>go("lab")});
+    labView=window.MedicalCatalogWorkspace.mount({root,api:API,el,button,notice:toast,catalog:()=>state.catalog,memory:state.roadmapMemory.catalog_staging||={},allowed:()=>isAdmin()&&epoch===state.identityEpoch,exit:()=>go("lab")});
   }
   function renderLabReadiness(main){
     if(!isAdmin()){main.append(heading("المعاينة متاحة للإدارة فقط"),button("العودة للرئيسية",()=>go("home"),"button primary"));return;}

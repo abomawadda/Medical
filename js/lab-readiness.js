@@ -1,6 +1,6 @@
 /* Read-only phase overview. It cannot publish a feature, procedure or notification. */
 window.MedicalLabReadiness=(()=>{
- const revision='p0-readiness-20261021-2';
+ const revision='p0-readiness-20261021-3';
  function mount({root,api,el,button,allowed,exit,open}){
   let disposed=false,data=null,sequence=0,checking=false;
   const valid=()=>!disposed&&root.isConnected&&allowed();

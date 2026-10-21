@@ -232,7 +232,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.18.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.19.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -446,7 +446,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.18.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.19.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1030,8 +1030,8 @@ try {
   assert.equal(await pilot.locator('.lab-preview,.lab-feature-card,.companion-welcome').count(),0);
   await pilot.evaluate(()=>{const k='medical_remembered_session_v1',r=JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify({...r,role:'admin',user:{role:'admin'}}));});
   await pilot.reload();await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();
-  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home','/admin/lab/preview/directory_experience','/admin/lab/preview/visit_workspace','/admin/lab/visit-reports','/admin/lab/workspaces/care_companion','/admin/lab/workspaces/service_planning','/admin/lab/readiness','/admin/lab/imports'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
-  assert.deepEqual(deniedLab,[403,403,403,403,403,403,403,403,403]);
+  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home','/admin/lab/preview/directory_experience','/admin/lab/preview/visit_workspace','/admin/lab/visit-reports','/admin/lab/workspaces/care_companion','/admin/lab/workspaces/service_planning','/admin/lab/readiness','/admin/lab/imports','/admin/lab/imports/'+'a'.repeat(32)+'/plan'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
+  assert.deepEqual(deniedLab,[403,403,403,403,403,403,403,403,403,403]);
   await pilot.getByRole('button',{name:'العودة للرئيسية',exact:true}).click();await pilot.locator('.hero').waitFor();
   assert.equal(await pilot.getByRole('button',{name:'معمل التطوير',exact:true}).count(),0);
   await pilot.goto(origin+'/#lab-visit');await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('.visit-workspace,.visit-checklist,.visit-report-card').count(),0);
@@ -1321,6 +1321,34 @@ try {
   await a.route('**/v1/admin/lab/imports',lostImport);await a.getByLabel('تحديد صف 2',{exact:true}).check();await a.getByRole('button',{name:'قبول المحدد للمراجعة',exact:true}).click();await a.getByRole('button',{name:'إعادة محاولة العملية نفسها',exact:true}).waitFor();await a.getByRole('button',{name:'إعادة محاولة العملية نفسها',exact:true}).click();await importRow.getByText('صف المصدر 2 · مقبول للمراجعة فقط',{exact:true}).waitFor();await a.unroute('**/v1/admin/lab/imports',lostImport);
   const privateBatchId=await importBatch.getAttribute('data-import-batch');const privateBatch=await a.evaluate(id=>window.MedicalAPI.labImports(id),privateBatchId);assert.equal(privateBatch.batch.history.length,1);assert.equal(privateBatch.productionWriteSupported,false);assert.equal(privateBatch.batch.rows[0].after.raw_phone,'01012345678 - 0502345678 - 16133');
   await a.getByRole('button',{name:'تراجع عن آخر قرار',exact:true}).click();await importRow.getByText('صف المصدر 2 · بانتظار القرار',{exact:true}).waitFor();
+  // Correct the batch in place; originals remain immutable and accepted rows need a new decision.
+  await importRow.getByRole('button',{name:'تصحيح الصف',exact:true}).click();
+  await a.getByLabel('تصحيح أرقام الاتصال',{exact:true}).fill('1012345678');await a.getByRole('button',{name:'حفظ التصحيح وإعادة الفحص',exact:true}).click();await importRow.getByText('يحتاج تصحيحًا',{exact:true}).waitFor();assert.equal(await a.getByRole('button',{name:'تنزيل المقترحات JSON',exact:true}).isDisabled(),true);
+  await importRow.getByRole('button',{name:'تصحيح الصف',exact:true}).click();await a.getByLabel('تصحيح أرقام الاتصال',{exact:true}).fill('01112345678 - 0502345678 - 16133');await a.getByLabel('تصحيح العنوان',{exact:true}).fill('عنوان مصطنع منقح');await a.getByRole('button',{name:'حفظ التصحيح وإعادة الفحص',exact:true}).click();await importRow.getByText('جديد للمراجعة',{exact:true}).waitFor();
+  const correctedBatch=await a.evaluate(id=>window.MedicalAPI.labImports(id),privateBatchId);assert.equal(correctedBatch.batch.rows[0].originalInput.address,'عنوان تجريبي مستقل');assert.equal(correctedBatch.batch.rows[0].originalInput.raw_phone,'01012345678 - 0502345678 - 16133');assert.equal(correctedBatch.batch.rows[0].input.address,'عنوان مصطنع منقح');
+  await a.getByLabel('تحديد صف 2',{exact:true}).check();await a.getByRole('button',{name:'قبول المحدد للمراجعة',exact:true}).click();await importRow.getByText('صف المصدر 2 · مقبول للمراجعة فقط',{exact:true}).waitFor();
+  const proposalDownload=a.waitForEvent('download');await a.getByRole('button',{name:'تنزيل المقترحات JSON',exact:true}).click();const proposalJSON=JSON.parse(await readFile(await (await proposalDownload).path(),'utf8'));assert.equal(proposalJSON.items.length,1);assert.equal(proposalJSON.productionWriteSupported,false);assert.equal(proposalJSON.scope,'private-proposals-only');assert.equal(proposalJSON.items[0].after.address,'عنوان مصطنع منقح');
+  const csvDownload=a.waitForEvent('download');await a.getByRole('button',{name:'تنزيل المقترحات Excel CSV',exact:true}).click();const proposalCSV=await readFile(await (await csvDownload).path(),'utf8');assert.match(proposalCSV,/'01112345678/);assert.match(proposalCSV,/إضافة مقترحة فقط/);
+  // Explicit identity binding never changes the live catalog, even if a row has similar data.
+  const existingImportTarget=(await store.catalog()).labs[0];assert.ok(existingImportTarget.id);
+  await importRow.getByRole('button',{name:'تصحيح الصف',exact:true}).click();await a.getByLabel('تصحيح معرّف السجل',{exact:true}).fill(String(existingImportTarget.id));await a.getByRole('button',{name:'حفظ التصحيح وإعادة الفحص',exact:true}).click();await a.getByRole('alert').getByText('تغيير ربط المعرّف أو إلغاؤه يحتاج تأكيدك؛ الاسم وحده لا يثبت هوية الجهة.',{exact:true}).waitFor();assert.equal((await a.evaluate(id=>window.MedicalAPI.labImports(id),privateBatchId)).batch.rows[0].input.id,undefined);
+  await a.getByLabel('تأكيد تغيير ربط السجل',{exact:true}).check();await a.getByRole('button',{name:'حفظ التصحيح وإعادة الفحص',exact:true}).click();await importRow.getByText('تعديل مقترح',{exact:true}).waitFor();
+  await a.getByLabel('تحديد صف 2',{exact:true}).check();await a.getByRole('button',{name:'قبول المحدد للمراجعة',exact:true}).click();await importRow.getByText('صف المصدر 2 · مقبول للمراجعة فقط',{exact:true}).waitFor();
+  // An editor cannot overwrite another tab after refreshing its workspace version.
+  await importRow.getByRole('button',{name:'تصحيح الصف',exact:true}).click();await a.getByLabel('تصحيح العنوان',{exact:true}).fill('مسودة قديمة لا تحفظ');
+  await a.evaluate(async id=>{const d=await window.MedicalAPI.labImports(id);await window.MedicalAPI.saveLabImport({previewRevision:d.previewRevision,expected_version:d.version,request_id:crypto.randomUUID().replace(/-/g,''),operation:'decide',payload:{batch_id:id,rows:[2],decision:'rejected'}});},privateBatchId);
+  await a.getByRole('button',{name:'حفظ التصحيح وإعادة الفحص',exact:true}).click();await a.getByRole('alert').getByText('حُفظ قرار أحدث؛ حدّث الدفعات قبل إعادة القرار.',{exact:true}).waitFor();await a.getByRole('button',{name:'تحديث الدفعات',exact:true}).click();await a.getByText('تغيرت الدفعة أثناء التحرير. القيم التي كتبتها محفوظة هنا؛ ألغِ التصحيح ثم افتح الصف من جديد لمراجعة النسخة الأحدث.',{exact:true}).waitFor();assert.equal(await a.getByRole('button',{name:'حفظ التصحيح وإعادة الفحص',exact:true}).isDisabled(),true);await a.getByRole('button',{name:'إلغاء التصحيح',exact:true}).click();
+  await a.getByLabel('تحديد صف 2',{exact:true}).check();await a.getByRole('button',{name:'قبول المحدد للمراجعة',exact:true}).click();await importRow.getByText('صف المصدر 2 · مقبول للمراجعة فقط',{exact:true}).waitFor();
+  // A source change blocks export; rescan and undo never restore approval of an outdated snapshot.
+  const actualCatalog=store.catalog;store.catalog=async()=>{const c=await actualCatalog();const r=c.labs.find(row=>String(row.id)===String(existingImportTarget.id));r._version=(r._version||0)+1;return c;};
+  try{
+    await a.getByRole('button',{name:'تنزيل المقترحات JSON',exact:true}).click();await a.getByRole('alert').getByText('تغيرت بيانات الجهة أو تطابقاتها؛ أعد فحص الدفعة وراجع القرارات قبل تنزيل المقترحات.',{exact:true}).waitFor();
+    await a.getByRole('button',{name:'إعادة فحص الدفعة',exact:true}).click();await importRow.getByText('صف المصدر 2 · بانتظار القرار',{exact:true}).waitFor();assert.equal(await a.getByRole('button',{name:'تنزيل المقترحات JSON',exact:true}).isDisabled(),true);
+    await a.getByRole('button',{name:'تراجع عن آخر قرار',exact:true}).click();await importRow.getByText('صف المصدر 2 · بانتظار القرار',{exact:true}).waitFor();
+  }finally{store.catalog=actualCatalog;}
+  await importRow.getByRole('button',{name:'تصحيح الصف',exact:true}).click();await a.getByLabel('تصحيح العنوان',{exact:true}).fill('مسودة مرئية للمراجعة');
+  for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Import correction form fits '+width);}
+  await a.setViewportSize({width:390,height:844});if(process.env.MEDICAL_SCREENSHOT_DIR){await a.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'catalog-corrections-mobile.png'),fullPage:true,style:'#toast{visibility:hidden}'});}await a.getByRole('button',{name:'إلغاء التصحيح',exact:true}).click();
   await a.getByRole('button',{name:'استبعاد الدفعة',exact:true}).click();await a.getByText('دفعة مستبعدة؛ الدليل لم يتغير.',{exact:true}).waitFor();
   assert.deepEqual(await store.catalog(),catalogBeforeLab);a.off('request',watchImport);
   await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('catalog_staging').waitFor();
