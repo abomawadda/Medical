@@ -1,3 +1,4 @@
+import {visitLabService} from './lab-visit.mjs';
 import {
   createHmac,
   randomBytes,
@@ -423,14 +424,12 @@ export function createService({
     }
     return session;
   }
+  const readDirectory=async()=>{const catalog=memberCatalog(await store.catalog(),now()),allowed=targets(catalog);const stats=Object.fromEntries(Object.entries(await store.getStats()).filter(([id])=>allowed.has(id)));return {catalog,stats,facilityStats:await store.getGroupedStats(facilities.reviewGroups(catalog))};};
   const profileOperations=profileService({source,store,sourceWriter,authorize,digest,rate,now});
   return {
     ...profileOperations,
-    ...developmentLabService({store,authorize,now,readDirectory:async()=>{
-      const catalog=memberCatalog(await store.catalog(),now()),allowed=targets(catalog);
-      const stats=Object.fromEntries(Object.entries(await store.getStats()).filter(([id])=>allowed.has(id)));
-      return {catalog,stats,facilityStats:await store.getGroupedStats(facilities.reviewGroups(catalog))};
-    }}),
+    ...developmentLabService({store,authorize,now,readDirectory}),
+    ...visitLabService({store,authorize,now,readDirectory}),
     async memberLogin(body, ip) {
       await rate(ip, "member-ip", 30);
       const c = code(body.employee_code),

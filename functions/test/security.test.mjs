@@ -946,7 +946,7 @@ test('source-profile decisions use an immutable intent and never fall back to ap
 test('development lab authorizes every read, preview and decision against the live administrator',async()=>{
  const f=setup(),m=await member(f),a=await admin(f);
  for(const token of ['',m])for(const op of [()=>f.service.adminLab(token),()=>f.service.labPreview(token,'compact_home'),()=>f.service.saveLabFeature(token,'compact_home',{})])await assert.rejects(op,e=>e.status===(token?403:401));
- const data=await f.service.adminLab(a);assert.equal(data.features.length,4);assert.equal(data.memberReleaseSupported,false);
+ const data=await f.service.adminLab(a);assert.equal(data.features.length,5);assert.equal(data.memberReleaseSupported,false);
  assert.ok(data.features.every(r=>r.audience==='admin'&&!r.memberEnabled));assert.equal(data.features.find(f=>f.id==='directory_experience').syntheticOnly,false);
  const preview=await f.service.labPreview(a,'compact_home');assert.match(preview.scene.label,/توضيحية/);assert.equal(preview.scene.provider.rating,null);
  f.accounts[0].accountStatus='disabled';await assert.rejects(()=>f.service.labPreview(a,'compact_home'),e=>e.status===403);
@@ -996,4 +996,55 @@ test('real directory preview uses the member projection, never writes production
  await f.service.saveLabFeature(a,'directory_experience',{expected_version:0,previewRevision:preview.feature.previewRevision,review:'pending',note:'',previewEnabled:false});
  for(const metadata of [true,false])await assert.rejects(()=>f.service.labPreview(a,'directory_experience',metadata),e=>e.code==='LAB_PAUSED');
  assert.deepEqual(await f.service.catalog(m),before);
+});
+
+const visitRev='p2-visit-20261021-1';
+function visitFixture(){
+ const shared={contract_listing:true,contract_entity:'تعاقد اختبار',contract_entity_id:'direct_we',contract_type:'direct_we',network_members:['employee']};
+ const store=fixtureStore({records:[{...shared,id:'branch-one',provider_id:'visit-doctor',name:'طبيب مصطنع',specialty:'باطنة'},{...shared,id:'hidden-branch',provider_id:'hidden-visit',name:'طبيب مخفي',directory_visibility:'hidden'}],hospitals:[{...shared,id:'visit-hospital',name:'مستشفى اختبار'}]});const f=setup({store});return {...f,store};
+}
+const visitBody=(extra={})=>({request_id:'1'.repeat(32),previewRevision:visitRev,target_id:'doctor:visit-doctor',branch_id:'branch-one',network:'employee',issue:'phone',...extra});
+test('visit workspace rejects visitors, members, stale revisions and live administrator revocation',async()=>{
+ const f=visitFixture(),a=await admin(f),m=await member(f);
+ for(const token of ['',m])for(const fn of [()=>f.service.labPreview(token,'visit_workspace'),()=>f.service.labVisitReports(token),()=>f.service.createLabVisitReport(token,visitBody()),()=>f.service.decideLabVisitReport(token,'1'.repeat(32),{})])await assert.rejects(fn,e=>e.status===(token?403:401));
+ const preview=await f.service.labPreview(a,'visit_workspace');assert.equal(preview.scene.mode,'directory-sandbox');assert.equal(preview.feature.memberEnabled,false);assert.equal(preview.feature.previewRevision,visitRev);assert.deepEqual(preview.scene.catalog,(await f.service.catalog(m)).catalog);
+ await assert.rejects(()=>f.service.createLabVisitReport(a,visitBody({previewRevision:'old'})),e=>e.code==='LAB_REVISION_CHANGED');
+ f.accounts[0].accountStatus='disabled';await assert.rejects(()=>f.service.labVisitReports(a),e=>e.status===403);assert.equal(f.store.labScenarios.size,0);
+});
+test('experimental reports are idempotent, reference published branches/networks and never change production or source',async()=>{
+ const f=visitFixture(),a=await admin(f),m=await member(f),before=await f.service.catalog(m),sourceBefore=structuredClone(f.employees);
+ const results=await Promise.all([1,2].map(()=>f.service.createLabVisitReport(a,visitBody())));assert.equal(results.filter(r=>r.changed).length,1);
+ assert.equal((await f.service.createLabVisitReport(a,visitBody({request_id:'2'.repeat(32)}))).changed,false);
+ await assert.rejects(()=>f.service.createLabVisitReport(a,visitBody({issue:'address'})),e=>e.code==='LAB_REQUEST_REUSED');
+ for(const change of [{network:'family'},{target_id:'doctor:hidden-visit',branch_id:'hidden-branch'},{branch_id:'wrong'},{target_id:'hospitals:unknown'}])await assert.rejects(()=>f.service.createLabVisitReport(a,visitBody({...change,request_id:'3'.repeat(32)})),e=>e.code==='LAB_TARGET_UNAVAILABLE');
+ for(const change of [{comment:'بيانات غير مسموحة'},{memberEnabled:true},{issue:'__proto__'},{request_id:'bad'},{network:'all'}])await assert.rejects(()=>f.service.createLabVisitReport(a,visitBody(change)),e=>[400,404].includes(e.status));
+ const rows=(await f.service.labVisitReports(a)).reports;assert.equal(rows.length,1);assert.equal(rows[0].syntheticOnly,true);assert.ok(!JSON.stringify(rows).includes('source-admin'));
+ assert.deepEqual(await f.service.catalog(m),before);assert.deepEqual(f.employees,sourceBefore);assert.equal(f.store.overlays.size,0);assert.equal(f.store.reviews.size,0);assert.equal(f.store.profileNotes.size,0);assert.equal(f.store.audit.filter(r=>r.action==='lab.scenario').length,1);
+});
+test('experimental review workflow is versioned, rejects skipped stages and preserves terminal history',async()=>{
+ const f=visitFixture(),a=await admin(f),created=await f.service.createLabVisitReport(a,visitBody()),id=created.report.id;
+ const decide=(version,status,outcome='')=>f.service.decideLabVisitReport(a,id,{expected_version:version,previewRevision:visitRev,status,outcome});
+ await assert.rejects(()=>decide(1,'resolved','checked'),e=>e.code==='LAB_REPORT_TRANSITION');
+ const start=await Promise.all([1,2].map(()=>decide(1,'in_review')));assert.equal(start.filter(r=>r.changed).length,1);
+ await assert.rejects(()=>decide(1,'resolved','checked'),e=>e.code==='LAB_REPORT_CONFLICT');
+ const done=await decide(2,'resolved','needs_confirmation');assert.equal(done.report.version,3);assert.equal(done.report.history.length,3);assert.equal((await decide(2,'resolved','needs_confirmation')).changed,false);
+ await assert.rejects(()=>decide(3,'in_review'),e=>e.code==='LAB_REPORT_TRANSITION');
+ await assert.rejects(()=>decide(3,'resolved','arbitrary'),e=>e.code==='INVALID_LAB_REPORT');
+ assert.equal((await f.service.createLabVisitReport(a,visitBody({request_id:'4'.repeat(32)}))).changed,true);
+});
+test('pause is rechecked inside the scenario transaction and the bounded sandbox never evicts an open report',async()=>{
+ const f=visitFixture(),a=await admin(f),original=f.store.labScenarioTransact;
+ f.store.labScenarioTransact=(id,apply)=>{f.store.labRows.set(id,{previewEnabled:false});return original(id,apply);};
+ await assert.rejects(()=>f.service.createLabVisitReport(a,visitBody()),e=>e.code==='LAB_PAUSED');assert.equal(f.store.labScenarios.size,0);
+ f.store.labScenarioTransact=original;f.store.labRows.set('visit_workspace',{previewEnabled:true});
+ f.store.labScenarios.set('visit_workspace',{rows:Array.from({length:100},(_,i)=>({id:String(i),status:'new'}))});
+ await assert.rejects(()=>f.service.createLabVisitReport(a,visitBody()),e=>e.code==='LAB_REPORT_LIMIT');assert.equal((await f.store.labScenarioRead('visit_workspace')).rows.length,100);
+ (f.store.labScenarios.get('visit_workspace').rows[0]).status='resolved';await f.service.createLabVisitReport(a,visitBody());assert.equal((await f.store.labScenarioRead('visit_workspace')).rows.length,100);assert.ok((await f.store.labScenarioRead('visit_workspace')).rows.some(r=>r.id==='99'));
+});
+test('HTTP visit endpoints are administrator-only and cannot send member notifications or accept free text',async()=>{
+ const f=visitFixture(),a=await admin(f),m=await member(f),handler=createHandler({getService:()=>f.service,origins:['https://abomawadda.github.io']});
+ for(const [path,method]of [['/v1/admin/lab/preview/visit_workspace','GET'],['/v1/admin/lab/visit-reports','GET'],['/v1/admin/lab/visit-reports','POST'],['/v1/admin/lab/visit-reports/'+'1'.repeat(32),'PATCH']])for(const token of ['',m]){
+  const r=response();await handler(request(path,method,visitBody(),{authorization:'Bearer '+token}),r);assert.equal(r.statusCode,token?403:401);assert.equal(r.headers['Cache-Control'],'no-store');
+ }
+ const r=response();await handler(request('/v1/admin/lab/visit-reports','POST',visitBody({comment:'غير مسموح'}),{authorization:'Bearer '+a}),r);assert.equal(r.statusCode,400);assert.equal(f.store.profileNotes.size,0);
 });

@@ -12,12 +12,14 @@ export function fixtureStore(seed) {
     audit = [], activity = new Map();
   const base = structuredClone(seed);
   for (const k of kinds) base[k] ||= [];
-  const options=new Map(),labRows=new Map();
+  const options=new Map(),labRows=new Map(),labScenarios=new Map();
   let labQueue=Promise.resolve();
   const profileRequests=new Map(),profileLedgers=new Map(),profileOverrides=new Map(),profileNotes=new Map();
   let profileQueue=Promise.resolve();
   const store = {
-    labRows,
+    labRows,labScenarios,
+    async labScenarioRead(id){return structuredClone(labScenarios.get(id) || {});},
+    async labScenarioTransact(id,apply){const operation=labQueue.then(()=>{const result=apply(structuredClone(labScenarios.get(id) || {}),structuredClone(labRows.get(id) || {}));if(result.changed){labScenarios.set(id,structuredClone(result.next));audit.push({action:'lab.scenario',featureId:id,scenarioId:result.report.id,version:result.report.version});}return {changed:result.changed,report:result.report};});labQueue=operation.catch(()=>{});return operation;},
     async labRead(id){return structuredClone(labRows.get(id) || {});},
     async labReadAll(){return Object.fromEntries([...labRows].map(([id,row])=>[id,structuredClone(row)]));},
     async labTransact(id,apply){const operation=labQueue.then(()=>{const result=apply(structuredClone(labRows.get(id) || {}));if(result.changed){labRows.set(id,structuredClone(result.next));audit.push({action:'lab.review',featureId:id,version:result.next.version});}return {changed:result.changed,feature:result.feature};});labQueue=operation.catch(()=>{});return operation;},

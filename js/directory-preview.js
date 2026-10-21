@@ -1,10 +1,11 @@
 /* Administrator-only, read-only integrated directory. Its server gate is independent of the browser role. */
 window.MedicalDirectoryPreview=(()=>{
- const featureId='directory_experience',revision='p1-directory-20261019-1';
- function mount({root,api,el,button,icon,avatar,allowed,notice,navigate,back,exit,review,initial={},detailId='',specialties=false,onChange}){
-  const M=window.MedicalDirectoryModel;
+
+ function mount({root,api,el,button,icon,avatar,allowed,notice,navigate,back,exit,review,initial={},detailId='',specialties=false,workspace=false,visitMemory={},onChange}){
+  const featureId=workspace?'visit_workspace':'directory_experience',revision=workspace?'p2-visit-20261021-1':'p1-directory-20261019-1',dataMode=workspace?'directory-sandbox':'directory-readonly';
+  const M=window.MedicalDirectoryModel;let visit=null;
   let disposed=false,loaded=false,data=null,model=null,feature=null,sequence=0,checking=false,reviewSequence=0;
-  let nav={filters:M.emptyFilters(),branch:'',pane:'details',...structuredClone(initial)};nav.filters={...M.emptyFilters(),...nav.filters};
+  let nav={filters:M.emptyFilters(),branch:'',pane:'details',...structuredClone(initial),workspace};nav.filters={...M.emptyFilters(),...nav.filters};
   let pendingScroll=Number.isFinite(initial.scroll)?initial.scroll:0;
   const valid=()=>!disposed&&root.isConnected&&allowed();
   const sym=k=>el('span',{class:'lab-icon','aria-hidden':'true'},icon(k));
@@ -12,18 +13,20 @@ window.MedicalDirectoryPreview=(()=>{
   const row=(k,label)=>el('p',{class:'lab-icon-text'},sym(k),el('span',{},label));
   const change=()=>onChange?.(snapshot());
   function snapshot(){return {...structuredClone(nav),scroll:loaded?window.scrollY:pendingScroll};}
-  function compatible(value){return value?.id===featureId&&value.previewRevision===revision&&value.audience==='admin'&&value.dataMode==='directory-readonly'&&value.memberEnabled===false;}
-  function scaffold(){return el('div',{class:'lab-shell'},el('header',{class:'lab-intro'},el('div',{},el('span',{class:'eyebrow'},'P1 · معاينة مترابطة خاصة'),el('h1',{},'رعايتي · تجربة الدليل'),el('p',{},'جرّب التصميم بالجهات المنشورة. التقييمات للقراءة، وتجربة الأعضاء الحالية مستمرة.')),act('العودة إلى المعمل',exit)),el('div',{class:'lab-guarantees'},['للإدارة فقط','دليل منشور · قراءة فقط','التعميم للأعضاء معطّل'].map(s=>el('span',{},s))));}
-  function fail(error){if(!valid())return;++sequence;++reviewSequence;loaded=false;data=null;model=null;feature=null;root.hidden=false;const shell=scaffold();shell.append(el('p',{class:'notice warning',role:'alert'},error.code==='LAB_NOT_FOUND'||error.code==='NOT_FOUND'?'تفعيل تجربة الدليل يحتاج تحديث خدمة Firebase؛ نماذج التصميم متاحة في المعمل.':error.message||'تعذر التحقق من تجربة الدليل.'),act('إعادة التحقق',load));root.replaceChildren(shell);}
+  function compatible(value){return value?.id===featureId&&value.previewRevision===revision&&value.audience==='admin'&&value.dataMode===dataMode&&value.memberEnabled===false;}
+  function scaffold(){return el('div',{class:'lab-shell'},el('header',{class:'lab-intro'},el('div',{},el('span',{class:'eyebrow'},workspace?'P2 · الزيارة وصحة المعلومات':'P1 · معاينة مترابطة خاصة'),el('h1',{},workspace?'جهّز زيارتي والبلاغات':'رعايتي · تجربة الدليل'),el('p',{},workspace?'جرّب تجهيز الزيارة ومراجعة بلاغات مصطنعة بمعزل عن الأعضاء.':'جرّب التصميم بالجهات المنشورة. التقييمات للقراءة، وتجربة الأعضاء الحالية مستمرة.')),act('العودة إلى المعمل',exit)),el('div',{class:'lab-guarantees'},['للإدارة فقط',workspace?'بلاغات تجريبية منفصلة':'دليل منشور · قراءة فقط','التعميم للأعضاء معطّل'].map(s=>el('span',{},s))));}
+  function fail(error){if(!valid())return;++sequence;++reviewSequence;loaded=false;visit?.dispose();visit=null;data=null;model=null;feature=null;root.hidden=false;const shell=scaffold();shell.append(el('p',{class:'notice warning',role:'alert'},error.code==='LAB_NOT_FOUND'||error.code==='NOT_FOUND'?(workspace?'تفعيل تجربة الزيارة والبلاغات يحتاج تحديث خدمة Firebase.':'تفعيل تجربة الدليل يحتاج تحديث خدمة Firebase؛ نماذج التصميم متاحة في المعمل.'):error.message||'تعذر التحقق من تجربة الدليل.'),act('إعادة التحقق',load));root.replaceChildren(shell);}
   async function load(){
-   if(!valid())return;const turn=++sequence;++reviewSequence;if(loaded)pendingScroll=window.scrollY;loaded=false;data=null;model=null;root.hidden=false;const shell=scaffold();shell.append(el('p',{role:'status'},'جارٍ التحقق وتحميل الدليل المنشور…'));root.replaceChildren(shell);
-   try{const result=await api.labPreview(featureId);if(!valid()||turn!==sequence)return;if(!compatible(result.feature)||result.scene?.mode!=='directory-readonly')throw new Error('حدّث التطبيق والخدمة إلى نسخة متوافقة لتجربة الدليل.');feature=result.feature;data=result.scene;model=M.create(data,{facilities:window.MedicalFacilities,search:window.MedicalSearch,contacts:window.MedicalContacts,research:window.MedicalResearch});loaded=true;render();requestAnimationFrame(()=>requestAnimationFrame(()=>{if(valid()&&turn===sequence)window.scrollTo({top:pendingScroll,left:0,behavior:'instant'});}));}catch(e){if(turn===sequence)fail(e);}
+   if(!valid())return;const turn=++sequence;++reviewSequence;if(loaded)pendingScroll=window.scrollY;loaded=false;visit?.dispose();visit=null;data=null;model=null;root.hidden=false;const shell=scaffold();shell.append(el('p',{role:'status'},'جارٍ التحقق وتحميل الدليل المنشور…'));root.replaceChildren(shell);
+   try{const result=await api.labPreview(featureId);if(!valid()||turn!==sequence)return;if(!compatible(result.feature)||result.scene?.mode!==dataMode)throw new Error('حدّث التطبيق والخدمة إلى نسخة متوافقة لتجربة الدليل.');feature=result.feature;data=result.scene;model=M.create(data,{facilities:window.MedicalFacilities,search:window.MedicalSearch,contacts:window.MedicalContacts,research:window.MedicalResearch});loaded=true;if(workspace)visit=window.MedicalVisitWorkspace.mount({api,el,act,row,model,data,notice,valid:()=>valid()&&loaded,onFatal:fail});render();requestAnimationFrame(()=>requestAnimationFrame(()=>{if(valid()&&turn===sequence)window.scrollTo({top:pendingScroll,left:0,behavior:'instant'});}));}catch(e){if(turn===sequence)fail(e);}
   }
   function render(){
    if(!valid()||!model)return;++reviewSequence;
    const shell=scaffold(),toolbar=el('div',{class:'directory-preview-tools'},act('تحديث الدليل',load,'guidelines'),act('مراجعة هذه التجربة',()=>review(feature,load),'info'));
+   if(workspace)toolbar.append(act('مركز البلاغات التجريبية',()=>{nav.workspacePane='reports';change();render();},'guidelines'),act(nav.readable?'القراءة العادية':'قراءة أوضح',()=>{nav.readable=!nav.readable;change();render();},'info'));
    shell.append(toolbar,el('p',{class:'directory-preview-snapshot muted'},'تعرض المعاينة بيانات الدليل عند تحميلها؛ استخدم «تحديث الدليل» لجلب التغييرات.'));
-   const panel=el('section',{class:'lab-preview directory-preview','data-directory-ready':'true'});shell.append(panel);root.replaceChildren(shell);
+   const panel=el('section',{class:'lab-preview directory-preview'+(workspace?' visit-workspace':'')+(nav.readable?' visit-readable':''),'data-directory-ready':'true'});shell.append(panel);root.replaceChildren(shell);
+   if(workspace&&nav.workspacePane==='reports'){void visit.reports(panel,()=>{nav.workspacePane='';change();render();});return;}
    if(detailId){const p=model.byId.get(detailId);if(p)renderDetail(panel,p);else panel.append(el('p',{class:'empty'},'هذه الجهة غير متاحة في الدليل المنشور.'),act('العودة للنتائج',back,'arrow'));return;}
    if(specialties){renderSpecialties(panel);return;}
    renderList(panel);
@@ -56,7 +59,7 @@ window.MedicalDirectoryPreview=(()=>{
   }
   function status(b,v){return el('span',{class:'directory-service-state '+(v.raw.service_status==='suspended'||b.suspended?'suspended':'active')},v.raw.service_status==='suspended'||b.suspended?'موقوف مؤقتًا':'مدرج في الشبكة');}
   function renderSpecialties(panel){
-   panel.append(act('العودة للدليل',back,'arrow'),el('h2',{},'كل التخصصات'),el('div',{class:'directory-specialty-grid'},model.specialties.map(s=>act(s,()=>navigate('',{filters:{...M.emptyFilters(),specialty:s,network:nav.filters.network},scroll:0}),'doctors'))));
+   panel.append(act('العودة للدليل',back,'arrow'),el('h2',{},'كل التخصصات'),el('div',{class:'directory-specialty-grid'},model.specialties.map(s=>act(s,()=>navigate('',{filters:{...M.emptyFilters(),specialty:s,network:nav.filters.network},workspace,scroll:0}),'doctors'))));
   }
   function renderDetail(panel,p){
    let selected=model.select(p,nav.branch,nav.filters.network),{b,v}=selected;nav.branch=b.id;if(Number.isInteger(nav.networkView)&&b.views[nav.networkView])v=b.views[nav.networkView];
@@ -66,7 +69,8 @@ window.MedicalDirectoryPreview=(()=>{
    if(b.views.length>1)panel.append(el('div',{class:'directory-networks','aria-label':'شبكات المقر'},b.views.map((entry,index)=>{const btn=act(M.networkText(entry.network)||'شبكة مسجلة',()=>{nav.networkView=index;change();render();},'users');const active=Number.isInteger(nav.networkView)?nav.networkView:b.views.indexOf(v);btn.setAttribute('aria-pressed',String(active===index));return btn;})));
    const draw=()=>{
     ++reviewSequence;for(const button of tabs.children){const active=button.dataset.pane===nav.pane;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;if(active)content.setAttribute('aria-labelledby',button.id);}
-    content.replaceChildren();if(nav.pane==='experiences'){void renderReviews(content,b.target);return;}
+    content.replaceChildren();if(workspace&&nav.pane==='visit'){const key=[p.id,b.id,nav.filters.network||'all',v.network.join(',')].join('|');visitMemory[key]||={};visit.prepare(content,p,b,v,{checked:visitMemory[key],selectedNetwork:nav.filters.network,change:(id,value)=>{visitMemory[key][id]=value;},showReports:()=>{nav.workspacePane='reports';change();render();}});return;}
+    if(nav.pane==='experiences'){void renderReviews(content,b.target);return;}
     if(nav.pane==='branches'){content.append(el('h3',{},'مقار الجهة'),el('p',{class:'muted'},'تظهر كل المقار المسجلة، وقد تختلف شبكة المستفيدين بينها.'),p.branches.map(branch=>{const value=branch.views[0];return el('article',{class:'directory-branch-summary'},el('strong',{},value?.hospital||value?.city||'مقر مسجل'),el('p',{},value?.address||''),el('p',{class:'lab-network'},M.networkText([...new Set(branch.views.flatMap(v=>v.network))])),act('اختيار هذا المقر',()=>{nav.branch=branch.id;nav.networkView=undefined;nav.pane='details';change();render();},'districts'));}));return;}
     if(v.hospital)content.append(row('hospitals',v.hospital));
     const parts=window.MedicalLocations.parts(v.address);if(parts.length)content.append(el('h3',{},parts.length>1?'عناوين المقر':'العنوان'),parts.map(part=>{const link=model.mapLink(p,{...v,maps:parts.length===1?v.maps:''},part.text);return el('div',{class:'directory-address'},row('districts',part.text),link?el('a',{class:'text-button',href:link.href,target:'_blank',rel:'noopener noreferrer'},link.label):null,part.phone?el('a',{class:'phone-chip',href:'tel:'+part.phone,dir:'ltr'},part.phone):null);}));
@@ -76,7 +80,7 @@ window.MedicalDirectoryPreview=(()=>{
     let any=false;for(const [kind,label] of [['mobile','محمول'],['landline','أرضي'],['shortcode','مختصر']])if(v.phones[kind].length){any=true;content.append(el('section',{class:'directory-phone-group','data-contact-type':kind},el('h3',{},label+(v.reception?' · استقبال المستشفى':'')),el('div',{class:'phone-list'},v.phones[kind].map(number=>el('a',{class:'phone-chip',dir:'ltr',href:'tel:'+number},number)))));}
     if(!any)content.append(el('p',{class:'muted'},'لا يتوفر رقم تواصل لهذا المقر حاليًا.'));
    };
-   for(const [key,label,k] of [['details','التفاصيل','info'],['branches','الفروع','districts'],['experiences','تجارب الأعضاء','star']]){const b=act(label,()=>{nav.pane=key;change();draw();},k);b.id='directory-tab-'+key;b.dataset.pane=key;b.setAttribute('role','tab');b.setAttribute('aria-controls','directory-detail-panel');tabs.append(b);}
+   for(const [key,label,k] of [...(workspace?[['visit','جهّز زيارتي','guidelines']]:[]),['details','التفاصيل','info'],['branches','الفروع','districts'],['experiences','تجارب الأعضاء','star']]){const b=act(label,()=>{nav.pane=key;change();draw();},k);b.id='directory-tab-'+key;b.dataset.pane=key;b.setAttribute('role','tab');b.setAttribute('aria-controls','directory-detail-panel');tabs.append(b);}
    tabs.onkeydown=event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const nodes=[...tabs.children],at=nodes.indexOf(document.activeElement),index=event.key==='Home'?0:event.key==='End'?nodes.length-1:(at+(event.key==='ArrowLeft'?1:-1)+nodes.length)%nodes.length;nodes[index].click();nodes[index].focus();};
    panel.append(tabs,content);
    const actions=el('div',{class:'lab-detail-actions directory-detail-actions'}),phone=['mobile','landline','shortcode'].flatMap(k=>v.phones[k])[0],parts=window.MedicalLocations.parts(v.address),map=parts.length===1?model.mapLink(p,v):null;
@@ -99,7 +103,7 @@ window.MedicalDirectoryPreview=(()=>{
   }
   const visibility=()=>{if(document.hidden){if(loaded)root.hidden=true;}else void verify(true);},offline=()=>{if(loaded)fail({message:'توقفت المعاينة لعدم الاتصال. أعد التحقق بعد عودة الإنترنت.'});};
   document.addEventListener('visibilitychange',visibility);window.addEventListener('offline',offline);const timer=setInterval(()=>void verify(),20000);void load();
-  return {navigation:snapshot,reload:load,dispose(){disposed=true;++sequence;++reviewSequence;data=null;model=null;feature=null;loaded=false;clearInterval(timer);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('offline',offline);root.replaceChildren();}};
+  return {navigation:snapshot,reload:load,dispose(){disposed=true;++sequence;++reviewSequence;visit?.dispose();visit=null;data=null;model=null;feature=null;loaded=false;clearInterval(timer);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('offline',offline);root.replaceChildren();}};
  }
  return Object.freeze({mount});
 })();

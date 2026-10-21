@@ -76,6 +76,7 @@
     headerMember:null,
     identityEpoch:0,
     directoryNavigation:null,
+    visitChecklist:{},
     remote: false,
   };
   const $ = (s) => document.querySelector(s);
@@ -1032,22 +1033,23 @@
   function renderDevelopmentLab(main){
     if(!isAdmin()){main.append(heading("المعاينة متاحة للإدارة فقط"),button("العودة للرئيسية",()=>go("home"),"button primary"));return;}
     const epoch=state.identityEpoch,root=el("section",{class:"development-lab","aria-label":"معمل التطوير الخاص"});main.append(root);
-    labView=window.MedicalDevelopmentLab.mount({root,api:API,el,button,replaceNodes,icon:careIcon,notice:toast,review:reviewLabFeature,exit:()=>go("admin"),directory:()=>directoryNavigate("",{filters:window.MedicalDirectoryModel.emptyFilters(),scroll:0}),allowed:()=>isAdmin()&&epoch===state.identityEpoch});
+    labView=window.MedicalDevelopmentLab.mount({root,api:API,el,button,replaceNodes,icon:careIcon,notice:toast,review:reviewLabFeature,exit:()=>go("admin"),directory:workspace=>directoryNavigate("",{filters:window.MedicalDirectoryModel.emptyFilters(),scroll:0,workspace}),allowed:()=>isAdmin()&&epoch===state.identityEpoch});
   }
   function directoryNavigate(target,next){
-    const hash=target==="specialties"?"lab-specialties":target?"lab-directory="+encodeURIComponent(target):"lab-directory";
+    const workspace=next?.workspace??state.directoryNavigation?.workspace??location.hash.startsWith("#lab-visit");next={...next,workspace};
+    const base=workspace?"lab-visit":"lab-directory",hash=target==="specialties"?base+"-specialties":target?base+"="+encodeURIComponent(target):base;
     pendingNavigation={tab:"lab-directory",filters:{directoryNavigation:next}};
     if(location.hash==="#"+hash)route();else location.hash=hash;
   }
   function directoryBack(){
-    const prior=[...viewHistory.entries()].some(([key,v])=>key!==activeViewKey&&["#lab-directory","#lab-specialties"].includes(v.hash));
+    const prior=[...viewHistory.entries()].some(([key,v])=>key!==activeViewKey&&["#lab-directory","#lab-specialties","#lab-directory-specialties","#lab-visit","#lab-visit-specialties"].includes(v.hash));
     if(prior)history.back();else directoryNavigate("",{...(state.directoryNavigation||{}),scroll:0});
   }
   function renderDirectoryExperience(main){
     if(!isAdmin()){main.append(heading("المعاينة متاحة للإدارة فقط"),button("العودة للرئيسية",()=>go("home"),"button primary"));return;}
     const epoch=state.identityEpoch,root=el("section",{class:"development-lab","aria-label":"تجربة الدليل الخاصة"});main.append(root);
-    let detailId="";try{if(location.hash.startsWith("#lab-directory="))detailId=decodeURIComponent(location.hash.slice(15));}catch{return root.append(empty("رابط الجهة غير صالح."));}
-    labView=window.MedicalDirectoryPreview.mount({root,api:API,el,button,icon:careIcon,avatar:providerAvatar,notice:toast,allowed:()=>isAdmin()&&epoch===state.identityEpoch,navigate:directoryNavigate,back:directoryBack,exit:()=>go("lab"),review:reviewLabFeature,initial:state.directoryNavigation||{},detailId,specialties:location.hash==="#lab-specialties",onChange:value=>{state.directoryNavigation=value;}});
+    const workspace=location.hash.startsWith("#lab-visit");let detailId="";try{if(/^#lab-(directory|visit)=/.test(location.hash))detailId=decodeURIComponent(location.hash.split("=").slice(1).join("="));}catch{return root.append(empty("رابط الجهة غير صالح."));}
+    labView=window.MedicalDirectoryPreview.mount({root,api:API,el,button,icon:careIcon,avatar:providerAvatar,notice:toast,allowed:()=>isAdmin()&&epoch===state.identityEpoch,navigate:directoryNavigate,back:directoryBack,exit:()=>go("lab"),review:reviewLabFeature,initial:state.directoryNavigation?.workspace===workspace?state.directoryNavigation:{},visitMemory:state.visitChecklist,workspace,detailId,specialties:["#lab-specialties","#lab-directory-specialties","#lab-visit-specialties"].includes(location.hash),onChange:value=>{state.directoryNavigation=value;}});
   }
   function reviewLabFeature(feature,reload){
     if(!isAdmin())return;const epoch=state.identityEpoch;
@@ -1317,7 +1319,7 @@
       }
     }
     const previousTab=state.tab;
-    state.tab = (hash==="lab-directory"||hash.startsWith("lab-directory=")||hash==="lab-specialties")?"lab-directory":[
+    state.tab = (/^lab-(directory|visit)(?:$|=|-specialties$)/.test(hash)||hash==="lab-specialties")?"lab-directory":[
       ...nav.map((n) => n[0]),
       "district-network",
       "search",
@@ -1457,7 +1459,7 @@
     );
     form.save = async (data) => {
       viewHistory.clear();activeViewKey=null;
-    state.greetingName="";state.headerMember=null;state.directoryNavigation=null;state.identityEpoch++;
+    state.greetingName="";state.headerMember=null;state.directoryNavigation=null;state.visitChecklist={};state.identityEpoch++;
       await API.login("member", { ...data, remember: data.remember === "on" });
       form.reset();
       closeDialog();
@@ -1545,7 +1547,7 @@
       );
     form.save = async (data) => {
       viewHistory.clear();activeViewKey=null;
-    state.greetingName="";state.headerMember=null;state.directoryNavigation=null;state.identityEpoch++;
+    state.greetingName="";state.headerMember=null;state.directoryNavigation=null;state.visitChecklist={};state.identityEpoch++;
       await API.login("admin", data);
       form.reset();
       closeDialog();
@@ -2637,7 +2639,7 @@
   window.addEventListener("medical-session-invalidated", () => {
     clearLab();
     viewHistory.clear();activeViewKey=null;
-    state.greetingName="";state.headerMember=null;state.directoryNavigation=null;state.identityEpoch++;
+    state.greetingName="";state.headerMember=null;state.directoryNavigation=null;state.visitChecklist={};state.identityEpoch++;
     idleBanner.hidden=true;idleModalBanner.hidden=true;
     state.catalog = Object.fromEntries(kinds.map((k) => [k, []]));
     state.stats = {};

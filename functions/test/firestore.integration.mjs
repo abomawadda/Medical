@@ -339,6 +339,22 @@ assert.equal((await service.profileNotifications(member,notices.version)).notMod
 await service.readProfileNotification(member,notices.notifications[0].id);
 assert.ok((await service.profileNotifications(member)).notifications[0].readAt);
 assert.equal(JSON.stringify((await foreign.collection('employees').get()).docs.map(d=>d.data())),before);
+// P2 writes only the isolated scenario document with transactional deduplication.
+const visitBefore=await service.catalog(member),visitFeature=(await service.adminLab(admin)).features.find(f=>f.id==='visit_workspace');
+const visitCatalog=await service.labPreview(admin,'visit_workspace');assert.equal(visitCatalog.scene.mode,'directory-sandbox');
+const visitGroups=(await import('../src/facility-directory.cjs')).default.organizations('labs',visitCatalog.scene.catalog.labs||[]),visitBranch=visitGroups.flatMap(g=>g.branches).find(b=>b.entries.some(r=>r.network_members?.length));
+assert.ok(visitBranch,'Published fixture branch available');const visitRow=visitBranch.entries.find(r=>r.network_members?.length);
+const visitInput={request_id:'a'.repeat(32),previewRevision:visitFeature.previewRevision,target_id:'labs:'+visitBranch.id,branch_id:String(visitBranch.id),network:visitRow.network_members[0],issue:'phone'};
+const visitResults=await Promise.all([1,2].map(()=>service.createLabVisitReport(admin,visitInput)));assert.equal(visitResults.filter(r=>r.changed).length,1);
+assert.equal((await service.createLabVisitReport(admin,{...visitInput,request_id:'b'.repeat(32)})).changed,false);
+await assert.rejects(()=>service.labVisitReports(member),e=>e.status===403);
+const visitCase=visitResults[0].report;
+await service.decideLabVisitReport(admin,visitCase.id,{expected_version:1,previewRevision:visitFeature.previewRevision,status:'in_review',outcome:''});
+const visitDone={expected_version:2,previewRevision:visitFeature.previewRevision,status:'resolved',outcome:'needs_confirmation'};
+const visitClosed=await Promise.all([1,2].map(()=>service.decideLabVisitReport(admin,visitCase.id,visitDone)));assert.equal(visitClosed.filter(r=>r.changed).length,1);
+assert.equal((await service.labVisitReports(admin)).reports[0].history.length,3);
+assert.deepEqual(await service.catalog(member),visitBefore);
+assert.equal(JSON.stringify((await foreign.collection('employees').get()).docs.map(d=>d.data())),before);
 // Lab reviews persist only in Medical and cannot change the member catalog or source.
 const memberBeforeLab=await service.catalog(member),lab=(await service.adminLab(admin)).features[0];
 const integrated=await service.labPreview(admin,'directory_experience');assert.equal(integrated.feature.dataMode,'directory-readonly');assert.deepEqual(integrated.scene.catalog,memberBeforeLab.catalog);
