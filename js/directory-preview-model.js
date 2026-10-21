@@ -37,8 +37,9 @@
   for(const source of kinds.filter(k=>k!=='records'))for(const org of facilities.organizations(source,catalog[source]||[]))providers.push({id:org.key,name:usable(org.name),source,avatar:org.branches[0].entries[0],branches:org.branches.map(b=>branch(b.id,b.entries,source,source+':'+b.id))});
   const byId=new Map(providers.map(p=>[p.id,p]));
   function matchingViews(b,f){return b.views.filter(v=>(!f.network||(f.network==='family'?v.network.some(n=>['family','retiree'].includes(n)):v.network.includes(f.network)))&&(f.kind==='all'||v.kind===f.kind)&&(!f.markaz||v.city===f.markaz)&&(!f.specialty||v.specialty===f.specialty));}
+  const matchView=(p,v,query)=>search.match(query,{name:p.name,tags:[v.specialty,labels[v.kind],...v.services],details:[v.name,v.city,v.address,v.hospital,v.contract,...['mobile','landline','shortcode'].flatMap(k=>v.phones[k])]});
   function find(filters){const f={...emptyFilters(),...filters};return providers.flatMap(p=>{
-   const matches=p.branches.flatMap(b=>matchingViews(b,f).map(v=>({b,v,...search.match(f.query,{name:p.name,tags:[v.specialty,labels[v.kind],...v.services],details:[v.name,v.city,v.address,v.hospital,v.contract,...['mobile','landline','shortcode'].flatMap(k=>v.phones[k])]})}))).filter(m=>m.score>0).sort((a,b)=>b.score-a.score);
+   const matches=p.branches.flatMap(b=>matchingViews(b,f).map(v=>({b,v,...matchView(p,v,f.query)}))).filter(m=>m.score>0).sort((a,b)=>b.score-a.score);
    return matches.length?[{provider:p,...matches[0],matchingBranches:new Set(matches.map(m=>m.b.id)).size}]:[];
   }).sort((a,b)=>b.score-a.score||a.provider.name.localeCompare(b.provider.name,'ar'));}
   function select(p,branchId,network){const b=p.branches.find(b=>b.id===branchId)||p.branches[0];const v=b.views.find(v=>network==='family'?v.network.some(n=>['family','retiree'].includes(n)):v.network.includes(network))||b.views[0];return {b,v};}
@@ -49,7 +50,7 @@
    return {href:'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent([p.name,address,v.city,'الدقهلية مصر'].filter(Boolean).join(' ')),label:'البحث عن العنوان'};
   }
   const values=key=>[...new Set(providers.flatMap(p=>p.branches.flatMap(b=>b.views.map(v=>v[key]))).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
-  return {providers,byId,find,select,stat,mapLink,cities:values('city'),specialties:values('specialty')};
+  return {providers,byId,find,matches:(p,v,query)=>matchView(p,v,query).score>0,select,stat,mapLink,cities:values('city'),specialties:values('specialty')};
  }
  return Object.freeze({create,kinds,labels,icons,text,usable,networkText,emptyFilters});
 });

@@ -89,7 +89,7 @@ jobs:
       - name: Deploy Medical only
         run: npx --yes firebase-tools@15.34.0 deploy --project we-medical-dakahlia --only functions:medical,firestore:rules --non-interactive
       - name: Verify published API
-        run: node scripts/check-live.mjs --report --require-visit-preview --require-directory-preview --require-development-lab --require-profile-management --require-recommendations --require-public-reviews --require-content-lifecycle --require-admin-idle --require-staff --require-family --require-content --require-contracts --require-public-emergency --require-admin-workspace --vercel
+        run: node scripts/check-live.mjs --report --require-roadmap-preview --require-visit-preview --require-directory-preview --require-development-lab --require-profile-management --require-recommendations --require-public-reviews --require-content-lifecycle --require-admin-idle --require-staff --require-family --require-content --require-contracts --require-public-emergency --require-admin-workspace --vercel
       - uses: actions/upload-artifact@v4
         with:
           name: medical-api-health

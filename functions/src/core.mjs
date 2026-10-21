@@ -1,3 +1,4 @@
+import {roadmapLabService} from './lab-roadmap.mjs';
 import {visitLabService} from './lab-visit.mjs';
 import {
   createHmac,
@@ -430,6 +431,7 @@ export function createService({
     ...profileOperations,
     ...developmentLabService({store,authorize,now,readDirectory}),
     ...visitLabService({store,authorize,now,readDirectory}),
+    ...roadmapLabService({store,authorize,now,readDirectory}),
     async memberLogin(body, ip) {
       await rate(ip, "member-ip", 30);
       const c = code(body.employee_code),

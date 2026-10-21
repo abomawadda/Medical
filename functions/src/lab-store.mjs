@@ -1,7 +1,11 @@
+import {createHash} from 'node:crypto';
 export function labStore(db,audit){
  const collection=db.collection('medical_lab_features');
- const scenarios=db.collection('medical_lab_scenarios');
+ const scenarios=db.collection('medical_lab_scenarios'),workspaces=db.collection('medical_lab_workspaces');
+ const workspaceRef=(id,owner)=>workspaces.doc(id+'_'+createHash('sha256').update(owner).digest('hex'));
  return {
+  async labWorkspaceRead(id,owner){return (await workspaceRef(id,owner).get()).data() || {};},
+  async labWorkspaceTransact(id,owner,apply){return db.runTransaction(async tx=>{const ref=workspaceRef(id,owner),[row,feature]=await Promise.all([tx.get(ref),tx.get(collection.doc(id))]),result=apply(row.data() || {},feature.data() || {});if(result.changed){tx.set(ref,result.next);tx.create(audit.doc(),{action:'lab.workspace',featureId:id,version:result.next.version,actor:owner,at:result.next.updatedAt});}return {changed:result.changed,workspace:result.workspace};});},
   async labScenarioRead(id){return (await scenarios.doc(id).get()).data() || {};},
   async labScenarioTransact(id,apply){return db.runTransaction(async tx=>{
    const ref=scenarios.doc(id),[row,feature]=await Promise.all([tx.get(ref),tx.get(collection.doc(id))]),result=apply(row.data() || {},feature.data() || {});

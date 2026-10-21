@@ -24,7 +24,7 @@ export function createHandler({ getService, origins, logger = console }) {
     if (req.method === "GET" && path === "/v1/health") {
       try {
         getService();
-        return res.json({ configured: true, capabilities: ["member-profile", "review-revisions", "staff-directory", "provider-images", "provider-illustrations", "directory-state-v1", "family-directory-v1", "directory-content-v1", "contract-directory-v1", "public-emergency-v1", "admin-workspace-v1", "review-criteria-v1", "facility-branches-v1", "admin-batch-v1", "admin-batch-data-v1", "structured-branches-v1", "admin-idle-v1", "content-lifecycle-v1", "public-review-details-v1", "review-recommendations-v1", "profile-management-v1", "development-lab-v1", "development-directory-v1", "development-visit-v1"] });
+        return res.json({ configured: true, capabilities: ["member-profile", "review-revisions", "staff-directory", "provider-images", "provider-illustrations", "directory-state-v1", "family-directory-v1", "directory-content-v1", "contract-directory-v1", "public-emergency-v1", "admin-workspace-v1", "review-criteria-v1", "facility-branches-v1", "admin-batch-v1", "admin-batch-data-v1", "structured-branches-v1", "admin-idle-v1", "content-lifecycle-v1", "public-review-details-v1", "review-recommendations-v1", "profile-management-v1", "development-lab-v1", "development-directory-v1", "development-visit-v1", "development-roadmap-v1"] });
       } catch {
         return res.status(503).json({
           configured: false,
@@ -59,6 +59,8 @@ export function createHandler({ getService, origins, logger = console }) {
       else if (req.method === "PATCH" && path === "/v1/admin/batch")data=await service.batchEntityState(token,body);
       else if (req.method === "POST" && path === "/v1/admin/branches")data=await service.createEntityBranches(token,body);
       else if (req.method === "POST" && path === "/v1/admin/activity")data=await service.adminActivity(token);
+      else if(req.method==='GET' && /^\/v1\/admin\/lab\/workspaces\/[a-z_]+$/.test(path))data=await service.labWorkspace(token,path.split('/').pop());
+      else if(req.method==='PATCH' && /^\/v1\/admin\/lab\/workspaces\/[a-z_]+$/.test(path))data=await service.saveLabWorkspace(token,path.split('/').pop(),body);
       else if(req.method==='GET' && path==='/v1/admin/lab/visit-reports')data=await service.labVisitReports(token);
       else if(req.method==='POST' && path==='/v1/admin/lab/visit-reports')data=await service.createLabVisitReport(token,body);
       else if(req.method==='PATCH' && /^\/v1\/admin\/lab\/visit-reports\/[a-f0-9]{32}$/.test(path))data=await service.decideLabVisitReport(token,path.split('/').pop(),body);

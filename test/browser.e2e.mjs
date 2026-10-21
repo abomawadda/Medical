@@ -231,7 +231,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.15.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.16.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -445,7 +445,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.15.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.16.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1029,11 +1029,12 @@ try {
   assert.equal(await pilot.locator('.lab-preview,.lab-feature-card,.companion-welcome').count(),0);
   await pilot.evaluate(()=>{const k='medical_remembered_session_v1',r=JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify({...r,role:'admin',user:{role:'admin'}}));});
   await pilot.reload();await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();
-  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home','/admin/lab/preview/directory_experience','/admin/lab/preview/visit_workspace','/admin/lab/visit-reports'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
-  assert.deepEqual(deniedLab,[403,403,403,403,403]);
+  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home','/admin/lab/preview/directory_experience','/admin/lab/preview/visit_workspace','/admin/lab/visit-reports','/admin/lab/workspaces/care_companion','/admin/lab/workspaces/service_planning'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
+  assert.deepEqual(deniedLab,[403,403,403,403,403,403,403]);
   await pilot.getByRole('button',{name:'العودة للرئيسية',exact:true}).click();await pilot.locator('.hero').waitFor();
   assert.equal(await pilot.getByRole('button',{name:'معمل التطوير',exact:true}).count(),0);
   await pilot.goto(origin+'/#lab-visit');await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('.visit-workspace,.visit-checklist,.visit-report-card').count(),0);
+  for(const hash of ['lab-care','lab-services']){await pilot.goto(origin+'/#'+hash);await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('[data-roadmap-ready]').count(),0);}
   await pilotContext.close();
   const anonymousLabContext=await context(),anonymousLab=await anonymousLabContext.newPage();
   await anonymousLab.goto(origin+'/#lab');await anonymousLab.locator('.login-card').waitFor();
@@ -1041,7 +1042,7 @@ try {
   const catalogBeforeLab=structuredClone(await store.catalog());
   await a.goto(origin+'/#admin');await a.getByRole('button',{name:'معمل التطوير',exact:true}).click();
   await a.locator('[data-lab-feature="compact_home"]').waitFor();
-  assert.equal(await a.locator('.lab-feature-card').count(),5);
+  assert.equal(await a.locator('.lab-feature-card').count(),7);
   const labFeature=id=>a.locator('[data-lab-feature="'+id+'"]');
   const saveLabDecision=async(id,{review='needs_changes',note='ملاحظة اختبار مصطنعة',previewEnabled=true}={})=>{
     await labFeature(id).getByRole('button',{name:'الملاحظات والقرار',exact:true}).click();
@@ -1202,6 +1203,73 @@ try {
   await a.evaluate(async()=>{const f=(await window.MedicalAPI.developmentLab()).features.find(f=>f.id==='visit_workspace');await window.MedicalAPI.saveLabFeature(f.id,{expected_version:f.version,previewRevision:f.previewRevision,review:'pending',note:'إيقاف P2 مصطنع',previewEnabled:false});document.dispatchEvent(new Event('visibilitychange'));});
   await a.getByText('هذه المعاينة موقوفة؛ يمكن استئنافها من المعمل.',{exact:true}).waitFor();assert.equal(await a.locator('.visit-workspace,.visit-report-card').count(),0);
   await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('visit_workspace').waitFor();await saveLabDecision('visit_workspace',{previewEnabled:true});
+  // P3–P6 care workspace: every persisted operation remains admin-owned and isolated.
+  await labFeature('care_companion').getByRole('button',{name:'فتح المعاينة',exact:true}).click();
+  await a.locator('[data-roadmap-ready="care_companion"]').waitFor();assert.equal(new URL(a.url()).hash,'#lab-care');
+  const careNav=label=>a.locator('.roadmap-tabs').getByRole('button',{name:label,exact:true});
+  await a.getByLabel('البحث في تجربة الرعاية',{exact:true}).fill('مستشفى فروع اختبار');
+  await a.locator('.roadmap-search').getByRole('button',{name:'ابحث',exact:true}).click();
+  await a.getByLabel('مركز تجربة الرعاية',{exact:true}).selectOption('بلقاس');
+  const careCards=a.locator('[data-care-ref]');assert.equal(await careCards.count(),2);
+  await careCards.first().getByRole('button',{name:'بدائل هذا المقر',exact:true}).click();await a.getByRole('heading',{name:'بدائل · مستشفى فروع اختبار',exact:true}).waitFor();await a.getByRole('button',{name:'كل الجهات',exact:true}).click();assert.equal(await careCards.count(),2);
+  await careCards.first().getByRole('button',{name:'قارن',exact:true}).click();await careCards.last().getByRole('button',{name:'قارن',exact:true}).click();
+  assert.equal(await a.locator('.roadmap-comparison>article').count(),2);
+  await careCards.first().getByRole('button',{name:'تابع في المعاينة',exact:true}).click();await careCards.first().getByRole('button',{name:'إلغاء المتابعة التجريبية',exact:true}).waitFor();
+  await careCards.first().getByRole('button',{name:'أضف للمشوار',exact:true}).click();
+  await a.waitForFunction(async()=> (await window.MedicalAPI.labWorkspace('care_companion')).state.journey.length===1);
+  await careCards.last().getByRole('button',{name:'أضف للمشوار',exact:true}).click();
+  await a.waitForFunction(async()=> (await window.MedicalAPI.labWorkspace('care_companion')).state.journey.length===2);
+  await careNav('المتابعة').click();await a.getByRole('button',{name:'افحص تغييرات الدليل',exact:true}).click();
+  await a.getByText('لم يُرصد تغيير منذ بدء المتابعة. يمكنك اختبار شكل التنبيه بالمحاكاة.',{exact:true}).waitFor();
+  await a.getByRole('button',{name:'محاكاة تغير المواعيد',exact:true}).click();await a.locator('.roadmap-event.unread').waitFor();
+  await a.getByText('محاكاة توضيحية · لم تتغير الجهة',{exact:true}).waitFor();
+  await a.getByRole('button',{name:'تمييز كمقروء',exact:true}).click();await a.getByText('مقروء',{exact:true}).waitFor();
+  await careNav('مشواري').click();await a.getByRole('link',{name:'فتح المشوار بالترتيب في خرائط Google',exact:true}).waitFor();
+  const routeBefore=new URL(await a.getByRole('link',{name:'فتح المشوار بالترتيب في خرائط Google',exact:true}).getAttribute('href'));
+  await a.getByRole('button',{name:'تقديم المحطة',exact:true}).click();
+  await a.waitForFunction(old=>new URL(document.querySelector('.roadmap-preview a[href*="maps/dir"]').href).searchParams.get('origin')===old,routeBefore.searchParams.get('destination'));
+  await careNav('الأقرب').click();assert.equal(await a.getByRole('button',{name:'استخدم موقعي لهذه المعاينة',exact:true}).isDisabled(),true);
+  await careNav('البدائل والمقارنة').click();await careCards.first().getByRole('button',{name:'دبوس معاينة',exact:true}).click();
+  await a.getByLabel('خط العرض',{exact:true}).fill('31.04');await a.getByLabel('خط الطول',{exact:true}).fill('31.38');
+  await a.getByLabel('رابط مصدر المطابقة',{exact:true}).fill('https://example.invalid/preview-location');await a.getByLabel('تاريخ مطابقة الدبوس',{exact:true}).fill('2020-01-01');
+  await a.locator('.roadmap-pin-form input[type="checkbox"]').check();await a.getByRole('button',{name:'حفظ دبوس المعاينة',exact:true}).click();
+  await a.getByRole('button',{name:'استخدم موقعي لهذه المعاينة',exact:true}).waitFor({state:'visible'});await a.waitForFunction(()=>!document.querySelector('.roadmap-preview button.lab-icon-button')?.disabled);
+  await a.evaluate(()=>{navigator.geolocation.getCurrentPosition=ok=>ok({coords:{latitude:31.12345678,longitude:31.87654321,accuracy:25}});});
+  const geoRequests=[];const captureGeo=r=>{if(r.url().includes('/v1/'))geoRequests.push(r.postData()||'');};a.on('request',captureGeo);
+  await a.getByRole('button',{name:'استخدم موقعي لهذه المعاينة',exact:true}).click();await a.getByText('دقة الموقع التقريبية ± 25 متر',{exact:true}).waitFor();
+  assert.equal(geoRequests.some(s=>s.includes('31.12345678')||s.includes('31.87654321')),false);a.off('request',captureGeo);
+  if(process.env.MEDICAL_SCREENSHOT_DIR){await a.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'care-nearby-mobile.png'),fullPage:true,style:'#toast{visibility:hidden}'});}
+  await a.evaluate(()=>{navigator.geolocation.getCurrentPosition=(_ok,fail)=>fail({code:1});});await a.getByRole('button',{name:'استخدم موقعي لهذه المعاينة',exact:true}).click();
+  await a.getByText('لم يُتح إذن الموقع؛ يبقى البحث بالمركز متاحًا.',{exact:true}).waitFor();
+  await a.getByRole('button',{name:'إزالة دبوس المعاينة',exact:true}).click();await a.waitForFunction(()=>document.querySelector('.roadmap-preview button.lab-icon-button')?.disabled);assert.equal(await a.getByRole('button',{name:'استخدم موقعي لهذه المعاينة',exact:true}).isDisabled(),true);
+  await careNav('لم أجد').click();await a.getByLabel('مركز الملاحظة التجريبية',{exact:true}).selectOption('بلقاس');await a.getByRole('button',{name:'حفظ مثال الملاحظة',exact:true}).click();await a.getByText('أمثلة محفوظة: 1',{exact:true}).waitFor();
+  await careNav('الملخص').click();await a.getByText('هذه أعداد حساب الإدارة التجريبية، وليست إحصاءات استخدام الأعضاء أو نتائج طبية.',{exact:true}).waitFor();
+  for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Care summary fits '+width);}
+  await a.setViewportSize({width:390,height:844});
+  await a.reload();await a.locator('[data-roadmap-ready="care_companion"]').waitFor();await careNav('المتابعة').click();assert.equal(await a.locator('.roadmap-event').count(),1);
+  await a.evaluate(async()=>{const f=(await window.MedicalAPI.developmentLab()).features.find(f=>f.id==='care_companion');await window.MedicalAPI.saveLabFeature(f.id,{expected_version:f.version,previewRevision:f.previewRevision,review:'pending',note:'إيقاف مساحة الرعاية للاختبار',previewEnabled:false});});
+  await a.getByRole('button',{name:'محاكاة تغير المواعيد',exact:true}).click();
+  await a.getByText('هذه المعاينة موقوفة؛ يمكن استئنافها من المعمل.',{exact:true}).waitFor();assert.equal(await a.locator('[data-roadmap-ready]').count(),0);
+  await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('care_companion').waitFor();await saveLabDecision('care_companion',{previewEnabled:true});
+  // P4/P5: sourced drafts and a synthetic appointment path; lost replies retry the identical id.
+  await labFeature('service_planning').getByRole('button',{name:'فتح المعاينة',exact:true}).click();await a.locator('[data-roadmap-ready="service_planning"]').waitFor();
+  await a.getByLabel('اسم المسودة',{exact:true}).fill('طلب موعد توضيحي');await a.getByLabel('نوع المسودة',{exact:true}).selectOption('appointment');await a.getByLabel('حالة المسودة',{exact:true}).selectOption('ready');
+  await a.getByRole('button',{name:'حفظ المسودة الخاصة',exact:true}).click();await a.getByText('تجهيز المسودة للمراجعة يتطلب مصدرًا وتاريخه وجهة إصداره ومسؤولًا وخطوات.',{exact:true}).waitFor();assert.equal(await a.getByLabel('اسم المسودة',{exact:true}).inputValue(),'طلب موعد توضيحي');
+  await a.getByLabel('مرجع المصدر',{exact:true}).fill('مرجع مصطنع لا يمثل لائحة الشركة');await a.getByLabel('تاريخ مراجعة المصدر',{exact:true}).fill('2020-01-01');await a.getByLabel('الجهة المصدرة',{exact:true}).fill('جهة مثال');await a.getByLabel('مسؤول المتابعة المقترح',{exact:true}).fill('مسؤول مثال');await a.getByLabel('خطوات المسودة',{exact:true}).fill('خطوة توضيحية\nمراجعة تجريبية');
+  await a.getByRole('button',{name:'حفظ المسودة الخاصة',exact:true}).click();await a.locator('[data-planning-draft]').waitFor();
+  for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Planning form fits '+width);}
+  await a.setViewportSize({width:390,height:844});
+  if(process.env.MEDICAL_SCREENSHOT_DIR){await a.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'planning-drafts-mobile.png'),fullPage:true,style:'#toast{visibility:hidden}'});}
+  await careNav('الطلبات والمواعيد').click();
+  const lostCaseReply=async route=>{const request=route.request();const response=await fetch(origin+'/v1/admin/lab/workspaces/service_planning',{method:request.method(),headers:{Origin:origin,Authorization:request.headers().authorization,'Content-Type':'application/json'},body:request.postData()});assert.equal(response.status,200);await route.abort('connectionfailed');};await a.route('**/v1/admin/lab/workspaces/service_planning',lostCaseReply,{times:1});
+  await a.getByRole('button',{name:'إنشاء طلب تجريبي',exact:true}).click();await a.getByRole('button',{name:'إعادة إرسال العملية السابقة',exact:true}).waitFor();
+  await a.getByRole('button',{name:'إعادة إرسال العملية السابقة',exact:true}).click();const plannedCase=a.locator('[data-planning-case]');await plannedCase.getByRole('button',{name:'بدء الفحص',exact:true}).waitFor();assert.equal(await plannedCase.count(),1);
+  await plannedCase.getByText('طلب موعد توضيحي — الربط غير متاح ولا يوجد حجز مؤكد.',{exact:true}).waitFor();
+  await plannedCase.getByRole('button',{name:'بدء الفحص',exact:true}).click();await plannedCase.getByRole('button',{name:'طلب استكمال المثال',exact:true}).click();await plannedCase.getByRole('button',{name:'استئناف الفحص',exact:true}).click();await plannedCase.getByRole('button',{name:'إنهاء الاختبار',exact:true}).click();await plannedCase.getByText('انتهى الاختبار',{exact:true}).waitFor();assert.equal(await plannedCase.getByRole('button').count(),0);
+  if(process.env.MEDICAL_SCREENSHOT_DIR){await a.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'planning-cases-mobile.png'),fullPage:true,style:'#toast{visibility:hidden}'});}
+  await careNav('مسودات الإجراءات').click();await a.locator('[data-planning-draft]').getByRole('button',{name:'نسخ لمراجعة جديدة',exact:true}).click();assert.equal(await a.getByLabel('اسم المسودة',{exact:true}).inputValue(),'طلب موعد توضيحي');assert.equal(await a.getByLabel('حالة المسودة',{exact:true}).inputValue(),'draft');
+  await careNav('جاهزية التشغيل').click();await a.getByText('غير مربوط بجهة للحجز؛ لا يظهر أي تأكيد أو موعد متاح مصطنع. يحتاج اتفاقًا وربطًا فعليًا.',{exact:true}).waitFor();
+  await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('service_planning').waitFor();
   // A cached old client cannot approve the server's newer specimen revision.
   const incompatibleLab=await a.evaluate(()=>window.MedicalAPI.developmentLab());incompatibleLab.features[0].previewRevision='future-lab-revision';
   await a.route('**/v1/admin/lab',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(incompatibleLab)}));
@@ -1609,6 +1677,8 @@ try {
         administratorLabPrivateVersionedResponsiveAndLegacyUrlRetired: true,
         integratedDirectoryReadonlySearchBranchesAndHistory: true,
         visitPreparationAndIsolatedReportWorkflow: true,
+        careWorkspacePrivateFollowCompareLocationAndJourney: true,
+        planningWorkspaceSourcedDraftsAndLostReplyDeduplication: true,
         moderationSavedDespiteDirectoryRefreshFailure: true,
         contentStudioCrudScheduleArchiveAndRepublish: true,
         anonymousReviewConsentCriteriaModerationAndWithdrawal: true,

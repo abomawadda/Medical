@@ -143,6 +143,7 @@ window.MedicalAPI = (() => {
       if (protectedRequest && [401, 403].includes(response.status) && current?.token===requestToken) forget();
       const error = new Error(payload.message || "تعذر إكمال العملية.");
       error.code = payload.code;
+      error.status = response.status;
       throw error;
     }
     if(protectedRequest && current?.token!==requestToken){const error=new Error("تغيرت جلسة الدخول؛ أعد المحاولة من حسابك الحالي.");error.code="SESSION_CHANGED";throw error;}
@@ -223,6 +224,8 @@ window.MedicalAPI = (() => {
     catalog: () => request("/catalog", { protectedRequest: true }),
     health: () => request("/health"),
     adminProfile:()=>request("/admin/profile",{protectedRequest:true}),
+    labWorkspace:id=>request('/admin/lab/workspaces/'+encodeURIComponent(id),{protectedRequest:true}),
+    saveLabWorkspace:(id,body)=>request('/admin/lab/workspaces/'+encodeURIComponent(id),{method:'PATCH',body,protectedRequest:true}),
     labVisitReports:()=>request('/admin/lab/visit-reports',{protectedRequest:true}),
     createLabVisitReport:body=>request('/admin/lab/visit-reports',{method:'POST',body,protectedRequest:true}),
     decideLabVisitReport:(id,body)=>request('/admin/lab/visit-reports/'+encodeURIComponent(id),{method:'PATCH',body,protectedRequest:true}),

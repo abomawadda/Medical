@@ -946,7 +946,7 @@ test('source-profile decisions use an immutable intent and never fall back to ap
 test('development lab authorizes every read, preview and decision against the live administrator',async()=>{
  const f=setup(),m=await member(f),a=await admin(f);
  for(const token of ['',m])for(const op of [()=>f.service.adminLab(token),()=>f.service.labPreview(token,'compact_home'),()=>f.service.saveLabFeature(token,'compact_home',{})])await assert.rejects(op,e=>e.status===(token?403:401));
- const data=await f.service.adminLab(a);assert.equal(data.features.length,5);assert.equal(data.memberReleaseSupported,false);
+ const data=await f.service.adminLab(a);assert.equal(data.features.length,7);assert.equal(data.memberReleaseSupported,false);
  assert.ok(data.features.every(r=>r.audience==='admin'&&!r.memberEnabled));assert.equal(data.features.find(f=>f.id==='directory_experience').syntheticOnly,false);
  const preview=await f.service.labPreview(a,'compact_home');assert.match(preview.scene.label,/توضيحية/);assert.equal(preview.scene.provider.rating,null);
  f.accounts[0].accountStatus='disabled';await assert.rejects(()=>f.service.labPreview(a,'compact_home'),e=>e.status===403);
@@ -1047,4 +1047,17 @@ test('HTTP visit endpoints are administrator-only and cannot send member notific
   const r=response();await handler(request(path,method,visitBody(),{authorization:'Bearer '+token}),r);assert.equal(r.statusCode,token?403:401);assert.equal(r.headers['Cache-Control'],'no-store');
  }
  const r=response();await handler(request('/v1/admin/lab/visit-reports','POST',visitBody({comment:'غير مسموح'}),{authorization:'Bearer '+a}),r);assert.equal(r.statusCode,400);assert.equal(f.store.profileNotes.size,0);
+});
+
+test('HTTP roadmap routes enforce live admin ownership, private caching and preview-only projections',async()=>{
+ const f=visitFixture(),a=await admin(f),m=await member(f),handler=createHandler({getService:()=>f.service,origins:['https://abomawadda.github.io']});
+ for(const id of ['care_companion','service_planning']){
+  for(const path of ['/v1/admin/lab/preview/'+id,'/v1/admin/lab/workspaces/'+id])for(const token of ['',m,a]){
+   const r=response();await handler(request(path,'GET',{}, {authorization:'Bearer '+token}),r);assert.equal(r.statusCode,token===a?200:token?403:401);assert.match(r.headers['Cache-Control'],/no-store/);
+   if(token===a){assert.equal(r.body.memberEnabled??r.body.feature.memberEnabled,false);if(r.body.scene)assert.deepEqual(r.body.scene.catalog,(await f.service.catalog(m)).catalog);}
+  }
+  for(const token of ['',m,a]){const r=response();await handler(request('/v1/admin/lab/workspaces/'+id,'PATCH',{owner:'other',memberEnabled:true},{authorization:'Bearer '+token}),r);assert.equal(r.statusCode,token===a?400:token?403:401);assert.match(r.headers['Cache-Control'],/no-store/);}
+ }
+ const p=await f.service.labPreview(a,'care_companion');assert.equal(p.scene.policy.limits.journey,6);assert.equal(p.scene.mode,'care-workspace');assert.equal(p.feature.syntheticOnly,false);
+ f.accounts[0].accountStatus='disabled';await assert.rejects(()=>f.service.labWorkspace(a,'care_companion'),e=>e.status===403);
 });

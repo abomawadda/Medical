@@ -355,6 +355,27 @@ const visitClosed=await Promise.all([1,2].map(()=>service.decideLabVisitReport(a
 assert.equal((await service.labVisitReports(admin)).reports[0].history.length,3);
 assert.deepEqual(await service.catalog(member),visitBefore);
 assert.equal(JSON.stringify((await foreign.collection('employees').get()).docs.map(d=>d.data())),before);
+// P3–P6 private workspaces use real Firestore transactions and implicit owner paths.
+const carePreview=await service.labPreview(admin,'care_companion'),careRev=carePreview.feature.previewRevision;
+const careRef={target_id:'labs:'+visitBranch.id,branch_id:String(visitBranch.id),network:visitRow.network_members[0]};
+const careInput={expected_version:0,previewRevision:careRev,request_id:'c'.repeat(32),operation:'follow',payload:{ref:careRef}};
+const careSaves=await Promise.all([1,2].map(()=>service.saveLabWorkspace(admin,'care_companion',careInput)));assert.equal(careSaves.filter(r=>r.changed).length,1);
+assert.equal((await service.labWorkspace(admin,'care_companion')).state.follows.length,1);
+assert.deepEqual(await adapters.store.labWorkspaceRead('care_companion','other-admin'),{});
+await assert.rejects(()=>service.labWorkspace(member,'care_companion'),e=>e.status===403);
+await assert.rejects(()=>service.saveLabWorkspace(admin,'care_companion',{...careInput,request_id:'d'.repeat(32),operation:'scan',payload:{}}),e=>e.code==='LAB_WORKSPACE_CONFLICT');
+const roadmapDb=getFirestore((await import('firebase-admin/app')).getApps().find(a=>a.name==='medical-data'));
+const originalWorkspaceTransact=adapters.store.labWorkspaceTransact;
+adapters.store.labWorkspaceTransact=async(...args)=>{await roadmapDb.collection('medical_lab_features').doc('care_companion').set({previewEnabled:false});return originalWorkspaceTransact(...args);};
+try{await assert.rejects(()=>service.saveLabWorkspace(admin,'care_companion',{...careInput,expected_version:1,request_id:'e'.repeat(32),operation:'scan',payload:{}}),e=>e.code==='LAB_PAUSED');}finally{adapters.store.labWorkspaceTransact=originalWorkspaceTransact;await roadmapDb.collection('medical_lab_features').doc('care_companion').set({previewEnabled:true});}
+const planningRev=(await service.labPreview(admin,'service_planning')).feature.previewRevision;
+const draftInput={expected_version:0,previewRevision:planningRev,request_id:'f'.repeat(32),operation:'save_draft',payload:{id:'1'.repeat(32),title:'موعد تجريبي بالمحاكي',type:'appointment',network:'employee',source_reference:'مرجع مصطنع',source_url:'',source_date:'2020-01-01',authority:'جهة مثال',responsible:'مسؤول مثال',steps:['خطوة مصطنعة'],status:'ready'}};
+await service.saveLabWorkspace(admin,'service_planning',draftInput);
+const caseInput={expected_version:1,previewRevision:planningRev,request_id:'2'.repeat(32),operation:'create_case',payload:{id:'3'.repeat(32),draft_id:draftInput.payload.id}};
+const caseSaves=await Promise.all([1,2].map(()=>service.saveLabWorkspace(admin,'service_planning',caseInput)));assert.equal(caseSaves.filter(r=>r.changed).length,1);assert.equal(caseSaves[0].workspace.state.cases[0].bookingConfirmed,false);
+assert.equal((await roadmapDb.collection('medical_lab_workspaces').get()).size,2);
+assert.deepEqual(await service.catalog(member),visitBefore);
+assert.equal(JSON.stringify((await foreign.collection('employees').get()).docs.map(d=>d.data())),before);
 // Lab reviews persist only in Medical and cannot change the member catalog or source.
 const memberBeforeLab=await service.catalog(member),lab=(await service.adminLab(admin)).features[0];
 const integrated=await service.labPreview(admin,'directory_experience');assert.equal(integrated.feature.dataMode,'directory-readonly');assert.deepEqual(integrated.scene.catalog,memberBeforeLab.catalog);

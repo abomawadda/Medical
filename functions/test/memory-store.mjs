@@ -12,12 +12,14 @@ export function fixtureStore(seed) {
     audit = [], activity = new Map();
   const base = structuredClone(seed);
   for (const k of kinds) base[k] ||= [];
-  const options=new Map(),labRows=new Map(),labScenarios=new Map();
+  const options=new Map(),labRows=new Map(),labScenarios=new Map(),labWorkspaces=new Map();
   let labQueue=Promise.resolve();
   const profileRequests=new Map(),profileLedgers=new Map(),profileOverrides=new Map(),profileNotes=new Map();
   let profileQueue=Promise.resolve();
   const store = {
-    labRows,labScenarios,
+    labRows,labScenarios,labWorkspaces,
+    async labWorkspaceRead(id,owner){return structuredClone(labWorkspaces.get(id+'|'+owner)||{});},
+    async labWorkspaceTransact(id,owner,apply){const operation=labQueue.then(()=>{const key=id+'|'+owner,result=apply(structuredClone(labWorkspaces.get(key)||{}),structuredClone(labRows.get(id)||{}));if(result.changed){labWorkspaces.set(key,structuredClone(result.next));audit.push({action:'lab.workspace',featureId:id,version:result.next.version,actor:owner,at:result.next.updatedAt});}return {changed:result.changed,workspace:result.workspace};});labQueue=operation.catch(()=>{});return operation;},
     async labScenarioRead(id){return structuredClone(labScenarios.get(id) || {});},
     async labScenarioTransact(id,apply){const operation=labQueue.then(()=>{const result=apply(structuredClone(labScenarios.get(id) || {}),structuredClone(labRows.get(id) || {}));if(result.changed){labScenarios.set(id,structuredClone(result.next));audit.push({action:'lab.scenario',featureId:id,scenarioId:result.report.id,version:result.report.version});}return {changed:result.changed,report:result.report};});labQueue=operation.catch(()=>{});return operation;},
     async labRead(id){return structuredClone(labRows.get(id) || {});},
