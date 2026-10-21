@@ -1,3 +1,4 @@
+import {readinessService} from './lab-readiness.mjs';
 import {roadmapLabService} from './lab-roadmap.mjs';
 import {visitLabService} from './lab-visit.mjs';
 import {
@@ -432,6 +433,7 @@ export function createService({
     ...developmentLabService({store,authorize,now,readDirectory}),
     ...visitLabService({store,authorize,now,readDirectory}),
     ...roadmapLabService({store,authorize,now,readDirectory}),
+    ...readinessService({store,authorize,now,readDirectory}),
     async memberLogin(body, ip) {
       await rate(ip, "member-ip", 30);
       const c = code(body.employee_code),

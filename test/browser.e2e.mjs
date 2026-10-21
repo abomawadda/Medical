@@ -231,7 +231,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.16.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.17.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -445,7 +445,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.16.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.17.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1029,12 +1029,12 @@ try {
   assert.equal(await pilot.locator('.lab-preview,.lab-feature-card,.companion-welcome').count(),0);
   await pilot.evaluate(()=>{const k='medical_remembered_session_v1',r=JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify({...r,role:'admin',user:{role:'admin'}}));});
   await pilot.reload();await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();
-  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home','/admin/lab/preview/directory_experience','/admin/lab/preview/visit_workspace','/admin/lab/visit-reports','/admin/lab/workspaces/care_companion','/admin/lab/workspaces/service_planning'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
-  assert.deepEqual(deniedLab,[403,403,403,403,403,403,403]);
+  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home','/admin/lab/preview/directory_experience','/admin/lab/preview/visit_workspace','/admin/lab/visit-reports','/admin/lab/workspaces/care_companion','/admin/lab/workspaces/service_planning','/admin/lab/readiness'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
+  assert.deepEqual(deniedLab,[403,403,403,403,403,403,403,403]);
   await pilot.getByRole('button',{name:'العودة للرئيسية',exact:true}).click();await pilot.locator('.hero').waitFor();
   assert.equal(await pilot.getByRole('button',{name:'معمل التطوير',exact:true}).count(),0);
   await pilot.goto(origin+'/#lab-visit');await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('.visit-workspace,.visit-checklist,.visit-report-card').count(),0);
-  for(const hash of ['lab-care','lab-services']){await pilot.goto(origin+'/#'+hash);await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('[data-roadmap-ready]').count(),0);}
+  for(const hash of ['lab-care','lab-services','lab-readiness']){await pilot.goto(origin+'/#'+hash);await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('[data-roadmap-ready]').count(),0);}
   await pilotContext.close();
   const anonymousLabContext=await context(),anonymousLab=await anonymousLabContext.newPage();
   await anonymousLab.goto(origin+'/#lab');await anonymousLab.locator('.login-card').waitFor();
@@ -1256,26 +1256,44 @@ try {
   await a.getByLabel('اسم المسودة',{exact:true}).fill('طلب موعد توضيحي');await a.getByLabel('نوع المسودة',{exact:true}).selectOption('appointment');await a.getByLabel('حالة المسودة',{exact:true}).selectOption('ready');
   await a.getByRole('button',{name:'حفظ المسودة الخاصة',exact:true}).click();await a.getByText('تجهيز المسودة للمراجعة يتطلب مصدرًا وتاريخه وجهة إصداره ومسؤولًا وخطوات.',{exact:true}).waitFor();assert.equal(await a.getByLabel('اسم المسودة',{exact:true}).inputValue(),'طلب موعد توضيحي');
   await a.getByLabel('مرجع المصدر',{exact:true}).fill('مرجع مصطنع لا يمثل لائحة الشركة');await a.getByLabel('تاريخ مراجعة المصدر',{exact:true}).fill('2020-01-01');await a.getByLabel('الجهة المصدرة',{exact:true}).fill('جهة مثال');await a.getByLabel('مسؤول المتابعة المقترح',{exact:true}).fill('مسؤول مثال');await a.getByLabel('خطوات المسودة',{exact:true}).fill('خطوة توضيحية\nمراجعة تجريبية');
+  await a.getByLabel('بداية السريان',{exact:true}).fill('2020-01-01');await a.getByLabel('موعد مراجعة المصدر',{exact:true}).fill('2099-01-01');await a.getByLabel('قناة تقديم الطلب من المصدر',{exact:true}).fill('قناة مصطنعة للاختبار');await a.getByLabel('المتطلبات من المصدر دون رفع ملفات',{exact:true}).fill('مستند تجريبي دون رفع ملف');
   await a.getByRole('button',{name:'حفظ المسودة الخاصة',exact:true}).click();await a.locator('[data-planning-draft]').waitFor();
   for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Planning form fits '+width);}
   await a.setViewportSize({width:390,height:844});
   if(process.env.MEDICAL_SCREENSHOT_DIR){await a.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'planning-drafts-mobile.png'),fullPage:true,style:'#toast{visibility:hidden}'});}
+  await careNav('أدوار المتابعة').click();await a.getByLabel('اسم دور المتابعة',{exact:true}).fill('مسؤول تجربة');await a.getByLabel('قناة متابعة الدور',{exact:true}).fill('قناة متابعة مصطنعة');await a.getByRole('button',{name:'حفظ دور المتابعة',exact:true}).click();await a.locator('[data-service-role]').waitFor();
   await careNav('الطلبات والمواعيد').click();
   const lostCaseReply=async route=>{const request=route.request();const response=await fetch(origin+'/v1/admin/lab/workspaces/service_planning',{method:request.method(),headers:{Origin:origin,Authorization:request.headers().authorization,'Content-Type':'application/json'},body:request.postData()});assert.equal(response.status,200);await route.abort('connectionfailed');};await a.route('**/v1/admin/lab/workspaces/service_planning',lostCaseReply,{times:1});
   await a.getByRole('button',{name:'إنشاء طلب تجريبي',exact:true}).click();await a.getByRole('button',{name:'إعادة إرسال العملية السابقة',exact:true}).waitFor();
   await a.getByRole('button',{name:'إعادة إرسال العملية السابقة',exact:true}).click();const plannedCase=a.locator('[data-planning-case]');await plannedCase.getByRole('button',{name:'بدء الفحص',exact:true}).waitFor();assert.equal(await plannedCase.count(),1);
   await plannedCase.getByText('طلب موعد توضيحي — الربط غير متاح ولا يوجد حجز مؤكد.',{exact:true}).waitFor();
-  await plannedCase.getByRole('button',{name:'بدء الفحص',exact:true}).click();await plannedCase.getByRole('button',{name:'طلب استكمال المثال',exact:true}).click();await plannedCase.getByRole('button',{name:'استئناف الفحص',exact:true}).click();await plannedCase.getByRole('button',{name:'إنهاء الاختبار',exact:true}).click();await plannedCase.getByText('انتهى الاختبار',{exact:true}).waitFor();assert.equal(await plannedCase.getByRole('button').count(),0);
+  await plannedCase.getByRole('button',{name:'حفظ إسناد المثال',exact:true}).click();await plannedCase.getByText('دور المتابعة: مسؤول تجربة',{exact:true}).waitFor();
+  await plannedCase.getByRole('button',{name:'بدء الفحص',exact:true}).click();await plannedCase.getByLabel('سبب استكمال المثال',{exact:true}).selectOption('documents');await plannedCase.getByRole('checkbox',{name:'مستند تجريبي دون رفع ملف',exact:true}).check();await plannedCase.getByRole('button',{name:'طلب استكمال المثال',exact:true}).click();await plannedCase.getByText('سبب الاستكمال: استكمال قائمة المتطلبات',{exact:true}).waitFor();await plannedCase.getByRole('button',{name:'استئناف الفحص',exact:true}).click();await plannedCase.getByRole('button',{name:'إنهاء الاختبار',exact:true}).click();await plannedCase.getByText('انتهى الاختبار',{exact:true}).waitFor();assert.equal(await plannedCase.getByRole('button').count(),0);
   if(process.env.MEDICAL_SCREENSHOT_DIR){await a.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'planning-cases-mobile.png'),fullPage:true,style:'#toast{visibility:hidden}'});}
+  // A second appointment example can be cancelled; filters and exports never expose source text.
+  await a.getByRole('button',{name:'إنشاء طلب تجريبي',exact:true}).click();await a.getByRole('button',{name:'إلغاء طلب الموعد التجريبي',exact:true}).click();await a.locator('[data-planning-case] .lab-state').filter({hasText:'أُلغي المثال'}).waitFor();
+  await a.getByLabel('تصفية بحالة الطلب',{exact:true}).selectOption('cancelled');assert.equal(await a.locator('[data-planning-case]').count(),1);
+  await a.getByRole('button',{name:'مسح تصفية الطلبات',exact:true}).click();assert.equal(await a.locator('[data-planning-case]').count(),2);
+  await careNav('دليل الإجراءات').click();await a.getByRole('heading',{name:'طلب موعد توضيحي',exact:true}).waitFor();assert.equal(await a.getByRole('link',{name:'فتح المصدر',exact:true}).count(),0);
+  await a.getByLabel('شبكة دليل الإجراءات',{exact:true}).selectOption('family');await a.getByText('لا يوجد إجراء سارٍ مطابق في مسوداتك. لن نفترض إجابة من خارج المصادر.',{exact:true}).waitFor();
+  await careNav('ملخص التجربة').click();const summaryDownload=a.waitForEvent('download');await a.getByRole('button',{name:'تنزيل ملخص الأعداد فقط',exact:true}).click();const summaryJson=JSON.parse(await readFile(await (await summaryDownload).path(),'utf8'));assert.equal(summaryJson.cancelled,1);assert.equal(summaryJson.completed,1);assert.equal(summaryJson.bookingConnected,false);assert.ok(!JSON.stringify(summaryJson).includes('مسؤول تجربة'));assert.ok(!JSON.stringify(summaryJson).includes('طلب موعد توضيحي'));
   await careNav('مسودات الإجراءات').click();await a.locator('[data-planning-draft]').getByRole('button',{name:'نسخ لمراجعة جديدة',exact:true}).click();assert.equal(await a.getByLabel('اسم المسودة',{exact:true}).inputValue(),'طلب موعد توضيحي');assert.equal(await a.getByLabel('حالة المسودة',{exact:true}).inputValue(),'draft');
-  await careNav('جاهزية التشغيل').click();await a.getByText('غير مربوط بجهة للحجز؛ لا يظهر أي تأكيد أو موعد متاح مصطنع. يحتاج اتفاقًا وربطًا فعليًا.',{exact:true}).waitFor();
+  await careNav('جاهزية التشغيل').click();await a.getByText('الحجز الفعلي غير مربوط. اعتماد اللوائح وسلطات الموافقات والتحويلات وسياسات الخصوصية والاحتفاظ وزمن الخدمة تحتاج مصادر الشركة واتفاقاتها.',{exact:true}).waitFor();
   await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('service_planning').waitFor();
-  // A cached old client cannot approve the server's newer specimen revision.
+  // Phase readiness is a private aggregate snapshot, and all seven phases retain explicit blockers.
+  await a.getByRole('button',{name:'جاهزية المراحل',exact:true}).click();await a.locator('[data-readiness-ready="true"]').waitFor();
+  assert.equal(new URL(a.url()).hash,'#lab-readiness');assert.equal(await a.locator('[data-readiness-phase]').count(),7);
+  for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Readiness phases fit '+width);}
+  await a.setViewportSize({width:390,height:844});if(process.env.MEDICAL_SCREENSHOT_DIR){await a.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'phase-readiness-mobile.png'),fullPage:true,style:'#toast{visibility:hidden}'});}
+  const readinessDownload=a.waitForEvent('download');await a.getByRole('button',{name:'تنزيل تقرير المراحل',exact:true}).click();const readinessJson=JSON.parse(await readFile(await (await readinessDownload).path(),'utf8'));assert.equal(readinessJson.memberEnabled,false);assert.equal(readinessJson.releaseSupported,false);assert.equal(readinessJson.phases.length,7);assert.ok(!JSON.stringify(readinessJson).includes('مسؤول تجربة'));assert.ok(!JSON.stringify(readinessJson).includes('مرجع مصطنع'));
+  await a.locator('[data-readiness-phase="P0"]').getByRole('button',{name:'الرئيسية المختصرة',exact:true}).click();await a.locator('[data-lab-preview="compact_home"]').waitFor();
+  await a.getByRole('button',{name:'قائمة المعاينات',exact:true}).click();await labFeature('service_planning').waitFor();
+  // A cached or rolling-version client cannot review an incompatible specimen; other cards still work.
   const incompatibleLab=await a.evaluate(()=>window.MedicalAPI.developmentLab());incompatibleLab.features[0].previewRevision='future-lab-revision';
   await a.route('**/v1/admin/lab',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(incompatibleLab)}));
-  await a.reload();await a.getByText('تغيرت نسخة المعاينة؛ حدّث التطبيق قبل مراجعة التصميم.',{exact:true}).waitFor();
-  assert.equal(await a.locator('.lab-feature-card,.lab-preview').count(),0);await a.unroute('**/v1/admin/lab');
-  await a.getByRole('button',{name:'إعادة التحقق',exact:true}).click();await labFeature('compact_home').waitFor();
+  await a.reload();await labFeature('compact_home').getByText('نسخة هذه المعاينة تحتاج تحديث الواجهة أو خدمة Firebase. بقية المعاينات المتوافقة متاحة.',{exact:true}).waitFor();
+  assert.equal(await labFeature('compact_home').getByRole('button',{name:'فتح المعاينة',exact:true}).isDisabled(),true);assert.equal(await labFeature('compact_home').getByRole('button',{name:'الملاحظات والقرار',exact:true}).isDisabled(),true);assert.equal(await labFeature('provider_card').getByRole('button',{name:'فتح المعاينة',exact:true}).isEnabled(),true);await a.unroute('**/v1/admin/lab');
+  await a.reload();await labFeature('compact_home').waitFor();
   // A late specimen response cannot repopulate a route the administrator has left.
   let releaseSpecimen,markSpecimenStarted,markSpecimenFinished;
   const specimenGate=new Promise(resolve=>releaseSpecimen=resolve),specimenStarted=new Promise(resolve=>markSpecimenStarted=resolve),specimenFinished=new Promise(resolve=>markSpecimenFinished=resolve);
@@ -1679,6 +1697,7 @@ try {
         visitPreparationAndIsolatedReportWorkflow: true,
         careWorkspacePrivateFollowCompareLocationAndJourney: true,
         planningWorkspaceSourcedDraftsAndLostReplyDeduplication: true,
+        sourceValidityResponsibilitiesRequirementsCancellationAndPrivateReadiness: true,
         moderationSavedDespiteDirectoryRefreshFailure: true,
         contentStudioCrudScheduleArchiveAndRepublish: true,
         anonymousReviewConsentCriteriaModerationAndWithdrawal: true,

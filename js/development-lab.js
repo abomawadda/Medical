@@ -1,9 +1,11 @@
 /* Private UI specimens. All data and review operations require the administrator API. */
 window.MedicalDevelopmentLab=(()=>{
  const previewRevision='p1-20261019-1',featureIds=['compact_home','provider_card','provider_details','directory_experience','visit_workspace','care_companion','service_planning'];
- function compatible(feature){if(!featureIds.includes(feature?.id)||feature.previewRevision!==(feature.id==='care_companion'?'p3-p6-20261021-1':feature.id==='service_planning'?'p4-p5-20261021-1':feature.id==='visit_workspace'?'p2-visit-20261021-1':feature.id==='directory_experience'?'p1-directory-20261019-1':previewRevision))throw new Error('تغيرت نسخة المعاينة؛ حدّث التطبيق قبل مراجعة التصميم.');}
+ function compatible(feature){if(!featureIds.includes(feature?.id)||feature.previewRevision!==(feature.id==='care_companion'?'p3-p6-20261021-1':feature.id==='service_planning'?'p4-p5-20261021-2':feature.id==='visit_workspace'?'p2-visit-20261021-1':feature.id==='directory_experience'?'p1-directory-20261019-1':previewRevision))throw new Error('تغيرت نسخة المعاينة؛ حدّث التطبيق قبل مراجعة التصميم.');}
 
- function mount({root,api,el,button,replaceNodes,icon,notice,review,exit,directory,roadmap,allowed}){
+ const isCompatible=f=>{try{compatible(f);return f.audience==='admin'&&f.memberEnabled===false;}catch{return false;}};
+ const validateBoard=data=>{if(data.features.some(f=>f.audience!=='admin'||f.memberEnabled!==false))throw new Error('لم تؤكد الخدمة حصر المعاينات بالإدارة.');};
+ function mount({root,api,el,button,replaceNodes,icon,notice,review,exit,directory,roadmap,readiness,list,initialFeature=null,allowed}){
   let disposed=false,board=null,active=null,busy=false,sequence=0;
   const valid=()=>!disposed&&root.isConnected&&allowed();
   const status=r=>({pending:'بانتظار مراجعتك',needs_changes:'يحتاج تعديلًا',approved:'معتمد كتصميم'}[r] || 'غير محدد');
@@ -16,12 +18,13 @@ window.MedicalDevelopmentLab=(()=>{
   function failed(error){if(!valid())return;++sequence;active=null;board=null;root.hidden=false;const wrap=shell();wrap.append(el('p',{class:'notice warning',role:'alert'},error.code==='NOT_FOUND'?'تفعيل معمل التطوير يحتاج نشر تحديث خدمة Firebase. تجربة الأعضاء الحالية مستمرة.':error.message || 'تعذر التحقق من المعاينة.'),action('إعادة التحقق',load));replaceNodes(root,wrap);}
   async function load(){
    if(!valid())return;root.hidden=false;const turn=++sequence;active=null;board=null;const wrap=shell();wrap.append(el('p',{role:'status'},'جارٍ التحقق من صلاحية المعاينة…'));replaceNodes(root,wrap);
-   try{const data=await api.developmentLab();if(!valid()||turn!==sequence)return;if(data.audience!=='admin'||data.capability!=='development-lab-v1'||!Array.isArray(data.features))throw new Error('لم تؤكد الخدمة صلاحية المعمل.');data.features.forEach(compatible);board=data;drawBoard();}catch(e){if(turn===sequence)failed(e);}
+   try{const data=await api.developmentLab();if(!valid()||turn!==sequence)return;if(data.audience!=='admin'||data.capability!=='development-lab-v1'||!Array.isArray(data.features))throw new Error('لم تؤكد الخدمة صلاحية المعمل.');validateBoard(data);board=data;if(initialFeature){const id=initialFeature;initialFeature=null;compatible(board.features.find(f=>f.id===id));await open(id);}else drawBoard();}catch(e){if(turn===sequence)failed(e);}
   }
   function drawBoard(){
    if(!valid()||!board)return;active=null;const wrap=shell();
    wrap.append(el('section',{class:'lab-start'},el('div',{},el('h2',{},'مراحل رعايتي · معاينة الإدارة'),el('p',{},'نماذج الشكل وتجربة متصلة بالدليل المنشور. اعتماد المراجعة لا يغيّر تجربة الأعضاء.')),el('span',{class:'lab-phase'},'P1–P6 — للإدارة')));
-   wrap.append(el('div',{class:'lab-feature-grid'},board.features.map(f=>el('article',{class:'lab-feature-card','data-lab-feature':f.id},el('div',{class:'lab-card-heading'},el('small',{},f.proposal),el('span',{class:'lab-state '+f.review},status(f.review))),el('h2',{},f.title),el('p',{},f.description),el('small',{class:'lab-data-mode'},['care-workspace','planning-workspace'].includes(f.dataMode)?'دليل منشور · مساحة إدارة خاصة':f.dataMode==='directory-sandbox'?'دليل منشور · بلاغات تجريبية منفصلة':f.dataMode==='directory-readonly'?'دليل فعلي منشور · قراءة فقط':'بيانات توضيحية'),el('p',{class:'muted'},f.previewEnabled?'المعاينة مفعلة للمدير':'المعاينة موقوفة'),f.staleApproval?el('p',{class:'notice warning'},'تغير التصميم؛ يلزم قرار مراجعة جديد.'):null,f.note?el('blockquote',{},f.note):null,el('small',{class:'muted'},'آخر حفظ: '+stamp(f.updatedAt)),el('div',{class:'lab-feature-actions'},Object.assign(action('فتح المعاينة',()=>open(f.id),'button primary'),{disabled:!f.previewEnabled}),action('الملاحظات والقرار',()=>review(f,load))),el('details',{class:'lab-history'},el('summary',{},'سجل المراجعات ('+f.history.length+')'),f.history.length?el('ol',{},[...f.history].reverse().map(h=>el('li',{},el('strong',{},status(h.review)),el('small',{},stamp(h.at)),h.note?el('p',{},h.note):null,el('small',{},h.previewEnabled?'معاينة مفعلة':'معاينة موقوفة')))):el('p',{},'لا توجد قرارات محفوظة بعد.'))))));
+   wrap.append(action('جاهزية المراحل',readiness,'button primary','guidelines'));
+   wrap.append(el('div',{class:'lab-feature-grid'},board.features.map(f=>el('article',{class:'lab-feature-card','data-lab-feature':f.id},el('div',{class:'lab-card-heading'},el('small',{},f.proposal),el('span',{class:'lab-state '+f.review},status(f.review))),el('h2',{},f.title),el('p',{},f.description),el('small',{class:'lab-data-mode'},['care-workspace','planning-workspace'].includes(f.dataMode)?'دليل منشور · مساحة إدارة خاصة':f.dataMode==='directory-sandbox'?'دليل منشور · بلاغات تجريبية منفصلة':f.dataMode==='directory-readonly'?'دليل فعلي منشور · قراءة فقط':'بيانات توضيحية'),el('p',{class:'muted'},f.previewEnabled?'المعاينة مفعلة للمدير':'المعاينة موقوفة'),!isCompatible(f)?el('p',{class:'notice warning'},'نسخة هذه المعاينة تحتاج تحديث الواجهة أو خدمة Firebase. بقية المعاينات المتوافقة متاحة.'):null,f.staleApproval?el('p',{class:'notice warning'},'تغير التصميم؛ يلزم قرار مراجعة جديد.'):null,f.note?el('blockquote',{},f.note):null,el('small',{class:'muted'},'آخر حفظ: '+stamp(f.updatedAt)),el('div',{class:'lab-feature-actions'},Object.assign(action('فتح المعاينة',()=>open(f.id),'button primary'),{disabled:!f.previewEnabled||!isCompatible(f)}),Object.assign(action('الملاحظات والقرار',()=>review(f,load)),{disabled:!isCompatible(f)})),el('details',{class:'lab-history'},el('summary',{},'سجل المراجعات ('+f.history.length+')'),f.history.length?el('ol',{},[...f.history].reverse().map(h=>el('li',{},el('strong',{},status(h.review)),el('small',{},stamp(h.at)),h.note?el('p',{},h.note):null,el('small',{},h.previewEnabled?'معاينة مفعلة':'معاينة موقوفة')))):el('p',{},'لا توجد قرارات محفوظة بعد.'))))));
    if(!board.features.some(f=>f.id==='directory_experience'))wrap.append(el('p',{class:'notice warning'},'تجربة الدليل المترابطة تحتاج تحديث خدمة Firebase؛ نماذج التصميم الحالية متاحة.'));
    if(!board.features.some(f=>f.id==='visit_workspace'))wrap.append(el('p',{class:'notice warning'},'تجربة الزيارة والبلاغات تحتاج تحديث خدمة Firebase.'));
    if(!board.features.some(f=>f.id==='care_companion'))wrap.append(el('p',{class:'notice warning'},'معاينات بقية الخارطة تحتاج تحديث خدمة Firebase.'));
@@ -53,10 +56,10 @@ window.MedicalDevelopmentLab=(()=>{
   }
   async function open(id){
    if(['care_companion','service_planning'].includes(id)){roadmap(id);return;}
-   if(['directory_experience','visit_workspace','care_companion','service_planning'].includes(id)){directory(id==='visit_workspace');return;}
+   if(['directory_experience','visit_workspace'].includes(id)){directory(id==='visit_workspace');return;}
    if(!valid())return;root.hidden=false;const turn=++sequence,wrap=shell(),loading=el('p',{role:'status'},'جارٍ التحقق وفتح المعاينة…');wrap.append(loading);replaceNodes(root,wrap);active=null;
    try{const data=await api.labPreview(id);if(!valid()||turn!==sequence)return;loading.remove();compatible(data.feature);if(data.feature?.audience!=='admin'||data.feature?.syntheticOnly!==true)throw new Error('المعاينة غير مصرح بها.');const panel=el('div',{class:'lab-preview','data-lab-preview':id});
-    wrap.append(el('div',{class:'lab-preview-heading'},el('div',{},el('h2',{},data.feature.title),el('small',{},data.scene.label+' · '+data.feature.previewRevision)),el('div',{class:'actions-row'},action('قائمة المعاينات',load),action('الملاحظات والقرار',()=>review(data.feature,load)))),panel);renderScene(panel,id,data.scene);active={id,version:data.feature.version,revision:data.feature.previewRevision,panel};replaceNodes(root,wrap);
+    wrap.append(el('div',{class:'lab-preview-heading'},el('div',{},el('h2',{},data.feature.title),el('small',{},data.scene.label+' · '+data.feature.previewRevision)),el('div',{class:'actions-row'},action('قائمة المعاينات',list||load),action('الملاحظات والقرار',()=>review(data.feature,load)))),panel);renderScene(panel,id,data.scene);active={id,version:data.feature.version,revision:data.feature.previewRevision,panel};replaceNodes(root,wrap);
    }catch(e){if(turn===sequence)failed(e);}
   }
   async function recheck(hide=false){
@@ -70,7 +73,7 @@ window.MedicalDevelopmentLab=(()=>{
      if(data.feature.previewRevision!==shown.revision||data.feature.version!==shown.version){notice('تغيرت حالة المعاينة؛ حُدّثت قائمة المراجعة.');await load();}
     }else{
      if(data.audience!=='admin'||data.capability!=='development-lab-v1')throw new Error('تعذر تأكيد صلاحية المعمل.');
-     data.features.forEach(compatible);if(JSON.stringify(data)!==JSON.stringify(listed)){board=data;drawBoard();}
+     validateBoard(data);if(JSON.stringify(data)!==JSON.stringify(listed)){board=data;drawBoard();}
     }
     root.hidden=false;
    }catch(e){if(turn===sequence)failed(e);}finally{busy=false;}

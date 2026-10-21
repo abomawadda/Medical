@@ -1,3 +1,5 @@
+import {planning} from './lab-planning.mjs';
+import workflow from './service-workflow.cjs';
 import {ApiError} from './core.mjs';
 import {createHash} from 'node:crypto';
 import facilities from './facility-directory.cjs';
@@ -21,8 +23,8 @@ function fields(row,network,catalog){
  const parent=(catalog.hospitals||[]).find(h=>h.id===row.contract_entity_id);
  return Object.fromEntries(Object.entries({name:[row.name,row.display_name,row.specialty,row.category],address:[rel?.address||row.address,parent?.address],contacts:[rel?.contact_groups||row.contact_groups||row.raw_phone,parent?.raw_phone],hours:[row.schedule,row.working_hours],status:[row.service_status,parent?.service_status],network:[row.network_members,row.contract_entity,row.contract_type]}).map(([k,v])=>[k,hash(v)]));
 }
-const initial=id=>id==='care_companion'?{follows:[],events:[],pins:[],journey:[],feedback:[]}:{drafts:[],cases:[]};
-const project=(id,saved)=>({version:saved.version||0,previewRevision:roadmapFeatures.find(f=>f.id===id).previewRevision,audience:'admin',memberEnabled:false,sandboxOnly:true,bookingConnected:false,state:{...initial(id),...saved.state}});
+const initial=id=>id==='care_companion'?{follows:[],events:[],pins:[],journey:[],feedback:[]}:{drafts:[],cases:[],roles:[]};
+const project=(id,saved,at=Date.now())=>({version:saved.version||0,previewRevision:roadmapFeatures.find(f=>f.id===id).previewRevision,audience:'admin',memberEnabled:false,sandboxOnly:true,bookingConnected:false,today:workflow.day(at),state:{...initial(id),...saved.state}});
 function guard(id,saved,revision){const f=roadmapFeatures.find(f=>f.id===id);if(!f)fail(404,'LAB_NOT_FOUND','هذه المعاينة غير موجودة.');if(revision&&f.previewRevision!==revision)fail(409,'LAB_REVISION_CHANGED','تغير إصدار المعاينة؛ حدّث التطبيق.');if(saved.previewEnabled===false)fail(409,'LAB_PAUSED','هذه المعاينة موقوفة؛ يمكن استئنافها من المعمل.');return f;}
 function requireTarget(catalog,ref,active=false){const row=roadmapTarget(catalog,ref);if(!row)fail(404,'LAB_TARGET_UNAVAILABLE','المقر أو شبكته غير متاحين في الدليل المنشور.');if(active&&row.service_status==='suspended')fail(409,'LAB_TARGET_PAUSED','المقر موقوف مؤقتًا؛ اختر جهة متاحة.');return row;}
 function care(state,op,p,catalog,at,version){
@@ -55,29 +57,16 @@ function care(state,op,p,catalog,at,version){
  }else fail(400,'INVALID_LAB_OPERATION','إجراء غير متاح في هذه المعاينة.');
  state.events=state.events.slice(-cap.events);return state;
 }
-function planning(state,op,p,at){
- const cap=roadmapPolicy.limits;
- if(op==='save_draft'){
-  const allowed=['id','title','type','network','source_reference','source_url','source_date','authority','steps','responsible','status'];
-  if(!exact(p,allowed)||!/^[a-f0-9]{32}$/.test(p.id)||!clean(p.title,160)||!p.title.trim()||!Object.hasOwn(roadmapPolicy.draftTypes,p.type)||!Object.hasOwn(roadmapPolicy.networks,p.network)||!['draft','ready','archived'].includes(p.status)||!clean(p.source_reference,500)||!clean(p.source_url,500)||p.source_url&&!https(p.source_url)||!clean(p.source_date,10)||p.source_date&&!date(p.source_date)||p.source_date>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(at)||!clean(p.authority,160)||!clean(p.responsible,160)||!Array.isArray(p.steps)||p.steps.length>10||p.steps.some(s=>!clean(s,300)||!s.trim()))fail(400,'INVALID_LAB_DRAFT','راجع المسودة والمصدر والخطوات؛ دون بيانات أعضاء أو نسب مالية.');
-  if(p.status==='ready'&&(!(p.source_reference||p.source_url)||!date(p.source_date)||!p.authority.trim()||!p.responsible.trim()||!p.steps.length))fail(409,'LAB_SOURCE_REQUIRED','تجهيز المسودة للمراجعة يتطلب مصدرًا وتاريخه وجهة إصداره ومسؤولًا وخطوات.');
-  if(!state.drafts.some(r=>r.id===p.id)&&state.drafts.length>=cap.drafts)fail(409,'LAB_LIMIT','حد مسودات المعاينة 30.');const old=state.drafts.find(r=>r.id===p.id);if(old&&state.cases.some(c=>c.draft_id===p.id)&&Object.keys(p).some(k=>!['status'].includes(k)&&JSON.stringify(p[k])!==JSON.stringify(old[k])))fail(409,'LAB_DRAFT_IN_USE','المسودة مرتبطة بأمثلة؛ انسخها لمراجعة جديدة بدل تغيير المرجع السابق.');const item={...p,previewOnly:true,updatedAt:at,revision:old?old.revision+1:1};if(old&&JSON.stringify({...old,updatedAt:0,revision:0})===JSON.stringify({...item,updatedAt:0,revision:0}))return state;state.drafts=state.drafts.filter(r=>r.id!==p.id);state.drafts.push(item);
- }else if(op==='create_case'){
-  if(!exact(p,['id','draft_id'])||!/^[a-f0-9]{32}$/.test(p.id)||typeof p.draft_id!=='string')fail(400,'INVALID_LAB_CASE','اختر مسودة جاهزة واختبر المسار دون بيانات شخص.');const draft=state.drafts.find(r=>r.id===p.draft_id&&r.status==='ready');if(!draft)fail(409,'LAB_DRAFT_NOT_READY','المسودة غير جاهزة للمراجعة.');if(state.cases.some(r=>r.id===p.id)){if(state.cases.find(r=>r.id===p.id).draft_id!==p.draft_id)fail(409,'LAB_REQUEST_REUSED','معرف المثال مستخدم لمسودة مختلفة.');return state;}if(state.cases.length>=cap.cases)fail(409,'LAB_LIMIT','حد أمثلة الطلبات 50.');state.cases.push({id:p.id,draft_id:draft.id,draft_revision:draft.revision,type:draft.type,network:draft.network,status:'new',createdAt:at,history:[{status:'new',at}],syntheticOnly:true,bookingConfirmed:false});
- }else if(op==='case_status'){
-  if(!exact(p,['id','status'])||!Object.hasOwn(roadmapPolicy.caseStates,p.status))fail(400,'INVALID_LAB_CASE','لا تدعم المعاينة تأكيد حجز أو موافقة حقيقية.');const row=state.cases.find(r=>r.id===p.id);if(!row)fail(404,'LAB_CASE_NOT_FOUND','المثال غير موجود في مساحة حسابك.');if(row.status===p.status)return state;const allowed={new:['review','rejected'],review:['needs_info','completed','rejected'],needs_info:['review','rejected'],completed:[],rejected:[]};if(!allowed[row.status].includes(p.status))fail(409,'LAB_CASE_TRANSITION','اتبع مراحل الفحص قبل إنهاء الاختبار.');row.status=p.status;row.history.push({status:p.status,at});row.history=row.history.slice(-20);
- }else fail(400,'INVALID_LAB_OPERATION','إجراء غير متاح في هذه المعاينة.');
- return state;
-}
 export function roadmapLabService({store,authorize,now,readDirectory}){return {
- async labWorkspace(token,id){const actor=await authorize(token,'admin');guard(id,await store.labRead(id));return project(id,await store.labWorkspaceRead(id,actor.sourceId));},
+ async labWorkspace(token,id){const actor=await authorize(token,'admin');guard(id,await store.labRead(id));return project(id,await store.labWorkspaceRead(id,actor.sourceId),now());},
  async saveLabWorkspace(token,id,body){const actor=await authorize(token,'admin');guard(id,await store.labRead(id),body?.previewRevision);
   if(!exact(body,['expected_version','previewRevision','request_id','operation','payload'])||!Number.isSafeInteger(body.expected_version)||body.expected_version<0||!/^[a-f0-9]{32}$/.test(body.request_id)||!clean(body.operation,40)||!body.previewRevision||!exact(body.payload,Object.keys(body.payload||{})))fail(400,'INVALID_LAB_WORKSPACE','راجع إجراء المعاينة؛ لا ترسل موقع العضو أو بياناته.');
-  const intent=hash([body.operation,body.payload,body.expected_version,body.previewRevision]),catalog=(await readDirectory()).catalog;
-  return store.labWorkspaceTransact(id,actor.sourceId,(saved,feature)=>{guard(id,feature,body.previewRevision);const seen=(saved.requests||[]).find(r=>r.id===body.request_id);if(seen){if(seen.intent!==intent)fail(409,'LAB_REQUEST_REUSED','معرف العملية مستخدم لقيم مختلفة.');return {changed:false,workspace:project(id,saved)};}if((saved.version||0)!==body.expected_version)fail(409,'LAB_WORKSPACE_CONFLICT','حُفظ تغيير أحدث في مساحة حسابك؛ حدّثها قبل إعادة القرار.');
+  const intent=hash([body.operation,body.payload,body.expected_version,body.previewRevision]),catalog=id==='care_companion'?(await readDirectory()).catalog:null;
+  return store.labWorkspaceTransact(id,actor.sourceId,(saved,feature)=>{guard(id,feature,body.previewRevision);const seen=(saved.requests||[]).find(r=>r.id===body.request_id);if(seen){if(seen.intent!==intent)fail(409,'LAB_REQUEST_REUSED','معرف العملية مستخدم لقيم مختلفة.');return {changed:false,workspace:project(id,saved,now())};}if((saved.version||0)!==body.expected_version)fail(409,'LAB_WORKSPACE_CONFLICT','حُفظ تغيير أحدث في مساحة حسابك؛ حدّثها قبل إعادة القرار.');
    const before={...initial(id),...saved.state},nextState=id==='care_companion'?care(structuredClone(before),body.operation,body.payload,catalog,now(),(saved.version||0)+1):planning(structuredClone(before),body.operation,body.payload,now());
-   if(JSON.stringify(before)===JSON.stringify(nextState))return {changed:false,workspace:project(id,saved)};
-   const next={updatedAt:now(),state:nextState,version:(saved.version||0)+1,requests:[...(saved.requests||[]),{id:body.request_id,intent}].slice(-40)};return {changed:true,next,workspace:project(id,next)};
+   if(Buffer.byteLength(JSON.stringify(nextState),'utf8')>700000)fail(409,'LAB_SPACE_LIMIT','مساحة التجربة ممتلئة؛ لا نحذف أمثلة أو مسودات تلقائيًا.');
+   if(JSON.stringify(before)===JSON.stringify(nextState))return {changed:false,workspace:project(id,saved,now())};
+   const next={updatedAt:now(),state:nextState,version:(saved.version||0)+1,requests:[...(saved.requests||[]),{id:body.request_id,intent}].slice(-40)};return {changed:true,next,workspace:project(id,next,now())};
   });
  },
 };}

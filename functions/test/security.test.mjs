@@ -1061,3 +1061,21 @@ test('HTTP roadmap routes enforce live admin ownership, private caching and prev
  const p=await f.service.labPreview(a,'care_companion');assert.equal(p.scene.policy.limits.journey,6);assert.equal(p.scene.mode,'care-workspace');assert.equal(p.feature.syntheticOnly,false);
  f.accounts[0].accountStatus='disabled';await assert.rejects(()=>f.service.labWorkspace(a,'care_companion'),e=>e.status===403);
 });
+
+test('phase readiness is read-only, live-admin protected, aggregate-only and never publishes a phase',async()=>{
+ const f=visitFixture(),a=await admin(f),m=await member(f),before=await f.service.catalog(m),sourceBefore=structuredClone(f.employees),handler=createHandler({getService:()=>f.service,origins:['https://abomawadda.github.io']});
+ for(const token of ['',m,a]){const r=response();await handler(request('/v1/admin/lab/readiness','GET',{}, {authorization:'Bearer '+token}),r);assert.equal(r.statusCode,token===a?200:token?403:401);assert.match(r.headers['Cache-Control'],/no-store/);if(token===a){assert.equal(r.body.phases.length,7);assert.equal(r.body.releaseSupported,false);assert.equal(r.body.bookingConnected,false);assert.equal(r.body.memberEnabled,false);assert.equal(r.body.scope,'admin-sandbox');}}
+ const light=await f.service.labReadiness(a,true);assert.equal(light.revision,'p0-readiness-20261021-1');assert.equal('phases'in light,false);assert.equal(f.store.audit.length,0);
+ const body={expected_version:0,previewRevision:'p4-p5-20261021-2',request_id:'a'.repeat(32),operation:'save_role',payload:{id:'b'.repeat(32),label:'دور خاص لا يصدر في التقرير',channel:'قناة خاصة لا تصدر'}};await f.service.saveLabWorkspace(a,'service_planning',body);
+ let report=await f.service.labReadiness(a);assert.equal(report.phases.find(p=>p.id==='P4').evidence.find(e=>e.label.includes('أدوار')).count,1);assert.ok(!JSON.stringify(report).includes('قناة خاصة'));assert.ok(!JSON.stringify(report).includes('دور خاص'));assert.ok(!JSON.stringify(report).includes(f.employees[0].name));
+ const feature=(await f.service.adminLab(a)).features.find(f=>f.id==='service_planning');await f.service.saveLabFeature(a,feature.id,{expected_version:feature.version,previewRevision:feature.previewRevision,review:'approved',note:'ملاحظة خاصة لا تصدر',previewEnabled:false});
+ report=await f.service.labReadiness(a);assert.equal(report.phases.find(p=>p.id==='P4').previewStatus,'paused');assert.deepEqual(report.phases.find(p=>p.id==='P4').evidence,[]);assert.notEqual(report.guardVersion,light.guardVersion);assert.ok(!JSON.stringify(report).includes('ملاحظة خاصة'));
+ assert.deepEqual(await f.service.catalog(m),before);assert.deepEqual(f.employees,sourceBefore);assert.equal(f.store.overlays.size,0);assert.equal(f.store.profileNotes.size,0);
+ f.accounts[0].accountStatus='disabled';await assert.rejects(()=>f.service.labReadiness(a,true),e=>e.status===403);
+});
+test('readiness status polling avoids directory/statistics reads and never imports a prior workflow approval',async()=>{
+ const f=visitFixture(),a=await admin(f),catalog=f.store.catalog,stats=f.store.getStats;let reads=0;f.store.catalog=async()=>{reads++;return catalog();};f.store.getStats=async()=>{reads++;return stats();};
+ await f.service.labReadiness(a,true);assert.equal(reads,0);
+ f.store.labRows.set('service_planning',{version:1,review:'approved',previewRevision:'p4-p5-20261021-1',previewEnabled:true,note:'قديم'});
+ const report=await f.service.labReadiness(a);const f4=report.phases.find(p=>p.id==='P4').features[0];assert.equal(f4.review,'pending');assert.equal(f4.staleApproval,true);assert.equal(report.phases.find(p=>p.id==='P5').previewStatus,'awaiting_review');assert.ok(reads>0);
+});

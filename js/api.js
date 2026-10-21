@@ -224,6 +224,7 @@ window.MedicalAPI = (() => {
     catalog: () => request("/catalog", { protectedRequest: true }),
     health: () => request("/health"),
     adminProfile:()=>request("/admin/profile",{protectedRequest:true}),
+    labReadiness:(statusOnly=false)=>request('/admin/lab/readiness'+(statusOnly?'?status=1':''),{protectedRequest:true}),
     labWorkspace:id=>request('/admin/lab/workspaces/'+encodeURIComponent(id),{protectedRequest:true}),
     saveLabWorkspace:(id,body)=>request('/admin/lab/workspaces/'+encodeURIComponent(id),{method:'PATCH',body,protectedRequest:true}),
     labVisitReports:()=>request('/admin/lab/visit-reports',{protectedRequest:true}),
