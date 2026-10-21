@@ -1,3 +1,4 @@
+import {deflateRawSync} from 'node:zlib';
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { createServer } from "node:http";
@@ -231,7 +232,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.17.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.18.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -445,7 +446,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.17.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.18.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1029,12 +1030,12 @@ try {
   assert.equal(await pilot.locator('.lab-preview,.lab-feature-card,.companion-welcome').count(),0);
   await pilot.evaluate(()=>{const k='medical_remembered_session_v1',r=JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify({...r,role:'admin',user:{role:'admin'}}));});
   await pilot.reload();await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();
-  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home','/admin/lab/preview/directory_experience','/admin/lab/preview/visit_workspace','/admin/lab/visit-reports','/admin/lab/workspaces/care_companion','/admin/lab/workspaces/service_planning','/admin/lab/readiness'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
-  assert.deepEqual(deniedLab,[403,403,403,403,403,403,403,403]);
+  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home','/admin/lab/preview/directory_experience','/admin/lab/preview/visit_workspace','/admin/lab/visit-reports','/admin/lab/workspaces/care_companion','/admin/lab/workspaces/service_planning','/admin/lab/readiness','/admin/lab/imports'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
+  assert.deepEqual(deniedLab,[403,403,403,403,403,403,403,403,403]);
   await pilot.getByRole('button',{name:'العودة للرئيسية',exact:true}).click();await pilot.locator('.hero').waitFor();
   assert.equal(await pilot.getByRole('button',{name:'معمل التطوير',exact:true}).count(),0);
   await pilot.goto(origin+'/#lab-visit');await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('.visit-workspace,.visit-checklist,.visit-report-card').count(),0);
-  for(const hash of ['lab-care','lab-services','lab-readiness']){await pilot.goto(origin+'/#'+hash);await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('[data-roadmap-ready]').count(),0);}
+  for(const hash of ['lab-care','lab-services','lab-readiness','lab-imports']){await pilot.goto(origin+'/#'+hash);await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('[data-roadmap-ready]').count(),0);}
   await pilotContext.close();
   const anonymousLabContext=await context(),anonymousLab=await anonymousLabContext.newPage();
   await anonymousLab.goto(origin+'/#lab');await anonymousLab.locator('.login-card').waitFor();
@@ -1042,7 +1043,7 @@ try {
   const catalogBeforeLab=structuredClone(await store.catalog());
   await a.goto(origin+'/#admin');await a.getByRole('button',{name:'معمل التطوير',exact:true}).click();
   await a.locator('[data-lab-feature="compact_home"]').waitFor();
-  assert.equal(await a.locator('.lab-feature-card').count(),7);
+  assert.equal(await a.locator('.lab-feature-card').count(),8);
   const labFeature=id=>a.locator('[data-lab-feature="'+id+'"]');
   const saveLabDecision=async(id,{review='needs_changes',note='ملاحظة اختبار مصطنعة',previewEnabled=true}={})=>{
     await labFeature(id).getByRole('button',{name:'الملاحظات والقرار',exact:true}).click();
@@ -1288,6 +1289,43 @@ try {
   const readinessDownload=a.waitForEvent('download');await a.getByRole('button',{name:'تنزيل تقرير المراحل',exact:true}).click();const readinessJson=JSON.parse(await readFile(await (await readinessDownload).path(),'utf8'));assert.equal(readinessJson.memberEnabled,false);assert.equal(readinessJson.releaseSupported,false);assert.equal(readinessJson.phases.length,7);assert.ok(!JSON.stringify(readinessJson).includes('مسؤول تجربة'));assert.ok(!JSON.stringify(readinessJson).includes('مرجع مصطنع'));
   await a.locator('[data-readiness-phase="P0"]').getByRole('button',{name:'الرئيسية المختصرة',exact:true}).click();await a.locator('[data-lab-preview="compact_home"]').waitFor();
   await a.getByRole('button',{name:'قائمة المعاينات',exact:true}).click();await labFeature('service_planning').waitFor();
+  // Private catalog batches read Excel locally, map only provider fields and never publish directory edits.
+  await labFeature('catalog_staging').getByRole('button',{name:'فتح المعاينة',exact:true}).click();
+  await a.getByRole('heading',{name:'مركز جودة الدليل',exact:true}).waitFor();
+  await a.getByRole('button',{name:'دفعة جديدة',exact:true}).click();
+  const xmlEscape=v=>String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
+  const xlsxFixture=(rows,{formula=false,unsafe=false}={})=>{
+    const crc=bytes=>{let value=0xffffffff;for(const b of bytes){value^=b;for(let i=0;i<8;i++)value=(value>>>1)^((value&1)?0xedb88320:0);}return (value^0xffffffff)>>>0;};
+    const sheet=rs=>'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'+rs.map((r,i)=>'<row r="'+(i+1)+'">'+r.map((v,j)=>'<c r="'+String.fromCharCode(65+j)+(i+1)+'" t="inlineStr">'+(formula&&i===1&&j===0?'<f>HYPERLINK("https://example.invalid")</f>':'')+'<is><t>'+xmlEscape(v)+'</t></is></c>').join('')+'</row>').join('')+'</sheetData></worksheet>';
+    const entries=[['xl/workbook.xml','<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="مقدمة" sheetId="1" r:id="rId1"/><sheet name="الدليل المنقح" sheetId="2" r:id="rId2"/></sheets></workbook>'],['xl/_rels/workbook.xml.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Target="worksheets/sheet2.xml"/></Relationships>'],['xl/worksheets/sheet1.xml',sheet([['ورقة إرشادات مصطنعة']])],['xl/worksheets/sheet2.xml',unsafe?'<!DOCTYPE x [<!ENTITY p SYSTEM "https://example.invalid/private">]>'+sheet(rows):sheet(rows)]];
+    const files=[],central=[];let offset=0;
+    for(const [name,text]of entries){const n=Buffer.from(name),raw=Buffer.from(text),bytes=deflateRawSync(raw),local=Buffer.alloc(30),dir=Buffer.alloc(46);local.writeUInt32LE(0x04034b50,0);local.writeUInt16LE(20,4);local.writeUInt16LE(8,8);local.writeUInt32LE(crc(raw),14);local.writeUInt32LE(bytes.length,18);local.writeUInt32LE(raw.length,22);local.writeUInt16LE(n.length,26);dir.writeUInt32LE(0x02014b50,0);dir.writeUInt16LE(20,4);dir.writeUInt16LE(20,6);dir.writeUInt16LE(8,10);dir.writeUInt32LE(crc(raw),16);dir.writeUInt32LE(bytes.length,20);dir.writeUInt32LE(raw.length,24);dir.writeUInt16LE(n.length,28);dir.writeUInt32LE(offset,42);files.push(local,n,bytes);central.push(dir,n);offset+=local.length+n.length+bytes.length;}
+    const directory=Buffer.concat(central),end=Buffer.alloc(22);end.writeUInt32LE(0x06054b50,0);end.writeUInt16LE(entries.length,8);end.writeUInt16LE(entries.length,10);end.writeUInt32LE(directory.length,12);end.writeUInt32LE(offset,16);return Buffer.concat([...files,directory,end]);
+  };
+  const importRows=[['الاسم','التخصص','العنوان','المركز','محمول','أرضي','مختصر'],['معمل فحص مصطنع','تحاليل','عنوان تجريبي مستقل','طلخا','01012345678','0502345678','16133']];
+  let importPosts=0;const watchImport=req=>{if(req.method()==='POST'&&req.url().includes('/admin/lab/imports'))importPosts++;};a.on('request',watchImport);
+  await a.getByLabel('ملف دليل الجهات',{exact:true}).setInputFiles({name:'formula.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:xlsxFixture(importRows,{formula:true})});
+  await a.getByText('خلية غير آمنة أو أطول من المسموح',{exact:true}).waitFor();assert.equal(await a.getByRole('button',{name:'فحص وحفظ الدفعة الخاصة',exact:true}).isDisabled(),true);assert.equal(importPosts,0);
+  const xlsx=xlsxFixture(importRows);
+  const malicious=await a.evaluate(async buffer=>{try{await window.MedicalDirectoryFile.open(new File([new Uint8Array(buffer)],'bad.xlsx'));return '';}catch(e){return e.message;}},Array.from(xlsx.slice(0,10)));assert.ok(malicious);
+  const external=await a.evaluate(async buffer=>{try{const f=await window.MedicalDirectoryFile.open(new File([new Uint8Array(buffer)],'bad.xlsx'));await f.read(1);return '';}catch(e){return e.message;}},Array.from(xlsxFixture(importRows,{unsafe:true})));assert.match(external,/XML/);
+  await a.getByLabel('ملف دليل الجهات',{exact:true}).setInputFiles({name:'directory.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:xlsx});
+  await a.getByText('معمل فحص مصطنع',{exact:true}).waitFor();assert.equal(await a.getByLabel('ورقة العمل',{exact:true}).inputValue(),'1');assert.equal(importPosts,0);
+  await a.getByLabel('قسم الدفعة',{exact:true}).selectOption('labs');await a.getByLabel('مرجع ملف الجهات',{exact:true}).fill('مصدر اختبار خاص');
+  await a.getByRole('button',{name:'فحص وحفظ الدفعة الخاصة',exact:true}).click();await a.locator('[data-import-batch]').waitFor();
+  const importBatch=a.locator('[data-import-batch]'),importRow=a.locator('[data-import-row="2"]');await importRow.getByText('جديد للمراجعة',{exact:true}).waitFor();await importRow.getByText('01012345678',{exact:true}).waitFor();await importRow.getByText('0502345678',{exact:true}).waitFor();await importRow.getByText('16133',{exact:true}).waitFor();
+  for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Import review fits '+width);}
+  await a.setViewportSize({width:390,height:844});if(process.env.MEDICAL_SCREENSHOT_DIR){await a.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'catalog-staging-mobile.png'),fullPage:true,style:'#toast{visibility:hidden}'});}
+  // A lost reply keeps the exact request ID and cannot duplicate the decision.
+  let loseImportReply=true;const lostImport=async route=>{const reply=await fetch(origin+'/v1/admin/lab/imports',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json',Authorization:route.request().headers().authorization},body:route.request().postData()});const body=await reply.text();if(loseImportReply){loseImportReply=false;await route.abort();}else await route.fulfill({status:reply.status,contentType:'application/json',body});};
+  await a.route('**/v1/admin/lab/imports',lostImport);await a.getByLabel('تحديد صف 2',{exact:true}).check();await a.getByRole('button',{name:'قبول المحدد للمراجعة',exact:true}).click();await a.getByRole('button',{name:'إعادة محاولة العملية نفسها',exact:true}).waitFor();await a.getByRole('button',{name:'إعادة محاولة العملية نفسها',exact:true}).click();await importRow.getByText('صف المصدر 2 · مقبول للمراجعة فقط',{exact:true}).waitFor();await a.unroute('**/v1/admin/lab/imports',lostImport);
+  const privateBatchId=await importBatch.getAttribute('data-import-batch');const privateBatch=await a.evaluate(id=>window.MedicalAPI.labImports(id),privateBatchId);assert.equal(privateBatch.batch.history.length,1);assert.equal(privateBatch.productionWriteSupported,false);assert.equal(privateBatch.batch.rows[0].after.raw_phone,'01012345678 - 0502345678 - 16133');
+  await a.getByRole('button',{name:'تراجع عن آخر قرار',exact:true}).click();await importRow.getByText('صف المصدر 2 · بانتظار القرار',{exact:true}).waitFor();
+  await a.getByRole('button',{name:'استبعاد الدفعة',exact:true}).click();await a.getByText('دفعة مستبعدة؛ الدليل لم يتغير.',{exact:true}).waitFor();
+  assert.deepEqual(await store.catalog(),catalogBeforeLab);a.off('request',watchImport);
+  await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('catalog_staging').waitFor();
+  await saveLabDecision('catalog_staging',{previewEnabled:false});await a.goto(origin+'/#lab-imports');await a.getByText('هذه المعاينة موقوفة؛ يمكن استئنافها من المعمل.',{exact:true}).waitFor();assert.equal(await a.locator('[data-import-batch]').count(),0);
+  await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('catalog_staging').waitFor();await saveLabDecision('catalog_staging',{previewEnabled:true});
   // A cached or rolling-version client cannot review an incompatible specimen; other cards still work.
   const incompatibleLab=await a.evaluate(()=>window.MedicalAPI.developmentLab());incompatibleLab.features[0].previewRevision='future-lab-revision';
   await a.route('**/v1/admin/lab',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(incompatibleLab)}));

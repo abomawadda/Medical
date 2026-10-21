@@ -1,0 +1,1 @@
+export const importFeature=Object.freeze({id:'catalog_staging',proposal:'C06 / C07 / O05',phase:'P1',title:'جودة الدليل ودفعات الاستيراد',description:'فحص ملف الجهات والفروق والتكرار، ومراجعة صفوفه والتراجع داخل مساحة خاصة؛ دون تغيير الدليل.',previewRevision:'catalog-staging-20261021-1',dataMode:'catalog-staging'});

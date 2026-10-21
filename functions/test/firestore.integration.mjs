@@ -384,6 +384,16 @@ const readinessReport=await service.labReadiness(admin);assert.equal(readinessRe
 assert.equal((await roadmapDb.collection('medical_lab_workspaces').get()).size,2);
 assert.deepEqual(await service.catalog(member),visitBefore);
 assert.equal(JSON.stringify((await foreign.collection('employees').get()).docs.map(d=>d.data())),before);
+// Directory import batches persist privately, deduplicate retries and never touch live overlays.
+const importRevision=(await service.adminLab(admin)).features.find(f=>f.id==='catalog_staging').previewRevision;
+const importBody={expected_version:0,previewRevision:importRevision,request_id:'a1'.repeat(16),operation:'analyze',payload:{kind:'labs',source:'مرجع محاكي مصطنع',rows:[{source_row:2,values:{name:'معمل محاكي خاص',address:'عنوان مصطنع مستقل',markaz:'طلخا',raw_phone:'01012345678 - 16133'}}]}};
+const importSaves=await Promise.all([1,2].map(()=>service.saveLabImport(admin,importBody)));assert.equal(importSaves.filter(r=>r.changed).length,1);
+await assert.rejects(()=>service.labImports(member),e=>e.status===403);assert.deepEqual(await adapters.store.labWorkspaceRead('catalog_staging','other-admin'),{});
+const decisionBody={...importBody,expected_version:1,request_id:'b1'.repeat(16),operation:'decide',payload:{batch_id:importBody.request_id,rows:[2],decision:'accepted'}};
+const importDecisions=await Promise.all([1,2].map(()=>service.saveLabImport(admin,decisionBody)));assert.equal(importDecisions.filter(r=>r.changed).length,1);assert.equal((await service.labImports(admin,importBody.request_id)).batch.history.length,1);
+await service.saveLabImport(admin,{...decisionBody,expected_version:2,request_id:'c1'.repeat(16),operation:'undo',payload:{batch_id:importBody.request_id}});assert.equal((await service.labImports(admin,importBody.request_id)).batch.rows[0].decision,'pending');
+assert.deepEqual(await service.catalog(member),visitBefore);assert.equal(JSON.stringify((await foreign.collection('employees').get()).docs.map(d=>d.data())),before);
+assert.equal((await roadmapDb.collection('medical_lab_workspaces').get()).size,3);
 // Lab reviews persist only in Medical and cannot change the member catalog or source.
 const memberBeforeLab=await service.catalog(member),lab=(await service.adminLab(admin)).features[0];
 const integrated=await service.labPreview(admin,'directory_experience');assert.equal(integrated.feature.dataMode,'directory-readonly');assert.deepEqual(integrated.scene.catalog,memberBeforeLab.catalog);

@@ -946,7 +946,7 @@ test('source-profile decisions use an immutable intent and never fall back to ap
 test('development lab authorizes every read, preview and decision against the live administrator',async()=>{
  const f=setup(),m=await member(f),a=await admin(f);
  for(const token of ['',m])for(const op of [()=>f.service.adminLab(token),()=>f.service.labPreview(token,'compact_home'),()=>f.service.saveLabFeature(token,'compact_home',{})])await assert.rejects(op,e=>e.status===(token?403:401));
- const data=await f.service.adminLab(a);assert.equal(data.features.length,7);assert.equal(data.memberReleaseSupported,false);
+ const data=await f.service.adminLab(a);assert.equal(data.features.length,8);assert.equal(data.memberReleaseSupported,false);
  assert.ok(data.features.every(r=>r.audience==='admin'&&!r.memberEnabled));assert.equal(data.features.find(f=>f.id==='directory_experience').syntheticOnly,false);
  const preview=await f.service.labPreview(a,'compact_home');assert.match(preview.scene.label,/توضيحية/);assert.equal(preview.scene.provider.rating,null);
  f.accounts[0].accountStatus='disabled';await assert.rejects(()=>f.service.labPreview(a,'compact_home'),e=>e.status===403);
@@ -1065,7 +1065,7 @@ test('HTTP roadmap routes enforce live admin ownership, private caching and prev
 test('phase readiness is read-only, live-admin protected, aggregate-only and never publishes a phase',async()=>{
  const f=visitFixture(),a=await admin(f),m=await member(f),before=await f.service.catalog(m),sourceBefore=structuredClone(f.employees),handler=createHandler({getService:()=>f.service,origins:['https://abomawadda.github.io']});
  for(const token of ['',m,a]){const r=response();await handler(request('/v1/admin/lab/readiness','GET',{}, {authorization:'Bearer '+token}),r);assert.equal(r.statusCode,token===a?200:token?403:401);assert.match(r.headers['Cache-Control'],/no-store/);if(token===a){assert.equal(r.body.phases.length,7);assert.equal(r.body.releaseSupported,false);assert.equal(r.body.bookingConnected,false);assert.equal(r.body.memberEnabled,false);assert.equal(r.body.scope,'admin-sandbox');}}
- const light=await f.service.labReadiness(a,true);assert.equal(light.revision,'p0-readiness-20261021-1');assert.equal('phases'in light,false);assert.equal(f.store.audit.length,0);
+ const light=await f.service.labReadiness(a,true);assert.equal(light.revision,'p0-readiness-20261021-2');assert.equal('phases'in light,false);assert.equal(f.store.audit.length,0);
  const body={expected_version:0,previewRevision:'p4-p5-20261021-2',request_id:'a'.repeat(32),operation:'save_role',payload:{id:'b'.repeat(32),label:'دور خاص لا يصدر في التقرير',channel:'قناة خاصة لا تصدر'}};await f.service.saveLabWorkspace(a,'service_planning',body);
  let report=await f.service.labReadiness(a);assert.equal(report.phases.find(p=>p.id==='P4').evidence.find(e=>e.label.includes('أدوار')).count,1);assert.ok(!JSON.stringify(report).includes('قناة خاصة'));assert.ok(!JSON.stringify(report).includes('دور خاص'));assert.ok(!JSON.stringify(report).includes(f.employees[0].name));
  const feature=(await f.service.adminLab(a)).features.find(f=>f.id==='service_planning');await f.service.saveLabFeature(a,feature.id,{expected_version:feature.version,previewRevision:feature.previewRevision,review:'approved',note:'ملاحظة خاصة لا تصدر',previewEnabled:false});
@@ -1078,4 +1078,12 @@ test('readiness status polling avoids directory/statistics reads and never impor
  await f.service.labReadiness(a,true);assert.equal(reads,0);
  f.store.labRows.set('service_planning',{version:1,review:'approved',previewRevision:'p4-p5-20261021-1',previewEnabled:true,note:'قديم'});
  const report=await f.service.labReadiness(a);const f4=report.phases.find(p=>p.id==='P4').features[0];assert.equal(f4.review,'pending');assert.equal(f4.staleApproval,true);assert.equal(report.phases.find(p=>p.id==='P5').previewStatus,'awaiting_review');assert.ok(reads>0);
+});
+
+test('HTTP import review endpoints enforce live administration, no-store, bounded bodies and no public write route',async()=>{
+ const f=visitFixture(),a=await admin(f),m=await member(f),h=createHandler({getService:()=>f.service,origins:['https://abomawadda.github.io'],logger:{error(){}}});
+ for(const [path,method]of [['/v1/admin/lab/imports','GET'],['/v1/admin/lab/imports','POST'],['/v1/admin/lab/imports/'+'a'.repeat(32),'GET']])for(const [token,status]of [['',401],[m,403]]){const r=response();await h(request(path,method,{},token?{authorization:'Bearer '+token}:{}),r);assert.equal(r.statusCode,status);assert.match(r.headers['Cache-Control'],/no-store/);}
+ const r=response();await h(request('/v1/admin/lab/imports','GET',{}, {authorization:'Bearer '+a}),r);assert.equal(r.body.productionWriteSupported,false);assert.equal(r.body.batches.length,0);
+ const big=response();await h(request('/v1/admin/lab/imports','POST',{source:'x'.repeat(40000)}, {authorization:'Bearer '+a}),big);assert.equal(big.statusCode,413);
+ f.accounts[0].accountStatus='disabled';const revoked=response();await h(request('/v1/admin/lab/imports','GET',{}, {authorization:'Bearer '+a}),revoked);assert.equal(revoked.statusCode,403);
 });
