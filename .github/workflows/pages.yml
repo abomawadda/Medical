@@ -10,7 +10,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,8 +24,12 @@ jobs:
       - run: npm run build
       - run: npm run check
       - run: npm run audit:catalog
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:browser
+      - name: Install browser for validation
+        timeout-minutes: 5
+        run: npx playwright install --with-deps chromium
+      - name: Validate browser journeys
+        timeout-minutes: 6
+        run: npm run test:browser
       - uses: actions/upload-artifact@v4
         with:
           name: medical-static
