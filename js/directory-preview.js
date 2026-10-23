@@ -16,7 +16,7 @@ window.MedicalDirectoryPreview=(()=>{
   const change=()=>onChange?.(snapshot());
   function rememberReadingPanel(){if(workspace)return;const panel=root.querySelector('.directory-reading-options');if(panel)comfortMemory.optionsOpen=panel.open;}
   const keyed=(node,key)=>{node.dataset.directoryFocus=key;return node;};
-  function focus(key,scroll=false){if(workspace)return;const turn=renderTurn;requestAnimationFrame(()=>{if(!valid()||!loaded||turn!==renderTurn)return;const nodes=[...root.querySelectorAll('[data-directory-focus]')],node=nodes.find(n=>n.dataset.directoryFocus===key)||(key==='more'?nodes.find(n=>n.dataset.directoryFocus==='results'):null);if(node){node.focus({preventScroll:true});if(scroll)node.scrollIntoView({block:'start',behavior:'instant'});}});}
+  function focus(key,scroll=false){if(workspace||!valid()||!loaded)return;const nodes=[...root.querySelectorAll('[data-directory-focus]')],node=nodes.find(n=>n.dataset.directoryFocus===key)||(key==='more'?nodes.find(n=>n.dataset.directoryFocus==='results'):null);if(node){node.focus({preventScroll:true});if(scroll)node.scrollIntoView({block:'start',behavior:'instant'});}}
   function rerenderAt(key){const scroll=window.scrollY;nav.focusKey=key;change();render();window.scrollTo({top:scroll,behavior:'instant'});focus(key);}
   function readingControls(){
    const prefs=comfortMemory.reading,box=el('details',{class:'directory-reading-options'}),summary=el('summary',{},sym('info'),el('span',{},'خيارات القراءة والعرض'));box.open=comfortMemory.optionsOpen===true;

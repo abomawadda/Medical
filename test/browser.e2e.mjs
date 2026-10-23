@@ -232,7 +232,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.21.1");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.21.2");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -446,7 +446,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.21.1');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.21.2');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1117,7 +1117,7 @@ try {
   // P1 comfort is private, explicit and retained only in the identity's in-memory session.
   const readingOptions=a.locator('.directory-reading-options');assert.equal(await readingOptions.getAttribute('open'),null);
   // Change within one turn: native <details> toggle has not fired yet.
-  await a.evaluate(()=>{const panel=document.querySelector('.directory-reading-options');panel.open=true;const select=panel.querySelector('select');select.value='larger';select.dispatchEvent(new Event('change',{bubbles:true}));});
+  const immediateReadingFocus=await a.evaluate(()=>{const panel=document.querySelector('.directory-reading-options');panel.open=true;const select=panel.querySelector('select');select.value='larger';select.dispatchEvent(new Event('change',{bubbles:true}));return document.activeElement.dataset.directoryFocus;});assert.equal(immediateReadingFocus,'reading-size');
   await a.locator('.directory-size-larger').waitFor();await a.locator('[data-directory-focus="reading-size"]:focus').waitFor();assert.notEqual(await readingOptions.getAttribute('open'),null);
   await a.getByLabel('حجم النص في المعاينة',{exact:true}).selectOption('large');await a.locator('.directory-size-large').waitFor();
   await a.getByLabel('حجم النص في المعاينة',{exact:true}).selectOption('larger');await a.locator('[data-directory-focus="reading-size"]:focus').waitFor();
@@ -1179,7 +1179,8 @@ try {
   await a.locator('.directory-provider-card').waitFor();
   assert.equal(await a.getByLabel('البحث في الدليل التجريبي',{exact:true}).inputValue(),'مستشفى فروع اختبار');
   assert.equal(await a.getByLabel('المركز أو المدينة',{exact:true}).inputValue(),'بلقاس');
-  await a.waitForFunction(expected=>Math.abs(window.scrollY-expected)<4,directoryScroll);
+  try{await a.waitForFunction(expected=>Math.abs(window.scrollY-expected)<4,directoryScroll);}
+  catch(error){const actual=await a.evaluate(()=>({scroll:window.scrollY,height:document.documentElement.scrollHeight,viewport:innerHeight,focus:document.activeElement.dataset.directoryFocus,optionsOpen:document.querySelector('.directory-reading-options')?.open}));throw new Error('Directory return context: '+JSON.stringify({expected:directoryScroll,...actual}),{cause:error});}
   await a.goForward();await a.locator('.directory-detail-actions').waitFor();
   await a.locator('.directory-detail-actions a[href="tel:01012345678"]').waitFor();
   await a.goBack();await a.locator('.directory-provider-card').waitFor();
