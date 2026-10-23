@@ -1065,7 +1065,7 @@ test('HTTP roadmap routes enforce live admin ownership, private caching and prev
 test('phase readiness is read-only, live-admin protected, aggregate-only and never publishes a phase',async()=>{
  const f=visitFixture(),a=await admin(f),m=await member(f),before=await f.service.catalog(m),sourceBefore=structuredClone(f.employees),handler=createHandler({getService:()=>f.service,origins:['https://abomawadda.github.io']});
  for(const token of ['',m,a]){const r=response();await handler(request('/v1/admin/lab/readiness','GET',{}, {authorization:'Bearer '+token}),r);assert.equal(r.statusCode,token===a?200:token?403:401);assert.match(r.headers['Cache-Control'],/no-store/);if(token===a){assert.equal(r.body.phases.length,7);assert.equal(r.body.releaseSupported,false);assert.equal(r.body.bookingConnected,false);assert.equal(r.body.memberEnabled,false);assert.equal(r.body.scope,'admin-sandbox');}}
- const light=await f.service.labReadiness(a,true);assert.equal(light.revision,'p0-readiness-20261023-2');assert.equal('phases'in light,false);assert.equal(f.store.audit.length,0);
+ const light=await f.service.labReadiness(a,true);assert.equal(light.revision,'p0-readiness-20261023-3');assert.equal('phases'in light,false);assert.equal(f.store.audit.length,0);
  const body={expected_version:0,previewRevision:'p4-p5-20261021-2',request_id:'a'.repeat(32),operation:'save_role',payload:{id:'b'.repeat(32),label:'دور خاص لا يصدر في التقرير',channel:'قناة خاصة لا تصدر'}};await f.service.saveLabWorkspace(a,'service_planning',body);
  let report=await f.service.labReadiness(a);assert.equal(report.phases.find(p=>p.id==='P4').evidence.find(e=>e.label.includes('أدوار')).count,1);assert.ok(!JSON.stringify(report).includes('قناة خاصة'));assert.ok(!JSON.stringify(report).includes('دور خاص'));assert.ok(!JSON.stringify(report).includes(f.employees[0].name));
  const feature=(await f.service.adminLab(a)).features.find(f=>f.id==='service_planning');await f.service.saveLabFeature(a,feature.id,{expected_version:feature.version,previewRevision:feature.previewRevision,review:'approved',note:'ملاحظة خاصة لا تصدر',previewEnabled:false});
@@ -1107,10 +1107,10 @@ test('HTTP inbox reads and private follow-up writes enforce live administration 
 
 test('directory reading revision invalidates a prior design approval and keeps source/member behavior unchanged',async()=>{
  const f=setup(),a=await admin(f),m=await member(f),catalogBefore=await f.service.catalog(m),sourceBefore=structuredClone(f.employees);
- f.store.labRows.set('directory_experience',{version:3,previewRevision:'p1-directory-20261019-1',review:'approved',note:'اعتماد تصميم سابق',previewEnabled:true,history:[]});
+ f.store.labRows.set('directory_experience',{version:3,previewRevision:'p1-directory-20261023-2',review:'approved',note:'اعتماد تصميم سابق',previewEnabled:true,history:[]});
  const preview=await f.service.labPreview(a,'directory_experience');
- assert.equal(preview.feature.previewRevision,'p1-directory-20261023-2');assert.equal(preview.feature.review,'pending');assert.equal(preview.feature.staleApproval,true);assert.equal(preview.feature.note,'');assert.equal(preview.feature.memberEnabled,false);
- await assert.rejects(()=>f.service.saveLabFeature(a,'directory_experience',{expected_version:3,previewRevision:'p1-directory-20261019-1',review:'approved',note:'',previewEnabled:true}),e=>e.code==='LAB_REVISION_CHANGED');
+ assert.equal(preview.feature.previewRevision,'p1-directory-20261023-3');assert.equal(preview.feature.review,'pending');assert.equal(preview.feature.staleApproval,true);assert.equal(preview.feature.note,'');assert.equal(preview.feature.memberEnabled,false);
+ await assert.rejects(()=>f.service.saveLabFeature(a,'directory_experience',{expected_version:3,previewRevision:'p1-directory-20261023-2',review:'approved',note:'',previewEnabled:true}),e=>e.code==='LAB_REVISION_CHANGED');
  assert.deepEqual(await f.service.catalog(m),catalogBefore);assert.deepEqual(f.employees,sourceBefore);assert.equal(f.store.overlays.size,0);assert.equal(f.store.reviews.size,0);
 });
 

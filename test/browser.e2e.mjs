@@ -232,7 +232,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.22.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.23.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -446,7 +446,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.22.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.23.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1114,7 +1114,7 @@ try {
   // Functional P1 remains private, reads only published entries and preserves navigation context.
   await labFeature('directory_experience').getByRole('button',{name:'فتح المعاينة',exact:true}).click();
   await a.locator('.directory-preview[data-directory-ready="true"]').waitFor();
-  // P1 comfort is private, explicit and retained only in the identity's in-memory session.
+  // Reading is session-only until this administrator explicitly opts into non-personal device storage.
   const readingOptions=a.locator('.directory-reading-options');assert.equal(await readingOptions.getAttribute('open'),null);
   // Change within one turn: native <details> toggle has not fired yet.
   const immediateReadingFocus=await a.evaluate(()=>{const panel=document.querySelector('.directory-reading-options');panel.open=true;const select=panel.querySelector('select');select.value='larger';select.dispatchEvent(new Event('change',{bubbles:true}));return document.activeElement.dataset.directoryFocus;});assert.equal(immediateReadingFocus,'reading-size');
@@ -1151,6 +1151,35 @@ try {
   await a.getByRole('button',{name:'العودة للنتائج',exact:true}).click();await a.waitForFunction(id=>document.activeElement?.dataset.directoryFocus==='provider:'+id,readableId);
   assert.equal(await a.getByLabel('حجم النص في المعاينة',{exact:true}).inputValue(),'larger');
   await a.getByRole('button',{name:'استعادة العرض العادي',exact:true}).click();assert.equal(await a.locator('.directory-size-standard').count(),1);assert.equal(await a.getByLabel('بطاقات مختصرة',{exact:true}).isChecked(),false);
+  const deviceKey='rayati:admin-preview:reading:v1';
+  assert.equal(await a.evaluate(key=>localStorage.getItem(key),deviceKey),null);
+  await a.getByLabel('حجم النص في المعاينة',{exact:true}).selectOption('large');
+  await a.getByRole('button',{name:'حفظ خيارات القراءة على هذا المتصفح',exact:true}).click();
+  await a.getByText('الحفظ الاختياري مفعّل حتى 90 يومًا من آخر حفظ.',{exact:true}).waitFor();
+  const savedReading=await a.evaluate(key=>JSON.parse(localStorage.getItem(key)),deviceKey);assert.deepEqual(Object.keys(savedReading).sort(),['reading','savedAt','version']);assert.equal(savedReading.reading.size,'large');
+  await a.reload();await a.locator('.directory-size-large').waitFor();await a.locator('.directory-reading-options summary').click();
+  assert.equal(await a.getByLabel('حجم النص في المعاينة',{exact:true}).inputValue(),'large');
+  await a.getByLabel('تباين أوضح',{exact:true}).check();assert.equal(await a.evaluate(key=>JSON.parse(localStorage.getItem(key)).reading.contrast,deviceKey),true);
+  await a.getByRole('button',{name:'فحص أذونات المتصفح',exact:true}).click();await a.locator('.directory-device-permissions dl').waitFor();
+  assert.ok((await a.locator('.directory-device-permissions').innerText()).includes('لا يوجد اشتراك دفع'));
+  for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Device privacy controls fit '+width);}
+  await a.setViewportSize({width:390,height:844});
+  if(process.env.MEDICAL_SCREENSHOT_DIR)await a.locator('.directory-device-panel').screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'device-privacy-mobile.png'),style:'.app-header,.bottom-nav,#toast{visibility:hidden}'});
+  // A real same-origin tab clearing the one key stops saving here and restores ordinary reading.
+  const devicePeer=await a.context().newPage();await devicePeer.goto(origin+'/');
+  await devicePeer.evaluate(key=>localStorage.removeItem(key),deviceKey);await a.locator('.directory-size-standard').waitFor();await devicePeer.close();
+  await a.getByText('الحفظ غير مفعّل؛ الخيارات الحالية لهذه الجلسة.',{exact:true}).waitFor();
+  await a.getByLabel('حجم النص في المعاينة',{exact:true}).selectOption('large');
+  await a.getByRole('button',{name:'حفظ خيارات القراءة على هذا المتصفح',exact:true}).click();await a.getByText('الحفظ الاختياري مفعّل حتى 90 يومًا من آخر حفظ.',{exact:true}).waitFor();
+  const nonReading=await a.evaluate(key=>Object.entries(localStorage).filter(([k])=>k!==key),deviceKey);
+  await a.getByRole('button',{name:'مسح خيارات القراءة المحفوظة',exact:true}).click();await a.locator('.directory-size-standard').waitFor();
+  assert.equal(await a.evaluate(key=>localStorage.getItem(key),deviceKey),null);assert.deepEqual(await a.evaluate(key=>Object.entries(localStorage).filter(([k])=>k!==key),deviceKey),nonReading);
+  await a.reload();await a.locator('.directory-size-standard').waitFor();await a.locator('.directory-reading-options summary').click();
+  await a.evaluate(key=>{window.deviceTestOriginalWrite=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===key)throw new DOMException('Blocked for test','QuotaExceededError');return window.deviceTestOriginalWrite.call(this,k,v);};},deviceKey);
+  await a.getByRole('button',{name:'حفظ خيارات القراءة على هذا المتصفح',exact:true}).click();await a.getByText('المتصفح منع الوصول للتخزين؛ لا يمكن تأكيد الحفظ أو المسح.',{exact:true}).waitFor();
+  assert.equal(await a.evaluate(key=>localStorage.getItem(key),deviceKey),null);assert.equal(await a.locator('.directory-provider-card').count()>0,true);
+  await a.evaluate(()=>{Storage.prototype.setItem=window.deviceTestOriginalWrite;delete window.deviceTestOriginalWrite;});
+  await a.getByRole('button',{name:'مسح خيارات القراءة المحفوظة',exact:true}).click();
   await a.emulateMedia({reducedMotion:'no-preference'});
   await a.getByLabel('البحث في الدليل التجريبي',{exact:true}).fill('داوي');
   await a.locator('.directory-preview form').getByRole('button',{name:'ابحث',exact:true}).click();

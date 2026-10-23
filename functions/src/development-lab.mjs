@@ -9,7 +9,7 @@ export const labFeatures=Object.freeze([
  {id:'compact_home',proposal:'N-D01',phase:'P1',title:'الرئيسية المختصرة',description:'بحث واضح واختصارات وخبر مهم، دون قائمة تخصصات طويلة.',previewRevision:revision},
  {id:'provider_card',proposal:'N-D02',phase:'P1',title:'بطاقة الجهة',description:'معلومات مختصرة وحالة واضحة ومدخل واحد للتفاصيل.',previewRevision:revision},
  {id:'provider_details',proposal:'N-D03',phase:'P1',title:'صفحة تفاصيل الجهة',description:'تفاصيل وفروع وتجارب أعضاء، مع إجراءات زيارة ثابتة.',previewRevision:revision},
- {id:'directory_experience',proposal:'N-D01–N-D07',phase:'P1',title:'تجربة الدليل المترابطة',description:'الدليل المنشور: اقتراحات بحث ومرشحات ظاهرة وقراءة مريحة وبطاقات وتفاصيل وفروع، للقراءة فقط.',previewRevision:'p1-directory-20261023-2'},
+ {id:'directory_experience',proposal:'N-D01–N-D07',phase:'P1',title:'تجربة الدليل المترابطة',description:'الدليل المنشور: اقتراحات بحث وقراءة مريحة وحفظ اختياري للعرض وتحكم بخصوصية الجهاز وبطاقات وفروع، للقراءة فقط.',previewRevision:'p1-directory-20261023-3'},
  {id:visitId,proposal:'N-S02 / N-S03',phase:'P2',title:'جهّز زيارتي والبلاغات',description:'ملخص زيارة من الدليل المنشور، ومسار بلاغات تجريبية معزول عن التشغيل.',previewRevision:visitRevision},
  ...roadmapFeatures,
  importFeature,

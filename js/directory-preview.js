@@ -2,8 +2,8 @@
 window.MedicalDirectoryPreview=(()=>{
 
  function mount({root,api,el,button,icon,avatar,allowed,notice,navigate,back,exit,review,initial={},detailId='',specialties=false,workspace=false,visitMemory={},comfortMemory={},onChange}){
-  const featureId=workspace?'visit_workspace':'directory_experience',revision=workspace?'p2-visit-20261021-1':'p1-directory-20261023-2',dataMode=workspace?'directory-sandbox':'directory-readonly';
-  const M=window.MedicalDirectoryModel;let visit=null;
+  const featureId=workspace?'visit_workspace':'directory_experience',revision=workspace?'p2-visit-20261021-1':'p1-directory-20261023-3',dataMode=workspace?'directory-sandbox':'directory-readonly';
+  const M=window.MedicalDirectoryModel,D=window.MedicalDevicePreferences,deviceStore=D.create({storage:()=>window.localStorage});let visit=null,device={status:'session',savedAt:null},deviceBusy=false,permissionState=null,permissionBusy=false;
   let disposed=false,loaded=false,data=null,model=null,feature=null,sequence=0,checking=false,reviewSequence=0;
   let nav={filters:M.emptyFilters(),branch:'',pane:'details',...structuredClone(initial),workspace};nav.filters={...M.emptyFilters(),...nav.filters};
   let pendingScroll=Number.isFinite(initial.scroll)?initial.scroll:0;
@@ -18,13 +18,37 @@ window.MedicalDirectoryPreview=(()=>{
   const keyed=(node,key)=>{node.dataset.directoryFocus=key;return node;};
   function focus(key,scroll=false){if(workspace||!valid()||!loaded)return;const nodes=[...root.querySelectorAll('[data-directory-focus]')],node=nodes.find(n=>n.dataset.directoryFocus===key)||(key==='more'?nodes.find(n=>n.dataset.directoryFocus==='results'):null);if(node){node.focus({preventScroll:true});if(scroll)node.scrollIntoView({block:'start',behavior:'instant'});}}
   function rerenderAt(key){const scroll=window.scrollY;nav.focusKey=key;change();render();window.scrollTo({top:scroll,behavior:'instant'});focus(key);}
+  function restoreDevice(){
+   const previous=device.status==='saved'||comfortMemory.deviceSaved===true;device=deviceStore.read();comfortMemory.deviceSaved=device.status==='saved';
+   if(device.status==='saved')comfortMemory.reading=M.readingPreferences(device.reading);else if(previous||device.status==='discarded')comfortMemory.reading=M.readingPreferences();
+  }
+  function setReading(value,key){comfortMemory.reading=M.readingPreferences(value);if(device.status==='saved'){device=deviceStore.read();if(device.status==='saved')device=deviceStore.save(comfortMemory.reading);comfortMemory.deviceSaved=device.status==='saved';}rerenderAt(key);}
+  async function rememberDevice(){
+   if(!valid()||!loaded||deviceBusy)return;const turn=sequence,version=feature.version;deviceBusy=true;rerenderAt('device-save');
+   try{const result=await api.labPreview(featureId,true);if(!valid()||!loaded||turn!==sequence)return;if(!compatible(result.feature)||result.feature.version!==version)throw new Error('تغيرت مراجعة المعاينة؛ أعد التحقق قبل حفظ إعدادات الجهاز.');device=deviceStore.save(comfortMemory.reading);comfortMemory.deviceSaved=device.status==='saved';notice(device.status==='saved'?'حُفظت خيارات القراءة على هذا المتصفح.':'تعذر تأكيد حفظ الخيارات. يمكنك مواصلة المعاينة بإعدادات الجلسة.');}
+   catch(e){if(valid()&&turn===sequence)fail(e);}finally{deviceBusy=false;if(valid()&&loaded&&turn===sequence)rerenderAt('device-save');}
+  }
+  async function inspectPermissions(){
+   if(!valid()||!loaded||permissionBusy)return;const turn=sequence;permissionBusy=true;rerenderAt('device-permissions');
+   const result=await D.permissions({navigator:window.navigator,Notification:window.Notification,matchMedia:window.matchMedia.bind(window)});
+   permissionBusy=false;if(!valid()||!loaded||turn!==sequence)return;permissionState=result;rerenderAt('device-permissions');
+  }
+  function deviceControls(){
+   const labels={granted:'مسموح في المتصفح',denied:'محظور في المتصفح',prompt:'يحتاج اختيارك عند الاستخدام',default:'لم تمنح إذنًا',unknown:'تعذر تحديد الحالة',unsupported:'غير مدعوم في المتصفح'},status=device.status;
+   const saved=status==='saved',message=saved?'الحفظ الاختياري مفعّل حتى 90 يومًا من آخر حفظ.':status==='blocked'?'المتصفح منع الوصول للتخزين؛ لا يمكن تأكيد الحفظ أو المسح.':status==='discarded'?'أُزيلت إعدادات منتهية أو غير صالحة. الخيارات الحالية لهذه الجلسة.':'الحفظ غير مفعّل؛ الخيارات الحالية لهذه الجلسة.';
+   const box=el('section',{class:'directory-device-panel','aria-label':'الخصوصية وإعدادات الجهاز'},el('header',{},sym('info'),el('div',{},el('h3',{},'أنت تتحكم بما يُحفظ'),el('p',{class:'muted'},'إعدادات القراءة فقط · معاينة الإدارة'))),el('p',{class:'directory-device-status',role:'status'},message),el('p',{},'يُحفظ حجم النص والاختصار والتباين وتقليل الحركة فقط. لا تُحفظ هنا أسماء أو بيانات أعضاء أو بحث أو موقع أو تقييمات. الإعدادات تخص هذا المتصفح ويستطيع مستخدمه التالي رؤيتها؛ لا تُزامن مع حسابك.'),el('p',{class:'muted'},'حفظ القراءة لا يغيّر تذكر تسجيل الدخول. رمز الجلسة وإعدادات التطبيق الأساسية مستقلة، وزر المسح هنا لا يخرجك ولا يحذف مفضلاتك أو ينظف ملفات التطبيق.'),el('div',{class:'directory-device-actions'},keyed(Object.assign(act(saved?'تحديث الحفظ على هذا المتصفح':'حفظ خيارات القراءة على هذا المتصفح',rememberDevice,'info'),{disabled:deviceBusy}),'device-save'),keyed(Object.assign(act('مسح خيارات القراءة المحفوظة',()=>{if(!valid()||!loaded||deviceBusy)return;device=deviceStore.clear();comfortMemory.deviceSaved=false;comfortMemory.reading=M.readingPreferences();notice(device.status==='blocked'?'تعذر تأكيد المسح؛ يمكنك مسح إعدادات الموقع من المتصفح.':'مُسحت خيارات القراءة واستُعيد العرض العادي.');rerenderAt('device-clear');} ),{disabled:deviceBusy}),'device-clear')));
+   if(saved)box.append(el('small',{class:'muted'},'آخر حفظ: '+new Intl.DateTimeFormat('ar-EG',{timeZone:'Africa/Cairo',dateStyle:'medium',timeStyle:'short'}).format(new Date(device.savedAt))));
+   const permissions=el('section',{class:'directory-device-permissions'},el('h4',{},'أذونات المتصفح'),el('p',{class:'muted'},'الفحص يقرأ الحالة فقط، دون طلب موقعك أو تشغيل إشعارات. لتغيير الأذونات استخدم إعدادات هذا الموقع في المتصفح.'),keyed(Object.assign(act(permissionBusy?'جارٍ الفحص…':'فحص أذونات المتصفح',inspectPermissions,'info'),{disabled:permissionBusy}),'device-permissions'));
+   if(permissionState)permissions.append(el('dl',{},[['الموقع',labels[permissionState.location]],['الإشعارات',labels[permissionState.notifications]],['طريقة الفتح الحالية',permissionState.installed===null?'تعذر تحديدها':permissionState.installed?'داخل التطبيق المستقل':'داخل المتصفح؛ هذا لا ينفي وجود نسخة مثبتة']].map(([label,value])=>el('div',{},el('dt',{},label),el('dd',{},value)))),el('p',{class:'muted'},'إذن الإشعارات لا يعني أن تنبيهات التطبيق مفعلة؛ لا يوجد اشتراك دفع يُنشأ من هذه المعاينة.'));
+   box.append(permissions);return box;
+  }
   function readingControls(){
    const prefs=comfortMemory.reading,box=el('details',{class:'directory-reading-options'}),summary=el('summary',{},sym('info'),el('span',{},'خيارات القراءة والعرض'));box.open=comfortMemory.optionsOpen===true;
    keyed(summary,'reading-options');box.append(summary);box.ontoggle=()=>{if(box.isConnected)comfortMemory.optionsOpen=box.open;};
    const options=el('div',{class:'directory-reading-grid'}),size=keyed(el('select',{'aria-label':'حجم النص في المعاينة'},[['standard','عادي'],['large','كبير'],['larger','أكبر']].map(([value,label])=>el('option',{value},label))),'reading-size');size.value=prefs.size;
-   size.onchange=()=>{comfortMemory.reading={...prefs,size:size.value};rerenderAt('reading-size');};options.append(el('label',{class:'form-field'},'حجم النص',size));
-   for(const [key,label] of [['compact','بطاقات مختصرة'],['contrast','تباين أوضح'],['calm','تقليل الحركة']]){const input=keyed(el('input',{type:'checkbox',checked:prefs[key]}),'reading-'+key);input.onchange=()=>{comfortMemory.reading={...prefs,[key]:input.checked};rerenderAt('reading-'+key);};options.append(el('label',{class:'directory-reading-choice'},input,el('span',{},label)));}
-   const reset=keyed(act('استعادة العرض العادي',()=>{comfortMemory.reading=M.readingPreferences();rerenderAt('reading-reset');}),'reading-reset');box.append(options,el('p',{class:'muted'},'تجربة خاصة في هذه الجلسة فقط. الاختصار لا يخفي الفروع أو حالة الخدمة أو المستفيدين؛ تظل التفاصيل كاملة عند فتح الجهة.'),reset);return box;
+   size.onchange=()=>setReading({...prefs,size:size.value},'reading-size');options.append(el('label',{class:'form-field'},'حجم النص',size));
+   for(const [key,label] of [['compact','بطاقات مختصرة'],['contrast','تباين أوضح'],['calm','تقليل الحركة']]){const input=keyed(el('input',{type:'checkbox',checked:prefs[key]}),'reading-'+key);input.onchange=()=>setReading({...prefs,[key]:input.checked},'reading-'+key);options.append(el('label',{class:'directory-reading-choice'},input,el('span',{},label)));}
+   const reset=keyed(act('استعادة العرض العادي',()=>setReading(M.readingPreferences(),'reading-reset')),'reading-reset');box.append(options,el('p',{class:'muted'},'الاختصار لا يخفي الفروع أو حالة الخدمة أو المستفيدين؛ تظل التفاصيل كاملة عند فتح الجهة. حفظ الخيارات على الجهاز اختياري أدناه.'),reset,deviceControls());return box;
   }
   function snapshot(){rememberReadingPanel();return {...structuredClone(nav),scroll:loaded?window.scrollY:pendingScroll};}
   function compatible(value){return value?.id===featureId&&value.previewRevision===revision&&value.audience==='admin'&&value.dataMode===dataMode&&value.memberEnabled===false;}
@@ -32,7 +56,7 @@ window.MedicalDirectoryPreview=(()=>{
   function fail(error){if(!valid())return;++sequence;++reviewSequence;++renderTurn;clearTimeout(suggestionTimer);loaded=false;visit?.dispose();visit=null;data=null;model=null;feature=null;root.hidden=false;const shell=scaffold();shell.append(el('p',{class:'notice warning',role:'alert'},error.code==='LAB_NOT_FOUND'||error.code==='NOT_FOUND'?(workspace?'تفعيل تجربة الزيارة والبلاغات يحتاج تحديث خدمة Firebase.':'تفعيل تجربة الدليل يحتاج تحديث خدمة Firebase؛ نماذج التصميم متاحة في المعمل.'):error.message||'تعذر التحقق من تجربة الدليل.'),act('إعادة التحقق',load));root.replaceChildren(shell);}
   async function load(){
    if(!valid())return;rememberReadingPanel();const turn=++sequence;++reviewSequence;++renderTurn;clearTimeout(suggestionTimer);if(loaded)pendingScroll=window.scrollY;loaded=false;visit?.dispose();visit=null;data=null;model=null;root.hidden=false;const shell=scaffold();shell.append(el('p',{role:'status'},'جارٍ التحقق وتحميل الدليل المنشور…'));root.replaceChildren(shell);
-   try{const result=await api.labPreview(featureId);if(!valid()||turn!==sequence)return;if(!compatible(result.feature)||result.scene?.mode!==dataMode)throw new Error('حدّث التطبيق والخدمة إلى نسخة متوافقة لتجربة الدليل.');feature=result.feature;data=result.scene;model=M.create(data,{facilities:window.MedicalFacilities,search:window.MedicalSearch,contacts:window.MedicalContacts,research:window.MedicalResearch});loaded=true;if(workspace)visit=window.MedicalVisitWorkspace.mount({api,el,act,row,model,data,notice,valid:()=>valid()&&loaded,onFatal:fail});render();const loadedRender=renderTurn;requestAnimationFrame(()=>requestAnimationFrame(()=>{if(valid()&&turn===sequence&&loadedRender===renderTurn){window.scrollTo({top:pendingScroll,left:0,behavior:'instant'});focus(nav.focusKey);}}));}catch(e){if(turn===sequence)fail(e);}
+   try{const result=await api.labPreview(featureId);if(!valid()||turn!==sequence)return;if(!compatible(result.feature)||result.scene?.mode!==dataMode)throw new Error('حدّث التطبيق والخدمة إلى نسخة متوافقة لتجربة الدليل.');feature=result.feature;data=result.scene;model=M.create(data,{facilities:window.MedicalFacilities,search:window.MedicalSearch,contacts:window.MedicalContacts,research:window.MedicalResearch});loaded=true;if(!workspace)restoreDevice();if(workspace)visit=window.MedicalVisitWorkspace.mount({api,el,act,row,model,data,notice,valid:()=>valid()&&loaded,onFatal:fail});render();const loadedRender=renderTurn;requestAnimationFrame(()=>requestAnimationFrame(()=>{if(valid()&&turn===sequence&&loadedRender===renderTurn){window.scrollTo({top:pendingScroll,left:0,behavior:'instant'});focus(nav.focusKey);}}));}catch(e){if(turn===sequence)fail(e);}
   }
   function render(){
    if(!valid()||!model)return;rememberReadingPanel();++reviewSequence;++renderTurn;clearTimeout(suggestionTimer);
@@ -127,8 +151,9 @@ window.MedicalDirectoryPreview=(()=>{
    try{const result=await api.labPreview(featureId,true);if(!valid()||turn!==sequence)return;if(!compatible(result.feature))throw new Error('تغير إصدار تجربة الدليل؛ حدّث التطبيق والخدمة.');if(feature.version!==result.feature.version){notice('تغيرت مراجعة تجربة الدليل. أُعيد التحقق.');await load();}root.hidden=false;}catch(e){if(turn===sequence)fail(e);}finally{checking=false;}
   }
   const visibility=()=>{if(document.hidden){if(loaded)root.hidden=true;}else void verify(true);},offline=()=>{if(loaded)fail({message:'توقفت المعاينة لعدم الاتصال. أعد التحقق بعد عودة الإنترنت.'});};
-  document.addEventListener('visibilitychange',visibility);window.addEventListener('offline',offline);const timer=setInterval(()=>void verify(),20000);void load();
-  return {navigation:snapshot,reload:load,dispose(){disposed=true;++sequence;++reviewSequence;++renderTurn;clearTimeout(suggestionTimer);visit?.dispose();visit=null;data=null;model=null;feature=null;loaded=false;clearInterval(timer);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('offline',offline);root.replaceChildren();}};
+  const storageChanged=event=>{if(workspace||!valid()||!loaded||event.key!==null&&event.key!==D.key)return;try{if(event.storageArea&&event.storageArea!==window.localStorage)return;}catch{return;}restoreDevice();rerenderAt('reading-options');};
+  document.addEventListener('visibilitychange',visibility);window.addEventListener('offline',offline);window.addEventListener('storage',storageChanged);const timer=setInterval(()=>void verify(),20000);void load();
+  return {navigation:snapshot,reload:load,dispose(){disposed=true;++sequence;++reviewSequence;++renderTurn;clearTimeout(suggestionTimer);visit?.dispose();visit=null;data=null;model=null;feature=null;loaded=false;clearInterval(timer);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('offline',offline);window.removeEventListener('storage',storageChanged);root.replaceChildren();}};
  }
  return Object.freeze({mount});
 })();
