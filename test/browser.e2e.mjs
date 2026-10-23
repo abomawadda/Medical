@@ -1117,7 +1117,7 @@ try {
   // P1 comfort is private, explicit and retained only in the identity's in-memory session.
   const readingOptions=a.locator('.directory-reading-options');assert.equal(await readingOptions.getAttribute('open'),null);
   await readingOptions.locator('summary').click();await a.getByLabel('حجم النص في المعاينة',{exact:true}).selectOption('larger');
-  await a.locator('.directory-size-larger').waitFor();assert.equal(await a.evaluate(()=>document.activeElement.dataset.directoryFocus),'reading-size');
+  await a.locator('.directory-size-larger').waitFor();await a.locator('[data-directory-focus="reading-size"]:focus').waitFor();
   await a.getByLabel('بطاقات مختصرة',{exact:true}).check();await a.getByLabel('تباين أوضح',{exact:true}).check();await a.getByLabel('تقليل الحركة',{exact:true}).check();
   assert.equal(await a.locator('.directory-provider-card .directory-card-location:visible').count(),0);
   assert.ok(await a.locator('.directory-provider-card .directory-service-state').count()>0);assert.ok(await a.locator('.directory-provider-card .lab-network').count()>0);
