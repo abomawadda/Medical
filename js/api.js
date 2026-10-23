@@ -254,6 +254,7 @@ window.MedicalAPI = (() => {
       request("/reviews", { method: "POST", body, protectedRequest: true }),
     publicReviews:(target,page=0)=>request("/reviews/public/"+encodeURIComponent(target)+"?page="+page,{protectedRequest:true}),
     myReviews: () => request("/reviews/mine", { protectedRequest: true }),
+    labReviewInsights:(period='all')=>request('/admin/lab/review-insights?period='+encodeURIComponent(period),{protectedRequest:true}),
     adminReviews: () => request("/admin/reviews", { protectedRequest: true }),
     moderate: (id, status, revision, confirmPublicComment=false) =>
       request("/admin/reviews/" + encodeURIComponent(id), {

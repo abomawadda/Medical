@@ -232,7 +232,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.21.2");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.22.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -446,7 +446,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.21.2');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.22.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1030,12 +1030,12 @@ try {
   assert.equal(await pilot.locator('.lab-preview,.lab-feature-card,.companion-welcome').count(),0);
   await pilot.evaluate(()=>{const k='medical_remembered_session_v1',r=JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify({...r,role:'admin',user:{role:'admin'}}));});
   await pilot.reload();await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();
-  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home','/admin/lab/preview/directory_experience','/admin/lab/preview/visit_workspace','/admin/lab/visit-reports','/admin/lab/workspaces/care_companion','/admin/lab/workspaces/service_planning','/admin/lab/readiness','/admin/lab/imports','/admin/lab/imports/'+'a'.repeat(32)+'/plan','/admin/lab/inbox','/admin/lab/inbox?status=1'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
-  assert.deepEqual(deniedLab,[403,403,403,403,403,403,403,403,403,403,403,403]);
+  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home','/admin/lab/preview/directory_experience','/admin/lab/preview/visit_workspace','/admin/lab/visit-reports','/admin/lab/workspaces/care_companion','/admin/lab/workspaces/service_planning','/admin/lab/readiness','/admin/lab/imports','/admin/lab/imports/'+'a'.repeat(32)+'/plan','/admin/lab/inbox','/admin/lab/inbox?status=1','/admin/lab/review-insights'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
+  assert.deepEqual(deniedLab,[403,403,403,403,403,403,403,403,403,403,403,403,403]);
   await pilot.getByRole('button',{name:'العودة للرئيسية',exact:true}).click();await pilot.locator('.hero').waitFor();
   assert.equal(await pilot.getByRole('button',{name:'معمل التطوير',exact:true}).count(),0);
   await pilot.goto(origin+'/#lab-visit');await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('.visit-workspace,.visit-checklist,.visit-report-card').count(),0);
-  for(const hash of ['lab-care','lab-services','lab-readiness','lab-imports','lab-inbox']){await pilot.goto(origin+'/#'+hash);await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('[data-roadmap-ready]').count(),0);}
+  for(const hash of ['lab-care','lab-services','lab-readiness','lab-imports','lab-inbox','lab-insights']){await pilot.goto(origin+'/#'+hash);await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('[data-roadmap-ready]').count(),0);}
   await pilotContext.close();
   const anonymousLabContext=await context(),anonymousLab=await anonymousLabContext.newPage();
   await anonymousLab.goto(origin+'/#lab');await anonymousLab.locator('.login-card').waitFor();
@@ -1043,7 +1043,7 @@ try {
   const catalogBeforeLab=structuredClone(await store.catalog());
   await a.goto(origin+'/#admin');await a.getByRole('button',{name:'معمل التطوير',exact:true}).click();
   await a.locator('[data-lab-feature="compact_home"]').waitFor();
-  assert.equal(await a.locator('.lab-feature-card').count(),9);
+  assert.equal(await a.locator('.lab-feature-card').count(),10);
   const labFeature=id=>a.locator('[data-lab-feature="'+id+'"]');
   const saveLabDecision=async(id,{review='needs_changes',note='ملاحظة اختبار مصطنعة',previewEnabled=true}={})=>{
     await labFeature(id).getByRole('button',{name:'الملاحظات والقرار',exact:true}).click();
@@ -1421,6 +1421,34 @@ try {
   try{await a.getByRole('button',{name:'تحديث المكتب',exact:true}).click();await a.locator('[data-inbox-queue="reviews"]').getByText('غير متاح',{exact:true}).waitFor();await deskCard.waitFor();}finally{store.adminInboxCounts=deskCountsReader;}
   await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('admin_inbox').waitFor();await saveLabDecision('admin_inbox',{previewEnabled:false});await a.goto(origin+'/#lab-inbox');await a.getByText('مكتب متابعة المدير موقوف من المعمل.',{exact:true}).waitFor();assert.equal(await a.locator('[data-inbox-results]').count(),0);
   await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('admin_inbox').waitFor();await saveLabDecision('admin_inbox',{previewEnabled:true});assert.deepEqual(await store.catalog(),catalogBeforeLab);
+  // P6 real-data aggregates: projected facts only, private, no moderation writes.
+  const insightSource=store.reviewInsightsRead,insightCatalog=await store.catalog(),insightDoctor=insightCatalog.records.find(r=>r.provider_id),insightOther=insightCatalog.records.find(r=>r.provider_id&&r.provider_id!==insightDoctor.provider_id),insightNow=Date.now();
+  const insightTarget='doctor:'+insightDoctor.provider_id,insightOtherTarget='doctor:'+insightOther.provider_id;
+  const insightRows=Array.from({length:6},(_,i)=>({id:'insight-'+i,author_id:'insight-author-'+i,target_id:insightTarget,rating:[5,4,3,2,1,5][i],status:'published',criteria:{reception:4,...(i<3?{waiting:2}:{})},updated_at:insightNow-1000,author_name:'PRIVATE_INSIGHTS_MEMBER',comment:'PRIVATE_INSIGHTS_COMMENT'}));
+  insightRows.push({id:'insight-small',author_id:'small',target_id:insightOtherTarget,rating:1,status:'published',updated_at:insightNow-45*86400000},{...insightRows[0],id:'insight-old',rating:1,updated_at:insightNow-9000},{...insightRows[0],id:'insight-pending',author_id:'pending',status:'pending'});
+  const sourceReviewsBefore=structuredClone([...store.reviews]);let insightReads=0,insightComplete=true;store.reviewInsightsRead=async()=>{insightReads++;return {complete:insightComplete,rows:structuredClone(insightRows)};};
+  try{
+    await labFeature('review_insights').getByRole('button',{name:'فتح المعاينة',exact:true}).click();await a.getByRole('heading',{name:'صوت الأعضاء',exact:true}).waitFor();await a.locator('.insights-overview').waitFor();
+    assert.equal(await a.locator('.insights-metric').first().locator('strong').innerText(),'7');assert.equal(await a.locator('.insights-distribution progress').count(),5);
+    assert.ok(!(await a.locator('.insights-shell').innerText()).includes('PRIVATE_INSIGHTS'));assert.ok(!(await a.locator('.insights-shell').innerText()).includes('null'));
+    const aggregate=await a.evaluate(()=>window.MedicalAPI.labReviewInsights());assert.equal(aggregate.counts.duplicateDocuments,1);assert.ok(!JSON.stringify(aggregate).includes('PRIVATE_INSIGHTS'));assert.ok(!JSON.stringify(aggregate).includes('author_id'));
+    const beforeStatus=insightReads;await a.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await a.locator('.insights-shell:visible').waitFor();assert.equal(insightReads,beforeStatus,'Visibility checks read policy only');
+    await a.locator('[data-insights-provider="'+insightOtherTarget+'"]').click();await a.getByText('يظهر المتوسط والتوزيع عند توفر 5 تجارب منشورة على الأقل. العدد القليل لا يكفي للمقارنة.',{exact:true}).waitFor();assert.equal(await a.locator('.insights-distribution').count(),0);
+    await a.getByRole('button',{name:'عرض ملخص كل الجهات',exact:true}).click();
+    await a.getByLabel('فترة مؤشرات التقييمات',{exact:true}).selectOption('30');await a.locator('.insights-overview').waitFor();assert.equal(await a.locator('.insights-metric').first().locator('strong').innerText(),'6');
+    await a.getByLabel('البحث في جهات مؤشرات التقييمات',{exact:true}).fill(insightDoctor.name);await a.locator('.insights-search').getByRole('button',{name:'ابحث',exact:true}).click();assert.equal(await a.locator('.insights-metric').first().locator('strong').innerText(),'6');
+    await a.getByLabel('قسم جهات المؤشرات',{exact:true}).selectOption('labs');assert.equal(await a.locator('[data-insights-provider]').count(),0);assert.equal(await a.locator('.insights-metric').first().locator('strong').innerText(),'6');
+    await a.getByRole('button',{name:'مسح بحث وقسم القائمة',exact:true}).click();await a.locator('[data-insights-provider="'+insightTarget+'"]').waitFor();
+    const insightDownload=a.waitForEvent('download');await a.getByRole('button',{name:'تنزيل تقرير أعداد اللقطة',exact:true}).click();const countReport=JSON.parse(await readFile(await (await insightDownload).path(),'utf8'));assert.equal(countReport.scope,'all-providers-current-review-counts');assert.equal('providers' in countReport,false);assert.ok(!JSON.stringify(countReport).includes(insightDoctor.name));assert.ok(!JSON.stringify(countReport).includes('PRIVATE_INSIGHTS'));
+    for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Review insights fit '+width);}
+    await a.setViewportSize({width:390,height:844});if(process.env.MEDICAL_SCREENSHOT_DIR){await a.locator('.insights-overview').screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'review-insights-mobile.png'),style:'.app-header,.bottom-nav,#toast{visibility:hidden}'});}
+    insightComplete=false;await a.getByRole('button',{name:'تحديث المؤشرات',exact:true}).click();await a.getByText('المصدر يتجاوز 2000 سجلًا. لم تُعرض متوسطات أو قوائم جزئية؛ يلزم مسار تجميع أوسع قبل تحليل هذه البيانات.',{exact:true}).waitFor();assert.equal(await a.locator('.insights-overview').count(),0);assert.equal(await a.getByRole('button',{name:'تنزيل تقرير أعداد اللقطة',exact:true}).count(),0);
+    insightComplete=true;await a.getByRole('button',{name:'تحديث المؤشرات',exact:true}).click();await a.locator('.insights-overview').waitFor();
+    await a.evaluate(async()=>{const feature=(await window.MedicalAPI.developmentLab()).features.find(f=>f.id==='review_insights');await window.MedicalAPI.saveLabFeature(feature.id,{expected_version:feature.version,previewRevision:feature.previewRevision,review:'pending',note:'',previewEnabled:false});document.dispatchEvent(new Event('visibilitychange'));});
+    await a.getByText('هذه المعاينة موقوفة؛ يمكن استئنافها من المعمل.',{exact:true}).waitFor();assert.equal(await a.locator('.insights-overview,.insights-provider-list').count(),0);
+    await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('review_insights').waitFor();await saveLabDecision('review_insights',{previewEnabled:true});
+    assert.deepEqual([...store.reviews],sourceReviewsBefore);assert.deepEqual(await store.catalog(),catalogBeforeLab);
+  }finally{store.reviewInsightsRead=insightSource;}
   // A cached or rolling-version client cannot review an incompatible specimen; other cards still work.
   const incompatibleLab=await a.evaluate(()=>window.MedicalAPI.developmentLab());incompatibleLab.features[0].previewRevision='future-lab-revision';
   await a.route('**/v1/admin/lab',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(incompatibleLab)}));

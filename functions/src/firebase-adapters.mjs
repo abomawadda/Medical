@@ -1,3 +1,4 @@
+import {reviewInsightsStore} from './review-insights-store.mjs';
 import {adminInboxStore} from './admin-inbox-store.mjs';
 import {labStore} from "./lab-store.mjs";
 import {profileStore} from "./profile-store.mjs";
@@ -190,6 +191,7 @@ export function firebaseAdapters({
       ...profileStore(db,audit),
       ...labStore(db,audit),
       ...adminInboxStore(db),
+      ...reviewInsightsStore(db),
       async getOptions() {
         const values={};
         for(const doc of (await db.collection("medical_options").limit(1000).get()).docs){const row=doc.data();(values[row.key] ||= []).push(row.value);}

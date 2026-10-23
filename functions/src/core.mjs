@@ -1,3 +1,4 @@
+import {insightsLabService} from './lab-insights.mjs';
 import {inboxLabService} from './lab-inbox.mjs';
 import {importLabService} from './lab-imports.mjs';
 import {readinessService} from './lab-readiness.mjs';
@@ -433,6 +434,7 @@ export function createService({
   return {
     ...profileOperations,
     ...inboxLabService({store,authorize,now}),
+    ...insightsLabService({store,authorize,now}),
     ...importLabService({store,authorize,now}),
     ...developmentLabService({store,authorize,now,readDirectory}),
     ...visitLabService({store,authorize,now,readDirectory}),

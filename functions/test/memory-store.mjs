@@ -1,3 +1,4 @@
+import {insightsFields,insightsLimit} from '../src/lab-insights-policy.mjs';
 import facilities from "../src/facility-directory.cjs";
 import {groupedReviewStats} from "../src/facility-review-stats.mjs";
 import { projectContract } from "../src/contract-publication.mjs";
@@ -18,6 +19,7 @@ export function fixtureStore(seed) {
   let profileQueue=Promise.resolve();
   const store = {
     labRows,labScenarios,labWorkspaces,
+    async reviewInsightsRead(){const values=[...reviews.values()].sort((a,b)=>String(a.id).localeCompare(String(b.id)));return {complete:values.length<=insightsLimit,rows:values.slice(0,insightsLimit).map(row=>({id:row.id,...Object.fromEntries(insightsFields.filter(k=>Object.hasOwn(row,k)).map(k=>[k,structuredClone(row[k])]))}))};},
     async adminInboxCounts(){return Object.fromEntries([['reviews',[...reviews.values()],'pending'],['profilePending',[...profileRequests.values()],'pending'],['profileApplying',[...profileRequests.values()],'applying']].map(([key,rows,status])=>[key,{available:true,count:rows.filter(row=>row.status===status).length,scope:'status-documents'}]));},
     async labWorkspaceRead(id,owner){return structuredClone(labWorkspaces.get(id+'|'+owner)||{});},
     async labWorkspaceTransact(id,owner,apply){const operation=labQueue.then(()=>{const key=id+'|'+owner,result=apply(structuredClone(labWorkspaces.get(key)||{}),structuredClone(labRows.get(id)||{}));if(result.changed){labWorkspaces.set(key,structuredClone(result.next));audit.push({action:'lab.workspace',featureId:id,version:result.next.version,actor:owner,at:result.next.updatedAt});}return {changed:result.changed,workspace:result.workspace};});labQueue=operation.catch(()=>{});return operation;},
