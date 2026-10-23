@@ -232,7 +232,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.19.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.20.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -446,7 +446,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.19.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.20.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1030,12 +1030,12 @@ try {
   assert.equal(await pilot.locator('.lab-preview,.lab-feature-card,.companion-welcome').count(),0);
   await pilot.evaluate(()=>{const k='medical_remembered_session_v1',r=JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify({...r,role:'admin',user:{role:'admin'}}));});
   await pilot.reload();await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();
-  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home','/admin/lab/preview/directory_experience','/admin/lab/preview/visit_workspace','/admin/lab/visit-reports','/admin/lab/workspaces/care_companion','/admin/lab/workspaces/service_planning','/admin/lab/readiness','/admin/lab/imports','/admin/lab/imports/'+'a'.repeat(32)+'/plan'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
-  assert.deepEqual(deniedLab,[403,403,403,403,403,403,403,403,403,403]);
+  const deniedLab=await pilot.evaluate(async()=>{const token=JSON.parse(localStorage.getItem('medical_remembered_session_v1')).token;return Promise.all(['/admin/lab','/admin/lab/preview/compact_home','/admin/lab/preview/directory_experience','/admin/lab/preview/visit_workspace','/admin/lab/visit-reports','/admin/lab/workspaces/care_companion','/admin/lab/workspaces/service_planning','/admin/lab/readiness','/admin/lab/imports','/admin/lab/imports/'+'a'.repeat(32)+'/plan','/admin/lab/inbox','/admin/lab/inbox?status=1'].map(async path=>{const r=await fetch(window.MEDICAL_CONFIG.apiBaseUrl+'/v1'+path,{headers:{Authorization:'Bearer '+token}});return r.status;}));});
+  assert.deepEqual(deniedLab,[403,403,403,403,403,403,403,403,403,403,403,403]);
   await pilot.getByRole('button',{name:'العودة للرئيسية',exact:true}).click();await pilot.locator('.hero').waitFor();
   assert.equal(await pilot.getByRole('button',{name:'معمل التطوير',exact:true}).count(),0);
   await pilot.goto(origin+'/#lab-visit');await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('.visit-workspace,.visit-checklist,.visit-report-card').count(),0);
-  for(const hash of ['lab-care','lab-services','lab-readiness','lab-imports']){await pilot.goto(origin+'/#'+hash);await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('[data-roadmap-ready]').count(),0);}
+  for(const hash of ['lab-care','lab-services','lab-readiness','lab-imports','lab-inbox']){await pilot.goto(origin+'/#'+hash);await pilot.getByRole('heading',{name:'المعاينة متاحة للإدارة فقط',exact:true}).waitFor();assert.equal(await pilot.locator('[data-roadmap-ready]').count(),0);}
   await pilotContext.close();
   const anonymousLabContext=await context(),anonymousLab=await anonymousLabContext.newPage();
   await anonymousLab.goto(origin+'/#lab');await anonymousLab.locator('.login-card').waitFor();
@@ -1043,7 +1043,7 @@ try {
   const catalogBeforeLab=structuredClone(await store.catalog());
   await a.goto(origin+'/#admin');await a.getByRole('button',{name:'معمل التطوير',exact:true}).click();
   await a.locator('[data-lab-feature="compact_home"]').waitFor();
-  assert.equal(await a.locator('.lab-feature-card').count(),8);
+  assert.equal(await a.locator('.lab-feature-card').count(),9);
   const labFeature=id=>a.locator('[data-lab-feature="'+id+'"]');
   const saveLabDecision=async(id,{review='needs_changes',note='ملاحظة اختبار مصطنعة',previewEnabled=true}={})=>{
     await labFeature(id).getByRole('button',{name:'الملاحظات والقرار',exact:true}).click();
@@ -1354,6 +1354,34 @@ try {
   await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('catalog_staging').waitFor();
   await saveLabDecision('catalog_staging',{previewEnabled:false});await a.goto(origin+'/#lab-imports');await a.getByText('هذه المعاينة موقوفة؛ يمكن استئنافها من المعمل.',{exact:true}).waitFor();assert.equal(await a.locator('[data-import-batch]').count(),0);
   await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('catalog_staging').waitFor();await saveLabDecision('catalog_staging',{previewEnabled:true});
+  // The administrative desk exposes queue counts only and writes an isolated follow-up journal.
+  await labFeature('admin_inbox').getByRole('button',{name:'فتح المعاينة',exact:true}).click();await a.getByRole('heading',{name:'مكتب متابعة المدير',exact:true}).waitFor();await a.locator('[data-inbox-results="true"]').waitFor();
+  const inboxView=await a.evaluate(()=>window.MedicalAPI.labInbox());assert.equal(inboxView.queueDetailsIncluded,false);assert.equal(inboxView.productionWriteSupported,false);assert.equal(inboxView.queues.reviews.count,[...store.reviews.values()].filter(row=>row.status==='pending').length);assert.equal(JSON.stringify(inboxView).includes(employee.nationalId),false);
+  const deskTask=inboxView.tasks.find(task=>task.ref&&task.type==='directory');assert.ok(deskTask);const deskCard=a.locator('[data-inbox-task="'+deskTask.id+'"]');
+  await a.getByLabel('مراجعة الإدارة الأصلية',{exact:true}).selectOption('all');await a.getByLabel('ظهور الجهة',{exact:true}).selectOption('all');await a.getByLabel('حالة المتابعة',{exact:true}).selectOption('all');await a.getByLabel('بحث في ملاحظات المكتب',{exact:true}).fill(deskTask.title);await deskCard.waitFor();
+  for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Administrative inbox fits '+width);}
+  await a.setViewportSize({width:390,height:844});if(process.env.MEDICAL_SCREENSHOT_DIR){await a.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await a.screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'admin-inbox-mobile.png'),fullPage:true,style:'#toast{visibility:hidden}'});}
+  await deskCard.getByRole('button',{name:'تسجيل متابعة',exact:true}).click();await a.getByLabel('حالة متابعتي',{exact:true}).selectOption('reviewed');await a.getByLabel('سبب المتابعة',{exact:true}).selectOption('checked');await a.getByRole('button',{name:'حفظ متابعتي',exact:true}).click();await deskCard.locator('.lab-state').getByText('راجعته',{exact:true}).waitFor();
+  const deskFollowup=await a.evaluate(()=>window.MedicalAPI.labInbox());assert.equal(deskFollowup.workspace.used,1);assert.equal(deskFollowup.workspace.entries[0].history.length,1);assert.equal(deskFollowup.queues.reviews.count,inboxView.queues.reviews.count);assert.deepEqual(await store.catalog(),catalogBeforeLab);
+  const deskDownload=a.waitForEvent('download');await a.getByRole('button',{name:'تنزيل تقرير الأعداد',exact:true}).click();const deskCounts=JSON.parse(await readFile(await (await deskDownload).path(),'utf8'));assert.equal(deskCounts.scope,'admin-counts-only');assert.equal(deskCounts.memberEnabled,false);assert.equal('tasks'in deskCounts,false);assert.ok(!JSON.stringify(deskCounts).includes(deskTask.title));
+  // Opening an existing queue and a record never performs an approval or edit.
+  await a.getByRole('button',{name:'فتح قائمة التقييمات',exact:true}).click();await a.locator('dialog[open]').waitFor();await a.locator('#dialog-close').click();await a.locator('dialog').waitFor({state:'hidden'});
+  await deskCard.getByRole('button',{name:'فتح السجل في الإدارة',exact:true}).click();await a.locator('.admin-intro').waitFor();await a.locator('[data-admin-id="'+deskTask.ref.id+'"]').waitFor();await a.goBack();await a.getByRole('heading',{name:'مكتب متابعة المدير',exact:true}).waitFor();await deskCard.waitFor();assert.equal(await a.getByLabel('بحث في ملاحظات المكتب',{exact:true}).inputValue(),deskTask.title);
+  // A lost acknowledgement cannot duplicate the private follow-up event.
+  const tomorrow=new Date(Date.parse(inboxView.today+'T00:00:00Z')+86400000).toISOString().slice(0,10);let loseDeskReply=true;
+  const lostDesk=async route=>{if(route.request().method()!=='PATCH')return route.fallback();const reply=await fetch(origin+'/v1/admin/lab/inbox',{method:'PATCH',headers:{Origin:origin,'Content-Type':'application/json',Authorization:route.request().headers().authorization},body:route.request().postData()});const body=await reply.text();if(loseDeskReply){loseDeskReply=false;await route.abort();}else await route.fulfill({status:reply.status,contentType:'application/json',body});};
+  await a.route('**/v1/admin/lab/inbox',lostDesk);await deskCard.getByRole('button',{name:'تسجيل متابعة',exact:true}).click();await a.getByLabel('حالة متابعتي',{exact:true}).selectOption('snoozed');await a.getByLabel('سبب المتابعة',{exact:true}).selectOption('waiting');await a.getByLabel('موعد متابعتي',{exact:true}).fill(tomorrow);await a.getByRole('button',{name:'حفظ متابعتي',exact:true}).click();await a.getByRole('button',{name:'إعادة العملية نفسها',exact:true}).waitFor();await a.getByRole('button',{name:'إعادة العملية نفسها',exact:true}).click();await deskCard.locator('.lab-state').getByText('مؤجل',{exact:true}).waitFor();await a.unroute('**/v1/admin/lab/inbox',lostDesk);
+  assert.equal((await a.evaluate(()=>window.MedicalAPI.labInbox())).workspace.entries[0].history.length,2);
+  const deskCatalog=store.catalog;store.catalog=async()=>{const c=await deskCatalog();const row=c[deskTask.ref.kind].find(row=>String(row.id)===deskTask.ref.id);row.address=(row.address||'')+' بيان فحص مصطنع';return c;};
+  try{
+    await deskCard.getByRole('button',{name:'تسجيل متابعة',exact:true}).click();await a.getByLabel('حالة متابعتي',{exact:true}).selectOption('following');await a.getByLabel('سبب المتابعة',{exact:true}).selectOption('address');await a.getByRole('button',{name:'حفظ متابعتي',exact:true}).click();await a.getByRole('alert').getByText('تغيرت بيانات الملاحظة؛ حدّث المكتب قبل تسجيل المتابعة.',{exact:true}).waitFor();
+    await a.getByRole('button',{name:'تحديث المكتب',exact:true}).click();await deskCard.locator('.lab-state').getByText('تغيرت بياناته',{exact:true}).waitFor();assert.equal(await a.getByRole('button',{name:'حفظ متابعتي',exact:true}).isDisabled(),true);await a.getByRole('button',{name:'إلغاء المتابعة',exact:true}).click();
+  }finally{store.catalog=deskCatalog;}
+  // An unavailable count is displayed honestly and does not block the remaining tasks.
+  const deskCountsReader=store.adminInboxCounts;store.adminInboxCounts=async()=>{const result=await deskCountsReader();result.reviews={available:false,count:null,scope:'status-documents'};return result;};
+  try{await a.getByRole('button',{name:'تحديث المكتب',exact:true}).click();await a.locator('[data-inbox-queue="reviews"]').getByText('غير متاح',{exact:true}).waitFor();await deskCard.waitFor();}finally{store.adminInboxCounts=deskCountsReader;}
+  await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('admin_inbox').waitFor();await saveLabDecision('admin_inbox',{previewEnabled:false});await a.goto(origin+'/#lab-inbox');await a.getByText('مكتب متابعة المدير موقوف من المعمل.',{exact:true}).waitFor();assert.equal(await a.locator('[data-inbox-results]').count(),0);
+  await a.getByRole('button',{name:'العودة إلى المعمل',exact:true}).click();await labFeature('admin_inbox').waitFor();await saveLabDecision('admin_inbox',{previewEnabled:true});assert.deepEqual(await store.catalog(),catalogBeforeLab);
   // A cached or rolling-version client cannot review an incompatible specimen; other cards still work.
   const incompatibleLab=await a.evaluate(()=>window.MedicalAPI.developmentLab());incompatibleLab.features[0].previewRevision='future-lab-revision';
   await a.route('**/v1/admin/lab',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(incompatibleLab)}));

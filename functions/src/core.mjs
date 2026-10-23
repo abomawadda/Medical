@@ -1,3 +1,4 @@
+import {inboxLabService} from './lab-inbox.mjs';
 import {importLabService} from './lab-imports.mjs';
 import {readinessService} from './lab-readiness.mjs';
 import {roadmapLabService} from './lab-roadmap.mjs';
@@ -431,6 +432,7 @@ export function createService({
   const profileOperations=profileService({source,store,sourceWriter,authorize,digest,rate,now});
   return {
     ...profileOperations,
+    ...inboxLabService({store,authorize,now}),
     ...importLabService({store,authorize,now}),
     ...developmentLabService({store,authorize,now,readDirectory}),
     ...visitLabService({store,authorize,now,readDirectory}),

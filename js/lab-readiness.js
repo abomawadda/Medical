@@ -1,6 +1,6 @@
 /* Read-only phase overview. It cannot publish a feature, procedure or notification. */
 window.MedicalLabReadiness=(()=>{
- const revision='p0-readiness-20261021-3';
+ const revision='p0-readiness-20261023-1';
  function mount({root,api,el,button,allowed,exit,open}){
   let disposed=false,data=null,sequence=0,checking=false;
   const valid=()=>!disposed&&root.isConnected&&allowed();
@@ -10,7 +10,7 @@ window.MedicalLabReadiness=(()=>{
   function download(){if(!valid()||!data)return;const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=el('a',{href:url,download:'rayati-private-readiness-'+data.today+'.json'});document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function draw(){
    if(!valid()||!data)return;const view=shell(),stamp=new Intl.DateTimeFormat('ar-EG',{timeZone:'Africa/Cairo',dateStyle:'medium',timeStyle:'short'}).format(data.checkedAt);
-   view.append(el('div',{class:'lab-guarantees'},['إدارة فقط','تقرير أعداد دون بيانات أعضاء','التعميم والحجز الفعلي معطلان'].map(t=>el('span',{},t))),el('div',{class:'directory-preview-tools'},button('تحديث الجاهزية',load,'button primary'),button('تنزيل تقرير المراحل',download,'button outline')),el('p',{class:'muted'},'لقطة الفحص: '+stamp+' · تتحدث الأعداد عند الضغط على تحديث الجاهزية.'),el('p',{class:'notice'},'اعتماد التصميم قرار مراجعة فقط. الأعداد من أمثلة المعمل؛ لا تثبت اكتمال لوائح الشركة أو تفعيل Google أو جاهزية الحجز الفعلي.'));
+   view.append(el('div',{class:'lab-guarantees'},['إدارة فقط','تقرير أعداد دون بيانات أعضاء','التعميم والحجز الفعلي معطلان'].map(t=>el('span',{},t))),el('div',{class:'directory-preview-tools'},button('تحديث الجاهزية',load,'button primary'),button('تنزيل تقرير المراحل',download,'button outline')),el('p',{class:'muted'},'لقطة الفحص: '+stamp+' · تتحدث الأعداد عند الضغط على تحديث الجاهزية.'),el('p',{class:'notice'},'اعتماد التصميم قرار مراجعة فقط. الأعداد تصف مساحات المراجعة الخاصة؛ لا تثبت اكتمال لوائح الشركة أو تفعيل Google أو جاهزية الحجز الفعلي.'));
    const cards=data.phases.map(phase=>el('article',{class:'lab-feature-card readiness-phase','data-readiness-phase':phase.id},el('div',{class:'lab-card-heading'},el('strong',{},phase.id),el('span',{class:'lab-state'},({paused:'معاينة موقوفة',awaiting_review:'بانتظار مراجعة الإدارة',reviewed:'التصميم مراجع — بلا تعميم'}[phase.previewStatus]))),el('h2',{},phase.title),el('div',{class:'readiness-evidence'},phase.evidence.map(e=>el('div',{},el('span',{},e.label),el('strong',{},e.count)))),el('h3',{},'المتبقي قبل تشغيل الأعضاء'),el('ul',{},phase.blockers.map(b=>el('li',{},b))),el('div',{class:'lab-feature-actions'},phase.features.map(f=>{const b=button(f.title,()=>open(f.id),'button outline');b.disabled=!f.previewEnabled;return b;}))));
    view.append(el('div',{class:'lab-feature-grid readiness-grid','data-readiness-ready':'true'},cards));root.hidden=document.hidden;root.replaceChildren(view);
   }

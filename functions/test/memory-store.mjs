@@ -18,6 +18,7 @@ export function fixtureStore(seed) {
   let profileQueue=Promise.resolve();
   const store = {
     labRows,labScenarios,labWorkspaces,
+    async adminInboxCounts(){return Object.fromEntries([['reviews',[...reviews.values()],'pending'],['profilePending',[...profileRequests.values()],'pending'],['profileApplying',[...profileRequests.values()],'applying']].map(([key,rows,status])=>[key,{available:true,count:rows.filter(row=>row.status===status).length,scope:'status-documents'}]));},
     async labWorkspaceRead(id,owner){return structuredClone(labWorkspaces.get(id+'|'+owner)||{});},
     async labWorkspaceTransact(id,owner,apply){const operation=labQueue.then(()=>{const key=id+'|'+owner,result=apply(structuredClone(labWorkspaces.get(key)||{}),structuredClone(labRows.get(id)||{}));if(result.changed){labWorkspaces.set(key,structuredClone(result.next));audit.push({action:'lab.workspace',featureId:id,version:result.next.version,actor:owner,at:result.next.updatedAt});}return {changed:result.changed,workspace:result.workspace};});labQueue=operation.catch(()=>{});return operation;},
     async labScenarioRead(id){return structuredClone(labScenarios.get(id) || {});},

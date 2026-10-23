@@ -1,3 +1,4 @@
+import {inboxFeature} from './lab-inbox-policy.mjs';
 import {importFeature} from './lab-import-policy.mjs';
 import {roadmapFeatures,roadmapPolicy} from './lab-roadmap-policy.mjs';
 import {visitId,visitRevision,visitIssues,visitStates,visitOutcomes} from './lab-visit.mjs';
@@ -11,12 +12,13 @@ export const labFeatures=Object.freeze([
  {id:visitId,proposal:'N-S02 / N-S03',phase:'P2',title:'جهّز زيارتي والبلاغات',description:'ملخص زيارة من الدليل المنشور، ومسار بلاغات تجريبية معزول عن التشغيل.',previewRevision:visitRevision},
  ...roadmapFeatures,
  importFeature,
+ inboxFeature,
 ].map(Object.freeze));
 const fail=(status,code,message)=>{throw new ApiError(status,code,message);};
 const definition=id=>{const f=labFeatures.find(f=>f.id===id);if(!f)fail(404,'LAB_NOT_FOUND','هذه المعاينة غير موجودة.');return f;};
 export function labProjection(feature,saved={}){
  const current=saved.previewRevision===feature.previewRevision;
- return {...feature,version:Number.isSafeInteger(saved.version)?saved.version:0,audience:'admin',memberEnabled:false,memberReleaseSupported:false,syntheticOnly:!['catalog_staging','directory_experience',visitId,...roadmapFeatures.map(f=>f.id)].includes(feature.id),dataMode:feature.dataMode || (feature.id===visitId?'directory-sandbox':feature.id==='directory_experience'?'directory-readonly':'synthetic'),
+ return {...feature,version:Number.isSafeInteger(saved.version)?saved.version:0,audience:'admin',memberEnabled:false,memberReleaseSupported:false,syntheticOnly:!['admin_inbox','catalog_staging','directory_experience',visitId,...roadmapFeatures.map(f=>f.id)].includes(feature.id),dataMode:feature.dataMode || (feature.id===visitId?'directory-sandbox':feature.id==='directory_experience'?'directory-readonly':'synthetic'),
   previewEnabled:saved.previewEnabled!==false,review:current&&['pending','needs_changes','approved'].includes(saved.review)?saved.review:'pending',note:current&&typeof saved.note==='string'?saved.note:'',updatedAt:saved.updatedAt || null,
   staleApproval:!current&&saved.review==='approved',history:Array.isArray(saved.history)?saved.history.slice(-20):[]};
 }
@@ -44,6 +46,7 @@ export function developmentLabService({store,authorize,now,readDirectory}){retur
  async adminLab(token){await authorize(token,'admin');const rows=await store.labReadAll();return {capability:'development-lab-v1',audience:'admin',memberReleaseSupported:false,features:labFeatures.map(f=>labProjection(f,rows[f.id]))};},
  async labPreview(token,id,statusOnly=false){await authorize(token,'admin');const feature=labProjection(definition(id),await store.labRead(id));if(!feature.previewEnabled)fail(409,'LAB_PAUSED','هذه المعاينة موقوفة؛ يمكن استئنافها من المعمل.');
   if(statusOnly)return {feature};
+  if(id==='admin_inbox')return {feature,scene:{mode:'admin-inbox',productionWriteSupported:false,queueDetailsIncluded:false}};
   if(id==='catalog_staging')return {feature,scene:{mode:'catalog-staging',productionWriteSupported:false}};
   if(roadmapFeatures.some(f=>f.id===id))return {feature,scene:{mode:feature.dataMode,label:'معاينة مدير خاصة · بيانات دليل منشورة ومساحة حساب معزولة',policy:roadmapPolicy,...await readDirectory()}};
   if(id===visitId)return {feature,scene:{mode:'directory-sandbox',label:'دليل منشور للقراءة · بلاغات توضيحية معزولة',issues:visitIssues,states:visitStates,outcomes:visitOutcomes,...await readDirectory()}};

@@ -342,7 +342,7 @@
     connection();
     renderFilters();
     // The lab owns its guarded view; background catalog loading must not reset a review.
-    if(["lab","lab-directory","lab-care","lab-services","lab-readiness","lab-imports"].includes(state.tab) && labView && isAdmin() && epoch===state.identityEpoch){$("#main").dataset.catalogReady="true";return;}
+    if(["lab","lab-directory","lab-care","lab-services","lab-readiness","lab-imports","lab-inbox"].includes(state.tab) && labView && isAdmin() && epoch===state.identityEpoch){$("#main").dataset.catalogReady="true";return;}
     if (location.hash.startsWith("#entity=")) route();
     else renderMain();
   }
@@ -1034,13 +1034,29 @@
   function renderDevelopmentLab(main){
     if(!isAdmin()){main.append(heading("المعاينة متاحة للإدارة فقط"),button("العودة للرئيسية",()=>go("home"),"button primary"));return;}
     const epoch=state.identityEpoch,root=el("section",{class:"development-lab","aria-label":"معمل التطوير الخاص"});main.append(root);
-    labView=window.MedicalDevelopmentLab.mount({root,api:API,el,button,replaceNodes,icon:careIcon,notice:toast,review:reviewLabFeature,exit:()=>go("admin"),imports:()=>go("lab-imports"),readiness:()=>go("lab-readiness"),list:()=>go("lab"),initialFeature:/^#lab-preview=([a-z_]+)$/.exec(location.hash)?.[1]||null,roadmap:id=>go(id==="care_companion"?"lab-care":"lab-services"),directory:workspace=>directoryNavigate("",{filters:window.MedicalDirectoryModel.emptyFilters(),scroll:0,workspace}),allowed:()=>isAdmin()&&epoch===state.identityEpoch});
+    labView=window.MedicalDevelopmentLab.mount({root,api:API,el,button,replaceNodes,icon:careIcon,notice:toast,review:reviewLabFeature,exit:()=>go("admin"),inbox:()=>go("lab-inbox"),imports:()=>go("lab-imports"),readiness:()=>go("lab-readiness"),list:()=>go("lab"),initialFeature:/^#lab-preview=([a-z_]+)$/.exec(location.hash)?.[1]||null,roadmap:id=>go(id==="care_companion"?"lab-care":"lab-services"),directory:workspace=>directoryNavigate("",{filters:window.MedicalDirectoryModel.emptyFilters(),scroll:0,workspace}),allowed:()=>isAdmin()&&epoch===state.identityEpoch});
   }
   function openLabFeature(id){
+    if(id==="admin_inbox")return go("lab-inbox");
     if(id==="catalog_staging")return go("lab-imports");
     if(id==="directory_experience"||id==="visit_workspace")return directoryNavigate("",{filters:window.MedicalDirectoryModel.emptyFilters(),scroll:0,workspace:id==="visit_workspace"});
     if(id==="care_companion"||id==="service_planning")return go(id==="care_companion"?"lab-care":"lab-services");
     go("lab-preview="+id);
+  }
+  function openInboxTool(section,ref){
+    if(!isAdmin())return;
+    if(section==='reviews')return adminReviewDialog();
+    if(section==='profiles')return adminProfileRequestsDialog();
+    if(section==='quality'||!ref)return qualityDialog();
+    const rows=(state.catalog[ref.kind]||[]).filter(row=>String(row.id)===ref.id);
+    if(rows.length!==1){toast('السجل غير متاح بشكل فريد في اللقطة الحالية؛ حدّث الدليل من الإدارة.');return;}
+    const row=rows[0],kind=facilitySection(ref.kind,row);
+    go('admin',{adminKind:kind,adminWorklist:'all',adminState:'',adminSpecialty:'',adminCategory:'',adminMarkaz:'',adminNetwork:'',adminContract:'',contentType:'',contentStatus:'',query:ref.kind==='medical_guidelines'?(row.title||row.name||''):ref.id});
+  }
+  function renderAdminInbox(main){
+    if(!isAdmin()){main.append(heading("المعاينة متاحة للإدارة فقط"),button("العودة للرئيسية",()=>go("home"),"button primary"));return;}
+    const epoch=state.identityEpoch,root=el('section',{class:'development-lab','aria-label':'مكتب متابعة المدير الخاص'});main.append(root);
+    labView=window.MedicalAdminInbox.mount({root,api:API,el,button,notice:toast,allowed:()=>isAdmin()&&epoch===state.identityEpoch,exit:()=>go('lab'),open:openInboxTool,memory:state.roadmapMemory.admin_inbox||={}});
   }
   function renderCatalogStaging(main){
     if(!isAdmin()){main.append(heading("المعاينة متاحة للإدارة فقط"),button("العودة للرئيسية",()=>go("home"),"button primary"));return;}
@@ -1098,15 +1114,16 @@
     main.replaceChildren();
     const signedIn = !!session();
     document.documentElement.classList.toggle("workspace-view",signedIn);
-    document.documentElement.classList.toggle("admin-view",signedIn && ["admin","lab","lab-directory","lab-care","lab-services","lab-readiness","lab-imports"].includes(state.tab));
+    document.documentElement.classList.toggle("admin-view",signedIn && ["admin","lab","lab-directory","lab-care","lab-services","lab-readiness","lab-imports","lab-inbox"].includes(state.tab));
     const desktopAdmin=$(".desktop-admin-link");if(desktopAdmin)desktopAdmin.hidden=!isAdmin();
-    $(".search-panel").hidden = !signedIn || ["home","lab","lab-directory","lab-care","lab-services","lab-readiness","lab-imports"].includes(state.tab);
+    $(".search-panel").hidden = !signedIn || ["home","lab","lab-directory","lab-care","lab-services","lab-readiness","lab-imports","lab-inbox"].includes(state.tab);
     $("#main-nav").hidden = !signedIn;
     if (!signedIn) {
       document.documentElement.classList.add("login-view");
       return renderLogin(main);
     }
     document.documentElement.classList.remove("login-view");
+    if (state.tab === "lab-inbox") return renderAdminInbox(main);
     if (state.tab === "lab-imports") return renderCatalogStaging(main);
     if (state.tab === "lab-readiness") return renderLabReadiness(main);
     if (state.tab === "lab") return renderDevelopmentLab(main);
@@ -1355,7 +1372,7 @@
       "lab",
       "lab-care",
       "lab-services",
-      "lab-readiness","lab-imports",
+      "lab-readiness","lab-imports","lab-inbox",
       "guidelines",
       "account",
       "favorites",

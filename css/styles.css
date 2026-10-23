@@ -1517,3 +1517,21 @@ html { overflow-anchor:none; scroll-behavior:auto; }
 .import-plan-panel { margin-block:1rem; padding:1rem; border-radius:1rem; background:var(--primary-soft); }
 .import-match-option { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:.65rem; padding-block:.7rem; border-block-end:1px solid var(--border); }
 @media(max-width:540px){.import-match-option{grid-template-columns:1fr;}.import-row-editor{scroll-margin-block-start:190px;}.import-row-editor input{font-size:16px;}}
+
+/* Administrator follow-up desk: independently scrollable cards without horizontal overflow. */
+.inbox-queue-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; margin-block:1.25rem; }
+.inbox-queue { display:grid; gap:.6rem; padding:1.2rem; border:1px solid var(--border); border-radius:1.2rem; background:var(--card); min-width:0; }
+.inbox-queue>strong { font:800 2rem 'Tajawal',sans-serif; color:var(--primary); }
+.inbox-actions { display:flex; flex-wrap:wrap; gap:.65rem; align-items:center; margin-block:.75rem; }
+.inbox-field { display:grid; gap:.4rem; min-width:0; margin-block:.45rem; }
+.inbox-field input,.inbox-field select { width:100%; min-width:0; padding:.7rem; font:inherit; background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:.8rem; }
+.inbox-filter-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr)); gap:.7rem; padding:1rem; border:1px solid var(--border); border-radius:1.2rem; margin-block:1rem; }
+.inbox-task-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr)); gap:1rem; margin-block:1rem; align-items:start; }
+.inbox-task { padding:1.25rem; border:1px solid var(--border); border-inline-start:4px solid var(--primary); border-radius:1.2rem; background:var(--card); min-width:0; overflow-wrap:anywhere; }
+.inbox-task ul { padding-inline-start:1.3rem; font-size:.95rem; }
+.inbox-state-changed,.inbox-state-due { background:#fff0cd; color:#6b4a08; }
+.inbox-editor { padding:1rem; background:var(--page); border:1px solid var(--primary); border-radius:1rem; margin-block:.75rem; }
+.inbox-journal { padding:1rem; border:1px solid var(--border); border-radius:1.2rem; margin-block:1.25rem; }
+.inbox-journal summary { padding-block:.65rem; cursor:pointer; }
+.inbox-journal-entry { padding-block:1rem; border-block-end:1px solid var(--border); }
+@media(max-width:600px){.inbox-queue-grid{grid-template-columns:1fr;}.inbox-field input,.inbox-field select{font-size:16px;}.inbox-task{padding:1rem;}}
