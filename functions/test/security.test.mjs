@@ -1104,3 +1104,12 @@ test('HTTP inbox reads and private follow-up writes enforce live administration 
  assert.deepEqual(await f.service.catalog(m),before);assert.deepEqual(f.employees,sourceBefore);assert.equal(f.store.profileNotes.size,0);
  f.accounts[0].accountStatus='disabled';await assert.rejects(()=>f.service.labInbox(a,true),error=>error.status===403);
 });
+
+test('directory reading revision invalidates a prior design approval and keeps source/member behavior unchanged',async()=>{
+ const f=setup(),a=await admin(f),m=await member(f),catalogBefore=await f.service.catalog(m),sourceBefore=structuredClone(f.employees);
+ f.store.labRows.set('directory_experience',{version:3,previewRevision:'p1-directory-20261019-1',review:'approved',note:'اعتماد تصميم سابق',previewEnabled:true,history:[]});
+ const preview=await f.service.labPreview(a,'directory_experience');
+ assert.equal(preview.feature.previewRevision,'p1-directory-20261023-2');assert.equal(preview.feature.review,'pending');assert.equal(preview.feature.staleApproval,true);assert.equal(preview.feature.note,'');assert.equal(preview.feature.memberEnabled,false);
+ await assert.rejects(()=>f.service.saveLabFeature(a,'directory_experience',{expected_version:3,previewRevision:'p1-directory-20261019-1',review:'approved',note:'',previewEnabled:true}),e=>e.code==='LAB_REVISION_CHANGED');
+ assert.deepEqual(await f.service.catalog(m),catalogBefore);assert.deepEqual(f.employees,sourceBefore);assert.equal(f.store.overlays.size,0);assert.equal(f.store.reviews.size,0);
+});

@@ -232,7 +232,7 @@ try {
   assert.equal(await p.locator(".login-card .brand-pair img").count(),2);
   assert.ok(await p.getByRole("heading",{name:"دليل الرعاية الطبية بالدقهلية",exact:true}).isVisible());
   assert.ok(await p.locator('.login-card a[href="tel:01550100025"]').isVisible());
-  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.20.0");
+  assert.equal(await p.locator(".app-footer small").first().innerText(),"تطبيق رعايتي - رعاية أقرب لك ولأسرتك · الإصدار 4.21.0");
   assert.equal(await p.locator(".login-card .login-president").innerText(),"رئيس النقابة\nالأستاذ/ محمود صالح");
   assert.equal(await p.locator('.login-card .login-links').count(),0);
   assert.equal(await p.locator('.login-card a[href="tel:123"]').count(),0);
@@ -446,7 +446,7 @@ try {
   await p.locator("dialog").waitFor({ state: "hidden" });
   assert.equal(store.reviews.size, 1);
   assert.deepEqual([...store.reviews.values()][0].criteria,{reception:5,waiting:3});
-  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.20.0');
+  assert.equal(await p.locator('#app-version').textContent(),'الإصدار 4.21.0');
   assert.ok((await p.locator('.copyright').innerText()).includes('محمود العراقي'));
   await p.goto(origin+"/#entity="+encodeURIComponent("doctor:provider_51"));
   await p.locator('.location-row').first().waitFor();
@@ -1114,6 +1114,41 @@ try {
   // Functional P1 remains private, reads only published entries and preserves navigation context.
   await labFeature('directory_experience').getByRole('button',{name:'فتح المعاينة',exact:true}).click();
   await a.locator('.directory-preview[data-directory-ready="true"]').waitFor();
+  // P1 comfort is private, explicit and retained only in the identity's in-memory session.
+  const readingOptions=a.locator('.directory-reading-options');assert.equal(await readingOptions.getAttribute('open'),null);
+  await readingOptions.locator('summary').click();await a.getByLabel('حجم النص في المعاينة',{exact:true}).selectOption('larger');
+  await a.locator('.directory-size-larger').waitFor();assert.equal(await a.evaluate(()=>document.activeElement.dataset.directoryFocus),'reading-size');
+  await a.getByLabel('بطاقات مختصرة',{exact:true}).check();await a.getByLabel('تباين أوضح',{exact:true}).check();await a.getByLabel('تقليل الحركة',{exact:true}).check();
+  assert.equal(await a.locator('.directory-provider-card .directory-card-location:visible').count(),0);
+  assert.ok(await a.locator('.directory-provider-card .directory-service-state').count()>0);assert.ok(await a.locator('.directory-provider-card .lab-network').count()>0);
+  await a.emulateMedia({reducedMotion:'reduce'});
+  for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Large private reading fits '+width);}
+  await a.setViewportSize({width:390,height:844});
+  assert.ok((await a.locator('.directory-sections button').nth(1).boundingBox()).width>=130,'Large labels have room for complete Arabic words');
+  if(process.env.MEDICAL_SCREENSHOT_DIR){
+    await a.locator('.directory-reading-options').screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'directory-reading-options.png'),style:'.app-header, .bottom-nav, #toast{visibility:hidden}'});
+    await a.locator('.directory-provider-card').first().screenshot({path:resolve(process.env.MEDICAL_SCREENSHOT_DIR,'directory-reading-card.png'),style:'.app-header, .bottom-nav, #toast{visibility:hidden}'});
+  }
+  await a.getByLabel('البحث في الدليل التجريبي',{exact:true}).fill('باطنة');
+  await a.locator('.directory-search-suggestions button').first().waitFor();
+  const suggested=await a.locator('.directory-search-suggestions button').first().innerText();assert.ok(suggested.includes('باطنة'));
+  await a.locator('.directory-search-suggestions button').first().click();await a.locator('[data-directory-focus="results"]:focus').waitFor();
+  assert.ok(await a.getByLabel('المركز أو المدينة',{exact:true}).inputValue());assert.ok(await a.getByLabel('التخصص في المعاينة',{exact:true}).inputValue());
+  assert.equal(await a.locator('.directory-filter-chips .filter-chip').count(),2);assert.ok(await a.locator('.directory-provider-card').count()>0);
+  await a.getByRole('button',{name:'مسح البحث والتصفية',exact:true}).click();
+  // Preserve the explicit presentation choices through a provider page and browser Back.
+  const readableCard=a.locator('.directory-provider-card').first(),readableId=await readableCard.getAttribute('data-directory-provider');
+  await readableCard.getByRole('button',{name:/^عرض التفاصيل:/}).click();await a.locator('[data-directory-focus="detail-heading"]:focus').waitFor();
+  assert.ok(await a.locator('.directory-size-larger.directory-contrast.directory-compact.directory-calm').count());
+  await a.getByRole('tab',{name:'التفاصيل',exact:true}).click();assert.ok(await a.locator('.lab-detail-content').innerText());
+  const detailTab=a.getByRole('tab',{name:'التفاصيل',exact:true});await detailTab.focus();await a.keyboard.press('ArrowLeft');await a.getByRole('tab',{name:'الفروع',selected:true}).waitFor();
+  assert.equal(await a.evaluate(()=>document.activeElement.getAttribute('role')),'tab');
+  for(const width of [320,390,768,1440]){await a.setViewportSize({width,height:900});assert.ok(await a.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Large provider details fit '+width);}
+  await a.setViewportSize({width:390,height:844});
+  await a.getByRole('button',{name:'العودة للنتائج',exact:true}).click();await a.waitForFunction(id=>document.activeElement?.dataset.directoryFocus==='provider:'+id,readableId);
+  assert.equal(await a.getByLabel('حجم النص في المعاينة',{exact:true}).inputValue(),'larger');
+  await a.getByRole('button',{name:'استعادة العرض العادي',exact:true}).click();assert.equal(await a.locator('.directory-size-standard').count(),1);assert.equal(await a.getByLabel('بطاقات مختصرة',{exact:true}).isChecked(),false);
+  await a.emulateMedia({reducedMotion:'no-preference'});
   await a.getByLabel('البحث في الدليل التجريبي',{exact:true}).fill('داوي');
   await a.locator('.directory-preview form').getByRole('button',{name:'ابحث',exact:true}).click();
   await a.locator('[data-directory-provider="specialized_centers:family_20261018_047"]').waitFor();
@@ -1125,7 +1160,7 @@ try {
   await a.getByLabel('المركز أو المدينة',{exact:true}).selectOption('بلقاس');
   assert.equal(await a.locator('.directory-provider-card').count(),1);
   await a.evaluate(()=>window.scrollTo(0,400));const directoryScroll=await a.evaluate(()=>window.scrollY);
-  await a.locator('.directory-provider-card').getByRole('button',{name:'عرض التفاصيل',exact:true}).evaluate(button=>button.click());
+  await a.locator('.directory-provider-card').getByRole('button',{name:/^عرض التفاصيل:/}).evaluate(button=>button.click());
   await a.locator('.directory-detail-actions').waitFor();
   await a.locator('[data-directory-branch="'+newHospitals[1].id+'"]').click();
   assert.ok(await a.locator('.directory-detail-actions a[href="tel:0502000001"]').isVisible());

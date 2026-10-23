@@ -24,3 +24,26 @@ test('facility reclassification retains canonical review targets and map links u
  const link=model.mapLink(hit.provider,hit.v,'العنوان الثاني');assert.equal(new URL(link.href).searchParams.get('query'),'مركز اختبار العنوان الثاني طلخا الدقهلية مصر');
  assert.equal(M.text(null),'');assert.equal(M.text('null'),'');assert.equal(M.text('undefined'),'');assert.equal(model.stat(hit.provider,hit.b),null);
 });
+
+test('reading choices accept explicit presentation options without inferring personal attributes',()=>{
+ assert.deepEqual(M.readingPreferences(null),{size:'standard',compact:false,contrast:false,calm:false});
+ assert.deepEqual(M.readingPreferences({size:'larger',compact:true,contrast:true,calm:true,age:90,member:'private'}),{size:'larger',compact:true,contrast:true,calm:true});
+ assert.deepEqual(M.readingPreferences({size:'999px',compact:'true',contrast:1,calm:[]}),M.readingPreferences());
+});
+test('intent suggestions use existing pairs and unique providers, respect network and section, and never merge identities',()=>{
+ const model=create({records:[row('a',{provider_id:'one',specialty:'باطنة',network_members:['employee']}),row('b',{provider_id:'one',specialty:'باطنة',network_members:['employee']}),row('c',{provider_id:'two',specialty:'باطنة',network_members:['employee']}),row('d',{provider_id:'family',specialty:'أطفال',markaz:'المنصورة',network_members:['family']})],labs:[row('lab',{category:'تحاليل',markaz:'بلقاس',network_members:['family']})]});
+ const before=JSON.stringify(model.providers),values=model.suggestions({query:'باطنه في طخلا',kind:'records',network:'employee'});
+ assert.equal(values.length,1);assert.equal(values[0].label,'باطنة في طلخا');assert.equal(values[0].count,2);assert.equal(values[0].approximate,true);
+ assert.deepEqual(values[0].filters,{query:'',specialty:'باطنة',markaz:'طلخا',kind:'records',network:'employee'});
+ for(const value of model.suggestions({}))assert.equal(model.find(value.filters).length,value.count);
+ assert.equal(model.suggestions({query:'باطنة',network:'family'}).length,0);
+ assert.equal(model.suggestions({query:'أطفال',kind:'labs'}).length,0);
+ assert.equal(model.suggestions({query:'اسم غير موجود إطلاقا'}).length,0);
+ assert.equal(model.suggestions({query:'باطنة',markaz:'بلقاس'}).length,0);
+ assert.equal(model.suggestions({specialty:'باطنة',markaz:'طلخا',network:'employee'}).length,0);
+ assert.equal(JSON.stringify(model.providers),before);
+});
+test('suggestions are bounded, deterministic and exclude missing region or specialty pairs',()=>{
+ const model=create({records:Array.from({length:12},(_,i)=>row('d'+i,{provider_id:'p'+i,specialty:'تخصص '+i,markaz:'مدينة '+i})).concat(row('missing',{provider_id:'missing',specialty:'null',markaz:'null'}))});
+ const values=model.suggestions({});assert.equal(values.length,3);assert.deepEqual(values,model.suggestions({}));assert.ok(values.every(v=>!v.label.includes('null')));
+});

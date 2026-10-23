@@ -1,7 +1,7 @@
 /* Private UI specimens. All data and review operations require the administrator API. */
 window.MedicalDevelopmentLab=(()=>{
  const previewRevision='p1-20261019-1',featureIds=['compact_home','provider_card','provider_details','directory_experience','visit_workspace','care_companion','service_planning','catalog_staging','admin_inbox'];
- function compatible(feature){if(!featureIds.includes(feature?.id)||feature.previewRevision!==(feature.id==='admin_inbox'?'admin-inbox-20261023-1':feature.id==='catalog_staging'?'catalog-staging-20261021-2':feature.id==='care_companion'?'p3-p6-20261021-1':feature.id==='service_planning'?'p4-p5-20261021-2':feature.id==='visit_workspace'?'p2-visit-20261021-1':feature.id==='directory_experience'?'p1-directory-20261019-1':previewRevision))throw new Error('تغيرت نسخة المعاينة؛ حدّث التطبيق قبل مراجعة التصميم.');}
+ function compatible(feature){if(!featureIds.includes(feature?.id)||feature.previewRevision!==(feature.id==='admin_inbox'?'admin-inbox-20261023-1':feature.id==='catalog_staging'?'catalog-staging-20261021-2':feature.id==='care_companion'?'p3-p6-20261021-1':feature.id==='service_planning'?'p4-p5-20261021-2':feature.id==='visit_workspace'?'p2-visit-20261021-1':feature.id==='directory_experience'?'p1-directory-20261023-2':previewRevision))throw new Error('تغيرت نسخة المعاينة؛ حدّث التطبيق قبل مراجعة التصميم.');}
 
  const isCompatible=f=>{try{compatible(f);return f.audience==='admin'&&f.memberEnabled===false;}catch{return false;}};
  const validateBoard=data=>{if(data.features.some(f=>f.audience!=='admin'||f.memberEnabled!==false))throw new Error('لم تؤكد الخدمة حصر المعاينات بالإدارة.');};

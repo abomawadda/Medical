@@ -6,6 +6,8 @@
  const text=v=>v==null?'':String(v).replace(/\b(?:null|undefined|nan|none)\b/gi,'').trim();
  const usable=v=>{const s=text(v);return /تحتاج? (?:إلى )?تأكيد|تحتاج? مراجعة|اتصل لمعرفة|راجع حداثة|رقم منشور|غير مسجل/.test(s)?'':s;};
  const emptyFilters=()=>({query:'',kind:'all',markaz:'',specialty:'',network:'',limit:24});
+ // Session-memory presentation choices; never infer them from member data.
+ const readingPreferences=value=>({size:['standard','large','larger'].includes(value?.size)?value.size:'standard',compact:value?.compact===true,contrast:value?.contrast===true,calm:value?.calm===true});
  const safeStat=s=>Number.isInteger(s?.count)&&s.count>0&&Number.isFinite(s.average)&&s.average>=1&&s.average<=5?{count:s.count,average:s.average}:null;
  const networkText=values=>[...new Set(values)].map(v=>({employee:'الموظفون',family:'الأسر',retiree:'المعاشات'}[v])).filter(Boolean).join(' · ');
  function create(data,{facilities,search,contacts,research}){
@@ -42,6 +44,16 @@
    const matches=p.branches.flatMap(b=>matchingViews(b,f).map(v=>({b,v,...matchView(p,v,f.query)}))).filter(m=>m.score>0).sort((a,b)=>b.score-a.score);
    return matches.length?[{provider:p,...matches[0],matchingBranches:new Set(matches.map(m=>m.b.id)).size}]:[];
   }).sort((a,b)=>b.score-a.score||a.provider.name.localeCompare(b.provider.name,'ar'));}
+  function suggestions(filters){
+   const f={...emptyFilters(),...filters},groups=new Map();
+   // Only existing specialty/city pairs in the selected network/section. No inferred eligibility.
+   for(const p of providers)for(const b of p.branches)for(const v of matchingViews(b,f)){
+    if(!v.specialty||!v.city)continue;const key=JSON.stringify([v.specialty,v.city]);
+    if(!groups.has(key)){const label=v.specialty+' في '+v.city,match=search.match(f.query,{name:label,tags:[labels[v.kind]]});groups.set(key,{label,specialty:v.specialty,markaz:v.city,...match,providers:new Set()});}
+    groups.get(key).providers.add(p.id);
+   }
+   return [...groups.values()].filter(g=>g.score>0&&!(f.specialty===g.specialty&&f.markaz===g.markaz&&!text(f.query))).sort((a,b)=>b.score-a.score||a.label.localeCompare(b.label,'ar')).slice(0,3).map(g=>({label:g.label,count:g.providers.size,approximate:g.approximate,filters:{query:'',specialty:g.specialty,markaz:g.markaz,kind:f.kind,network:f.network}}));
+  }
   function select(p,branchId,network){const b=p.branches.find(b=>b.id===branchId)||p.branches[0];const v=b.views.find(v=>network==='family'?v.network.some(n=>['family','retiree'].includes(n)):v.network.includes(network))||b.views[0];return {b,v};}
   function stat(p,b){return safeStat((p.source==='records'?data.stats?.[p.id]:data.facilityStats?.[b.target]||data.stats?.[b.target]));}
   function mapLink(p,v,address=v.address){
@@ -50,7 +62,7 @@
    return {href:'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent([p.name,address,v.city,'الدقهلية مصر'].filter(Boolean).join(' ')),label:'البحث عن العنوان'};
   }
   const values=key=>[...new Set(providers.flatMap(p=>p.branches.flatMap(b=>b.views.map(v=>v[key]))).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
-  return {providers,byId,find,matches:(p,v,query)=>matchView(p,v,query).score>0,select,stat,mapLink,cities:values('city'),specialties:values('specialty')};
+  return {providers,byId,find,suggestions,matches:(p,v,query)=>matchView(p,v,query).score>0,select,stat,mapLink,cities:values('city'),specialties:values('specialty')};
  }
- return Object.freeze({create,kinds,labels,icons,text,usable,networkText,emptyFilters});
+ return Object.freeze({create,kinds,labels,icons,text,usable,networkText,emptyFilters,readingPreferences});
 });
